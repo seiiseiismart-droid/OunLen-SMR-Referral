@@ -8,7 +8,7 @@ st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
 # ----------------------------------------------------------------
-# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form (បានរៀបចំរួចជាស្រេច)
+# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form របស់ហាង អូនឡែន សម្រស់
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScvhuVjcIYkX61RDDYvu3UuYNoHiQORJuhH5Tb1yL2CWEjUsw/formResponse"
 
 ENTRY_CODE = "entry.236683526"      # លេខសម្រាប់ 'កូដកាត'
@@ -32,12 +32,22 @@ except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# សម្អាតឈ្មោះ Column ឱ្យត្រូវគ្នា
+# ប្រសិនបើទាញមកទទេរ ឬគ្មានទិន្នន័យ ឱ្យបង្កើតទម្រង់លំនាំដើមការពារ Error
+if df is None or df.empty:
+    df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"])
+
+# សម្អាតឈ្មោះ Column ឱ្យត្រូវគ្នា (លុបចន្លោះទទេរចេញ)
 df.columns = [str(col).strip() for col in df.columns]
 
-# ដក Column ពេលវេលាចេញ (បើផ្ដើមចេញពី Google Form វានឹងមានទិន្នន័យនេះនៅជួរទី១)
+# ដក Column ពេលវេលាចេញ (បើផ្ដើមចេញពី Google Form)
 if "Timestamp" in df.columns:
     df = df.drop(columns=["Timestamp"])
+
+# ពិនិត្យមើលបើគ្មាន Column ទាំងនេះទេ ឱ្យបង្កើតមកជាលំនាំដើម
+required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"]
+for col in required_cols:
+    if col not in df.columns:
+        df[col] = None
 
 st.markdown("---")
 
@@ -46,10 +56,11 @@ st.header("📥 ទទួលកូដពីអតិថិជន")
 input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ KR001):").strip().upper()
 
 if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary"):
-    if "កូដកាត" in df.columns and input_code in df["កូដកាត"].values:
-        # ទាញយកជួរទិន្នន័យចុងក្រោយបង្អស់នៃកូដនោះ
-        matching_rows = df[df["កូដកាត"] == input_code]
-        idx = matching_rows.index[-1] 
+    # ពិនិត្យមើលថាមានទិន្នន័យកូដក្នុងតារាងដែរឬទេ
+    valid_rows = df[df["កូដកាត"].astype(str).str.strip().upper() == input_code]
+    
+    if not valid_rows.empty:
+        idx = valid_rows.index[-1] # ចាប់យកជួរចុងក្រោយបង្អស់
         
         status = str(df.loc[idx, "ស្ថានភាព"]).strip()
         if status == "បានប្រើរួច (Used)":
@@ -81,7 +92,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                     st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
                 st.rerun()
             else:
-                st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
+                st.error("❌ 有问题 មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
     else:
         st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធទេ!")
 
@@ -91,13 +102,15 @@ st.markdown("---")
 st.header("➕ បង្កើតកូដថ្មី (សម្រាប់អតិថិជនទើបមកដំបូង)")
 col1, col2 = st.columns(2)
 with col1:
-    new_code = st.text_input("បង្កើតលេខកូដថ្មី:").strip().upper()
+    new_code = st.text_input("បង្កើតលេខកូដថ្មី (ឧទាហរណ៍៖ KR001):").strip().upper()
 with col2:
     new_name = st.text_input("ឈ្មោះអតិថិជន:")
 
 if st.button("ចុះឈ្មោះកូដថ្មី"):
     if new_code and new_name:
-        if "កូដកាត" in df.columns and new_code in df["កូដកាត"].values:
+        # ពិនិត្យមើលក្រែងលោមានកូដជាន់គ្នា
+        existing_codes = df["កូដកាត"].dropna().astype(str).str.strip().upper().values
+        if new_code in existing_codes:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
             # បញ្ជូនទិន្នន័យបង្កើតថ្មីទៅកាន់ Google Form
@@ -122,11 +135,18 @@ st.markdown("---")
 
 # --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យរួម ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
-if not df.empty:
-    # ករណីមានកូដដដែលៗ ចាប់យកតែទិន្នន័យចុងក្រោយបង្អស់មកបង្ហាញដើម្បីកុំឱ្យជាន់គ្នា
-    display_df = df.drop_duplicates(subset=["កូដកាត"], keep="last")
+
+# បង្ហាញតារាងលុះត្រាតែមានទិន្នន័យពិតប្រាកដ (មិនមែនជួរទទេរ)
+actual_data = df.dropna(subset=["កូដកាត"])
+
+if not actual_data.empty:
+    # លុបជួរដែលជាន់គ្នា ចាប់យកតែទិន្នន័យចុងក្រោយបង្អស់
+    display_df = actual_data.drop_duplicates(subset=["កូដកាត"], keep="last")
+    
     if "ចំនូនអ្នកណែនាំ" in display_df.columns:
-        display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនូនអ្នកណែនាំ"].apply(lambda x: f"{int(x) * 10}%" if int(x) < 10 else "FREE 1 ដង")
+        display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនូនអ្នកណែនាំ"].apply(
+            lambda x: f"{int(x) * 10}%" if pd.notnull(x) and str(x).isdigit() and int(x) < 10 else ("FREE 1 ដង" if pd.notnull(x) and str(x).isdigit() and int(x) >= 10 else "0%")
+        )
     st.dataframe(display_df, use_container_width=True)
 else:
-    st.write("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅឡើយទេ។")
+    st.info("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅក្នុងប្រព័ន្ធឡើយ។ សូមសាកល្បងបង្កើតកូដថ្មីខាងលើ! 🥰")
