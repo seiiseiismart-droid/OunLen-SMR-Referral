@@ -17,7 +17,7 @@ ENTRY_COUNT = "entry.727798281"     # លេខសម្រាប់ 'ចំន�
 ENTRY_STATUS = "entry.1264942129"   # លេខសម្រាប់ 'ស្ថានភាព'
 # ----------------------------------------------------------------
 
-# 1. អានទិន្នន័យ Live ពី Google Sheets (លីងដែលអ្នកបានដាក់ក្នុង Secrets)
+# 1. អានទិន្នន័យ Live ពី Google Sheets
 try:
     original_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     if "edit?usp=sharing" in original_url:
@@ -27,23 +27,19 @@ try:
     else:
         csv_url = original_url
     
-    # ប្រើប្រាស់វិធីអានលឿន ដោយមិនប្រើប្រាស់ Cache
     df = pd.read_csv(csv_url)
 except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# បង្កើត DataFrame ទទេរជាមុនសិន បើគ្មានទិន្នន័យសោះ
 if df is None or df.empty:
     df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"])
 
-# សម្អាតឈ្មោះ Column ឱ្យត្រូវគ្នា
 df.columns = [str(col).strip() for col in df.columns]
 
 if "Timestamp" in df.columns:
     df = df.drop(columns=["Timestamp"])
 
-# ធានាថាមាន Column គ្រប់គ្រាន់ទៅតាមអក្សរក្នុង Form
 required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"]
 for col in required_cols:
     if col not in df.columns:
@@ -64,7 +60,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
         status = str(df.loc[idx, "ស្ថានភាព"]).strip()
         
         if status == "បានប្រើរួច (Used)":
-            st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
+            st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដួ រួចរាល់ហើយ!")
         else:
             try:
                 current_count = int(float(df.loc[idx, "ចំនួនអ្នកណែនាំ"])) + 1
@@ -74,7 +70,6 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
             new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
             
-            # បំប្លែងទិន្នន័យទាំងអស់ទៅជា String មុននឹងបញ្ជូនទៅ Google Form
             form_data = {
                 ENTRY_CODE: str(input_code),
                 ENTRY_NAME: str(owner_name),
@@ -84,10 +79,10 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             
             response = requests.post(FORM_URL, data=form_data)
             if response.status_code == 200:
-                st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}** និងបានរក្សាទុកពិន្ទុថ្មីជោគជ័យ!")
+                st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}** និងរក្សារទិន្នន័យថ្មីរួចរាល់!")
                 st.rerun()
             else:
-                st.error("❌ មានបញ្ហាក្នុងការកត់ត្រាពិន្ទុ!")
+                st.error(f"❌ មិនអាចកត់ត្រាពិន្ទុបានទេ! (Google Form Error Code: {response.status_code})")
     else:
         st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធទេ!")
 
@@ -113,13 +108,14 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
         if is_duplicate:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
-            # ធានាថាតម្លៃទាំងអស់ត្រូវបានផ្ញើជាប្រភេទ String ទៅកាន់ Google Form
             form_data = {
                 ENTRY_CODE: str(new_code),
                 ENTRY_NAME: str(new_name),
                 ENTRY_COUNT: "0",
                 ENTRY_STATUS: "សកម្ម"
             }
+            
+            # ព្យាយាមផ្ញើទៅកាន់ Google Form
             response = requests.post(FORM_URL, data=form_data)
             
             if response.status_code == 200:
@@ -127,7 +123,9 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
                 st.balloons()
                 st.rerun()
             else:
-                st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets តាមរយៈ Form បានទេ! សូមពិនិត្យមើលលេខ Entry ID ឡើងវិញ។")
+                # បង្ហាញកំហុសលម្អិតដើម្បីងាយស្រួលដោះស្រាយ
+                st.error(f"❌ ហ្គូហ្គលហ្វមបដិសេធការបញ្ជូន! (Error Code: {response.status_code})")
+                st.info("💡 ដំណោះស្រាយ៖ សូមចូលទៅកាន់ទំព័រ Settings របស់ Google Form រួចបិទការកំណត់ 'Limit to 1 response' និង 'Restrict to users...' ចោល។")
     else:
         st.warning("⚠️ សូមបំពេញទាំងលេខកូដ និងឈ្មោះអតិថិជន។")
 
