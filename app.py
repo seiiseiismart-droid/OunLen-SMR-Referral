@@ -1,36 +1,26 @@
 import streamlit as st
 import pandas as pd
-import requests
+from streamlit_gsheets import GSheetsConnection
 
 st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍♀️", layout="centered")
 
 st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្រប់គ្រងកូដណែនាំ 🇰🇭")
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
-# 1. ទាញយក URL របស់ Google Sheets ពី Secrets រួចបំប្លែងទៅជាទម្រង់ទាញទិន្នន័យ (CSV export URL)
+# ភ្ជាប់ទៅកាន់ Google Sheets
 try:
-    original_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-    
-    # បំប្លែងតំណភ្ជាប់ឱ្យទៅជាលីងទាញយកទិន្នន័យ CSV ផ្ទាល់
-    if "edit?usp=sharing" in original_url:
-        csv_url = original_url.replace("edit?usp=sharing", "gviz/tq?tqx=out:csv")
-    elif "edit#" in original_url:
-        csv_url = original_url.split("edit#")[0] + "gviz/tq?tqx=out:csv"
-    else:
-        csv_url = original_url
-        
-    # អានទិន្នន័យដោយប្រើ Pandas ផ្ទាល់
-    df = pd.read_csv(csv_url)
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    df = conn.read(ttl=0)
 except Exception as e:
-    st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីង ឬការកំណត់ទំហំផ្ទុករបស់អ្នក។")
-    st.info(f"ព័ត៌មានលម្អិតនៃកំហុស: {e}")
+    st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
+    st.info(f"ព័ត៌មានកំហុស៖ {e}")
     st.stop()
 
-# ករណីទិន្នន័យទទេរ ឱ្យបង្កើតទម្រង់លំនាំដើម
+# បង្កើតទម្រង់លំនាំដើមបើទិន្នន័យទទេរ
 if df is None or df.empty:
     df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"])
 
-# សម្អាតឈ្មោះ Column
+# សម្អាតឈ្មោះ Column ឱ្យត្រូវស្តង់ដារ
 df.columns = [str(col).strip() for col in df.columns]
 
 st.markdown("---")
@@ -45,35 +35,34 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
         
         status = str(df.loc[idx, "ស្ថានភាព"]).strip()
         if status == "បានប្រើរួច (Used)":
-            st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
+            st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់រួចហើយ!")
         else:
             try:
                 current_count = int(df.loc[idx, "ចំនួនអ្នកណែនាំ"]) + 1
             except:
                 current_count = 1
                 
+            df.loc[idx, "ចំនួនអ្នកណែនាំ"] = current_count
             owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
-            
-            st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}**")
-            st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (ទទួលបានការបញ្ចុះតម្លៃ {current_count * 10}%)")
             
             if current_count >= 10:
                 st.balloons()
-                st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
+                df.loc[idx, "ស្ថានភាព"] = "គ្រប់លក្ខខណ្ឌ (Free)"
             
-            # ចំណាំ៖ ដោយសារការប្រើប្រាស់លីងទូទៅ (Public Link) អនុញ្ញាតឱ្យតែអានទិន្នន័យ (Read-only)
-            # ដើម្បីអាចកែប្រែទិន្នន័យបាន (Write/Update) អ្នកត្រូវសម្អាតទំហំផ្ទុកអ៊ីមែលរបស់អ្នក (15GB) រួចប្រើប្រាស់ Service Account (JSON Key)។
-            st.warning("⚠️ ប្រព័ន្ធបានផ្ទៀងផ្ទាត់ជោគជ័យ ប៉ុន្តែការរក្សាទុកត្រឡប់ទៅ Google Sheets វិញត្រូវបានផ្អាក ដោយសារទំហំផ្ទុក Google Drive របស់អ្នកពេញ។")
+            # រក្សាទុកត្រឡប់ទៅ Sheets វិញ
+            conn.update(data=df)
+            st.success(f"✅ បូកពិន្ទុជូន៖ **{owner_name}** ជោគជ័យ! (សរុប៖ {current_count} នាក់)")
+            st.rerun()
     else:
-        st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធ ឬតារាង Google Sheets មិនទាន់មានក្បាលជួរឈរឡើយ!")
+        st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធទេ!")
 
 st.markdown("---")
 
-# --- ផ្នែកទី ២៖ បង្កើតកូដថ្មីសម្រាប់អតិថិជន ---
+# --- ផ្នែកទី ២៖ បង្កើតកូដថ្មី ---
 st.header("➕ បង្កើតកូដថ្មី (សម្រាប់អតិថិជនទើបមកដំបូង)")
 col1, col2 = st.columns(2)
 with col1:
-    new_code = st.text_input("បង្កើតលេខកូដថ្មី (ឧទាហរណ៍៖ KR004):").strip().upper()
+    new_code = st.text_input("បង្កើតលេខកូដថ្មី:").strip().upper()
 with col2:
     new_name = st.text_input("ឈ្មោះអតិថិជន:")
 
@@ -82,14 +71,17 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
         if "កូដកាត" in df.columns and new_code in df["កូដកាត"].values:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
-            st.info(f"📋 បានកត់ត្រាទិន្នន័យបណ្តោះអាសន្ន៖ {new_code} - {new_name}")
-            st.warning("⚠️ មិនទាន់អាចបន្ថែមទៅ Google Sheets បានទេ ដោយសារគណនី Google របស់អ្នកពេញទំហំផ្ទុក (15GB)។ សូមសម្អាត Space ក្នុង Drive របស់អ្នកជាមុនសិន។")
+            new_row = pd.DataFrame([{"កូដកាត": new_code, "ឈ្មោះម្ចាស់កូដ": new_name, "ចំនួនអ្នកណែនាំ": 0, "ស្ថានភាព": "សកម្ម"}])
+            df = pd.concat([df, new_row], ignore_index=True)
+            conn.update(data=df)
+            st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
+            st.rerun()
     else:
         st.warning("⚠️ សូមបំពេញទាំងលេខកូដ និងឈ្មោះអតិថិជន។")
 
 st.markdown("---")
 
-# --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យសរុបក្នុងហាង ---
+# --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យរួម ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
 if not df.empty:
     display_df = df.copy()
