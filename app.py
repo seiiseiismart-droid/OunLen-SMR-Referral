@@ -9,11 +9,11 @@ st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិ
 
 # ----------------------------------------------------------------
 # 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form របស់ហាង អូនឡែន សម្រស់
-FORM_URL = "https://docs.google.com/spreadsheets/d/1SjtACyQL4mXNVRWjwMVXwMJnCqfgo9oDpa8rhTESaa8/edit?usp=sharing/formResponse"
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScvhuVjcIYkX61RDDYvu3UuYNoHiQORJuhH5Tb1yL2CWEjUsw/formResponse"
 
 ENTRY_CODE = "entry.236683526"      # លេខសម្រាប់ 'កូដកាត'
 ENTRY_NAME = "entry.1741541315"    # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កូដ'
-ENTRY_COUNT = "entry.1593503525"   # លេខសម្រាប់ 'ចំនូនអ្នកណែនាំ'
+ENTRY_COUNT = "entry.1593503525"   # លេខសម្រាប់ 'ចំនំនួនអ្នកណែនាំ'
 ENTRY_STATUS = "entry.1444218765"  # លេខសម្រាប់ 'ស្ថានភាព'
 # ----------------------------------------------------------------
 
@@ -21,7 +21,6 @@ ENTRY_STATUS = "entry.1444218765"  # លេខសម្រាប់ 'ស្ថ�
 try:
     original_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     
-    # បំប្លែងលីងទៅជា CSV លុះត្រាតែជាលីង Spreadsheet ត្រឹមត្រូវ
     if "docs.google.com/spreadsheets" in original_url:
         if "edit" in original_url:
             csv_url = original_url.split("/edit")[0] + "/export?format=csv"
@@ -37,27 +36,23 @@ except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# បង្កើតតារាងស្តង់ដារសម្រាប់ដំណើរការក្នុងប្រព័ន្ធ
-df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"])
+# បង្កើតតារាងស្តង់ដារសម្រាប់ដំណើរការក្នុងប្រព័ន្ធ (កែសម្រួលអក្ខរាវិរុទ្ធឱ្យត្រូវតាម Sheets របស់បង)
+df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព"])
 
 if raw_df is not None and not raw_df.empty:
-    # សម្អាតឈ្មោះ columns របស់ raw_df
     raw_df.columns = [str(col).strip() for col in raw_df.columns]
     
-    # លុបជួរឈរពេលវេលាចេញបើមាន
     if "Timestamp" in raw_df.columns:
         raw_df = raw_df.drop(columns=["Timestamp"])
     elif "ពេលវេលា" in str(raw_df.columns[0]):
         raw_df = raw_df.iloc[:, 1:]
         
-    # ចាប់យកទិន្នន័យមកផ្គូផ្គងតាមលំដាប់ជួរ (ជួរទី១=កូដកាត, ទី២=ឈ្មោះ, ទី៣=ចំនួន, ទី៤=ស្ថានភាព)
     cols_count = len(raw_df.columns)
     if cols_count >= 1: df["កូដកាត"] = raw_df.iloc[:, 0]
     if cols_count >= 2: df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 1]
-    if cols_count >= 3: df["ចំនូនអ្នកណែនាំ"] = raw_df.iloc[:, 2]
+    if cols_count >= 3: df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 2]
     if cols_count >= 4: df["ស្ថានភាព"] = raw_df.iloc[:, 3]
 
-# លុបជួរណាដែលមានកូដ HTML ញ៉ីញ៉ៃចេញ ការពារកំហុសទិន្នន័យចាស់
 if not df.empty:
     df = df[~df["កូដកាត"].astype(str).str.contains("<DIV|<SPAN|html|none", case=False, na=True)]
 
@@ -73,14 +68,14 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
         valid_rows = df[df["កូដកាត_clean"] == input_code]
         
         if not valid_rows.empty:
-            idx = valid_rows.index[-1] # ចាប់យកជួរចុងក្រោយបង្អស់
-            
+            idx = valid_rows.index[-1]
             status = str(df.loc[idx, "ស្ថានភាព"]).strip()
+            
             if status == "បានប្រើរួច (Used)":
                 st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
             else:
                 try:
-                    current_count = int(float(df.loc[idx, "ចំនូនអ្នកណែនាំ"])) + 1
+                    current_count = int(float(df.loc[idx, "ចំនំនួនអ្នកណែនាំ"])) + 1
                 except:
                     current_count = 1
                     
@@ -101,13 +96,13 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                     st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (ទទួលបានការបញ្ចុះតម្លៃ {current_count * 10}%)")
                     if current_count >= 10:
                         st.balloons()
-                    st.info("💡 រក្សាទុកជោគជ័យ! សូមធ្វើការបុក Refresh (F5) កម្មវិធីឡើងវិញ ដើម្បីទាញទិន្នន័យថ្មី។")
+                    st.info("💡 រក្សាទុកជោគជ័យ! សូមបុក Refresh (F5) កម្មវិធីឡើងវិញ ដើម្បីទាញទិន្នន័យថ្មី។")
                 else:
-                    st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
+                    st.error("❌ មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Google Form! សូមពិនិត្យមើល Entry IDs ក្នុងកូដឡើងវិញ។")
         else:
             st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
     else:
-        st.error("❌ ប្រព័ន្ធទិន្នន័យទទេរ ឬលីង Sheets មិនទាន់ត្រឹមត្រូវ! សូមបង្កើតកូដថ្មីសាកល្បង។")
+        st.error("❌ ប្រព័ន្ធទិន្នន័យទទេរ! សូមបង្កើតកូដថ្មីសាកល្បងខាងក្រោមជាមុនសិន។")
 
 st.markdown("---")
 
@@ -143,7 +138,7 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
                 st.balloons()
                 st.info("💡 បង្កើតកូដជោគជ័យ! សូមរង់ចាំបន្តិច រួចធ្វើការ Refresh កម្មវិធី ដើម្បីឱ្យទិន្នន័យបង្ហាញក្នុងតារាង។")
             else:
-                st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ!")
+                st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើល FORM_URL និង Entry IDs ឡើងវិញ។")
     else:
         st.warning("⚠️ សូមបំពេញទាំងលេខកូដ និងឈ្មោះអតិថិជន។")
 
@@ -156,7 +151,6 @@ if not df.empty and df["កូដកាត"].notnull().any():
     actual_data = df.dropna(subset=["កូដកាត"])
     actual_data["កូដកាត"] = actual_data["កូដកាត"].astype(str).str.strip().str.upper()
     
-    # លុបជួរជាន់គ្នា បង្ហាញតែបច្ចុប្បន្នភាពចុងក្រោយ
     display_df = actual_data.drop_duplicates(subset=["កូដកាត"], keep="last")
     
     def calculate_discount(x):
@@ -166,9 +160,9 @@ if not df.empty and df["កូដកាត"].notnull().any():
         except:
             return "0%"
             
-    display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនូនអ្នកណែនាំ"].apply(calculate_discount)
+    display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនំនួនអ្នកណែនាំ"].apply(calculate_discount)
     
-    final_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព", "ភាគរយបញ្ចុះតម្លៃសន្សំបាន"]
+    final_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព", "ភាគរយបញ្ចុះតម្លៃសន្សំបាន"]
     st.dataframe(display_df[final_cols].reset_index(drop=True), use_container_width=True)
 else:
-    st.info("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅក្នុងប្រព័ន្ធឡើយ ឬកំពុងរង់ចាំការកែសម្រួលលីងពី Secrets។ 🥰")
+    st.info("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅក្នុងប្រព័ន្ធឡើយ។ 🥰")
