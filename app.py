@@ -2,15 +2,14 @@ import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
-st.set_page_config(page_title="Kongrei Mart - Referral System", page_icon="🇰🇭", layout="centered")
+st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍♀️", layout="centered")
 
-st.title("កង្រី ម៉ាត - ប្រព័ន្ធគ្រប់គ្រងកូដណែនាំ 🇰🇭")
+st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្រប់គ្រងកូដណែនាំ 🇰🇭")
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
 # 1. ភ្ជាប់ទៅកាន់ Google Sheets (សន្លឹកទិន្នន័យអនឡាញ)
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    # អានទិន្នន័យពី Sheet ធំតែម្តង (មិនទាន់កំណត់ឈ្មោះ worksheet ដើម្បីកុំឱ្យជួបកំហុសឈ្មោះ Tab)
     df = conn.read(ttl=0)
 except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យការកំណត់ខាងក្រោម។")
