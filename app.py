@@ -65,7 +65,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             
             status = str(df.loc[idx, "ស្ថានភាព"]).strip()
             if status == "បានប្រើរួច (Used)":
-                st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
+                st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដួវរួចរាល់ហើយ!")
             else:
                 try:
                     current_count = int(df.loc[idx, "ចំនូនអ្នកណែនាំ"]) + 1
@@ -92,9 +92,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                         st.balloons()
                         st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
                     
-                    # បន្ថែមចូលក្នុងតារាងបណ្ដោះអាសន្នដើម្បីឱ្យបង្ហាញលើអេក្រង់ភ្លាមៗ
-                    new_row = pd.DataFrame([{"កូដកាត": input_code, "ឈ្មោះម្ចាស់កូដ": owner_name, "ចំនូនអ្នកណែនាំ": current_count, "ស្ថានភាព": new_status}])
-                    df = pd.concat([df, new_row], ignore_index=True)
+                    st.info("💡 ទិន្នន័យត្រូវបានរក្សាទុកទៅកាន់ Google Sheets រួចរាល់! សូមធ្វើការ Refresh ទំព័រនេះដើម្បីទាញទិន្នន័យថ្មីចុងក្រោយ។")
                 else:
                     st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
         else:
@@ -116,8 +114,9 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
     if new_code and new_name:
         is_duplicate = False
         if not df.empty and "កូដកាត" in df.columns:
-            existing_codes = df["កូដកាត"].dropna().astype(str).str.strip().str.upper().tolist()
-            if new_code in existing_codes:
+            # វិធីសាស្ត្រពិនិត្យកូដជាន់គ្នាដោយសុវត្ថិភាពខ្ពស់បំផុត
+            df["កូដកាត_str"] = df["កូដកាត"].astype(str).str.strip().str.upper()
+            if new_code in df["កូដកាត_str"].values:
                 is_duplicate = True
                 
         if is_duplicate:
@@ -135,10 +134,7 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             if response.status_code == 200:
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
                 st.balloons()
-                
-                # បន្ថែមចូលក្នុងតារាងបណ្ដោះអាសន្នដើម្បីឱ្យបង្ហាញលើអេក្រង់ភ្លាមៗ
-                new_row = pd.DataFrame([{"កូដកាត": new_code, "ឈ្មោះម្ចាស់កូដ": new_name, "ចំនូនអ្នកណែនាំ": 0, "ស្ថានភាព": "សកម្ម"}])
-                df = pd.concat([df, new_row], ignore_index=True)
+                st.info("💡 ទិន្នន័យត្រូវបានរក្សាទុកទៅកាន់ Google Sheets រួចរាល់! សូមធ្វើការ Refresh ទំព័រនេះដើម្បីទាញទិន្នន័យថ្មីចុងក្រោយ។")
             else:
                 st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ!")
     else:
@@ -148,6 +144,11 @@ st.markdown("---")
 
 # --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យរួម ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
+
+# លុប Column បណ្ដោះអាសន្នចេញបើមាន ការពារការយល់ច្រឡំ
+if "កូដកាត_clean" in df.columns: df = df.drop(columns=["កូដកាត_clean"])
+if "កូដកាត_str" in df.columns: df = df.drop(columns=["កូដកាត_str"])
+
 if not df.empty and df["កូដកាត"].notnull().any():
     actual_data = df.dropna(subset=["កូដកាត"])
     # លុបជួរដែលជាន់គ្នា ចាប់យកតែទិន្នន័យចុងក្រោយបង្អស់មកបង្ហាញ
