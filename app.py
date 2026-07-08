@@ -7,14 +7,21 @@ st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍
 st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្រប់គ្រងកូដណែនាំ 🇰🇭")
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
+# ឈ្មោះសន្លឹកកិច្ចការលំនាំដើម
+WORKSHEET_NAME = "Referrals"
+
 # 1. ភ្ជាប់ទៅកាន់ Google Sheets (សន្លឹកទិន្នន័យអនឡាញ)
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read(ttl=0)
+    df = conn.read(worksheet=WORKSHEET_NAME, ttl=0)
 except Exception as e:
-    st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យការកំណត់ខាងក្រោម។")
-    st.info(f"ព័ត៌មានលម្អិតនៃកំហុស (Error Log): {e}")
-    st.stop()
+    # ករណីបើកកូដដំបូងមិនស្គាល់ឈ្មោះ "Referrals" ឱ្យព្យាយាមអានទូទៅ
+    try:
+        df = conn.read(ttl=0)
+    except Exception as e2:
+        st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យការកំណត់ខាងក្រោម។")
+        st.info(f"ព័ត៌មានលម្អិតនៃកំហុស (Error Log): {e2}")
+        st.stop()
 
 # ករណីទិន្នន័យទទេរ ឬអានមិនចេញ ឱ្យបង្កើតទម្រង់លំនាំដើម
 if df is None or df.empty:
@@ -55,8 +62,8 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                 st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
                 df.loc[idx, "ស្ថានភាព"] = "គ្រប់លក្ខខណ្ឌ (Free)"
             
-            # រក្សាទុកទិន្នន័យទៅលើ Google Sheets វិញភ្លាមៗ
-            conn.update(data=df)
+            # រក្សាទុកទិន្នន័យទៅលើ Google Sheets វិញភ្លាមៗ ដោយបញ្ជាក់ឈ្មោះ Worksheet ច្បាស់លាស់
+            conn.update(worksheet=WORKSHEET_NAME, data=df)
             st.success("💾 បានរក្សាទុកទិន្នន័យទៅក្នុងប្រព័ន្ធអនឡាញរួចរាល់!")
             st.rerun()
     else:
@@ -81,8 +88,8 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             new_row = pd.DataFrame([{"កូដកាត": new_code, "ឈ្មោះម្ចាស់កូដ": new_name, "ចំនួនអ្នកណែនាំ": 0, "ស្ថានភាព": "សកម្ម"}])
             df = pd.concat([df, new_row], ignore_index=True)
             
-            # រក្សាទុកទៅ Google Sheets
-            conn.update(data=df)
+            # រក្សាទុកទៅ Google Sheets ដោយបញ្ជាក់ឈ្មោះ Worksheet ច្បាស់លាស់
+            conn.update(worksheet=WORKSHEET_NAME, data=df)
             st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
             st.rerun()
     else:
