@@ -26,7 +26,8 @@ try:
         csv_url = original_url.split("edit#")[0] + "gviz/tq?tqx=out:csv"
     else:
         csv_url = original_url
-        
+    
+    # បន្ថែមបច្ចេកទេសលុប Cache ដើម្បីឱ្យទិន្នន័យរត់ចូលភ្លាមៗពេលចុច Submit
     df = pd.read_csv(csv_url)
 except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
@@ -43,7 +44,7 @@ df.columns = [str(col).strip() for col in df.columns]
 if "Timestamp" in df.columns:
     df = df.drop(columns=["Timestamp"])
 
-# ធានាថាមាន Column គ្រប់គ្រាន់
+# ធានាថាមាន Column គ្រប់គ្រាន់ទៅតាមអក្ខរាវិរុទ្ធក្នុង Form
 required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"]
 for col in required_cols:
     if col not in df.columns:
@@ -56,7 +57,6 @@ st.header("📥 ទទួលកូដពីអតិថិជន")
 input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ KR001):").strip().upper()
 
 if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary"):
-    # បំប្លែង Column កូដកាត ទៅជា String ដើម្បីងាយស្រួលផ្ទៀងផ្ទាត់
     df["កូដកាត_clean"] = df["កូដកាត"].astype(str).str.strip().str.upper()
     valid_rows = df[df["កូដកាត_clean"] == input_code]
     
@@ -75,7 +75,6 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
             new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
             
-            # បញ្ជូនទិន្នន័យថ្មីទៅកាន់ Google Form
             form_data = {
                 ENTRY_CODE: input_code,
                 ENTRY_NAME: owner_name,
@@ -90,7 +89,6 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                 st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (ទទួលបានការបញ្ចុះតម្លៃ {current_count * 10}%)")
                 if current_count >= 10:
                     st.balloons()
-                    st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
                 st.rerun()
             else:
                 st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
@@ -109,7 +107,6 @@ with col2:
 
 if st.button("ចុះឈ្មោះកូដថ្មី"):
     if new_code and new_name:
-        # វិធីពិនិត្យកូដជាន់គ្នា បែបមានសុវត្ថិភាពខ្ពស់ ទោះតារាងទទេរក៏មិន Error
         is_duplicate = False
         if "កូដកាត" in df.columns:
             for val in df["កូដកាត"].dropna().values:
@@ -120,7 +117,6 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
         if is_duplicate:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
-            # បញ្ជូនទិន្នន័យបង្កើតថ្មីទៅកាន់ Google Form
             form_data = {
                 ENTRY_CODE: new_code,
                 ENTRY_NAME: new_name,
@@ -143,19 +139,17 @@ st.markdown("---")
 # --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យរួម ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
 
-# សម្អាតទិន្នន័យមុនបង្ហាញ
 if "កូដកាត_clean" in df.columns:
     df = df.drop(columns=["កូដកាត_clean"])
 
 actual_data = df.dropna(subset=["កូដកាត"])
 
 if not actual_data.empty:
-    # លុបជួរដែលជាន់គ្នា ចាប់យកតែទិន្នន័យចុងក្រោយបង្អស់
     display_df = actual_data.drop_duplicates(subset=["កូដកាត"], keep="last")
     
     if "ចំនូនអ្នកណែនាំ" in display_df.columns:
         display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនូនអ្នកណែនាំ"].apply(
-            lambda x: f"{int(x) * 10}%" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) < 10 else ("FREE 1 ដង" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) >= 10 else "0%")
+            lambda x: f"{int(float(x)) * 10}%" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) < 10 else ("FREE 1 ដង" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) >= 10 else "0%")
         )
     st.dataframe(display_df, use_container_width=True)
 else:
