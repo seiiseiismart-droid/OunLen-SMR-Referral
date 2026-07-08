@@ -8,9 +8,10 @@ st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
 # ----------------------------------------------------------------
-# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form ថ្មីបង្អស់ (ផ្អែកលើរូបថតអេក្រង់)
+# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form 
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScvhuVjcIYkX61RDDYvu3UuYNoHiQORJuhH5Tb1yL2CWEjUsw/formResponse"
 
+# ⚠️ សូមប្តូរលេខ entry ខាងក្រោមនេះ ទៅជាលេខពិតប្រាកដដែលអ្នករកឃើញតាមវិធីខាងលើ៖
 ENTRY_CODE = "entry.1742407519"      # លេខសម្រាប់ 'កូដកាត'
 ENTRY_NAME = "entry.1691242337"      # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កូដ'
 ENTRY_COUNT = "entry.31154562"       # លេខសម្រាប់ 'ចំនួនអ្នកណែនាំ'
@@ -27,23 +28,23 @@ try:
     else:
         csv_url = original_url
     
+    # ប្រើប្រាស់វិធីអានលឿន ដោយមិនប្រើប្រាស់ Cache
     df = pd.read_csv(csv_url)
 except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# បង្កើត DataFrame ទទេរជាមុនសិន បើគ្មានទិន្នន័យ
+# បង្កើត DataFrame ទទេរជាមុនសិន បើគ្មានទិន្នន័យសោះ
 if df is None or df.empty:
     df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"])
 
-# សម្អាតឈ្មោះ Column ឱ្យត្រូវគ្នា (លុបចន្លោះទទេរចេញ)
+# សម្អាតឈ្មោះ Column ឱ្យត្រូវគ្នា
 df.columns = [str(col).strip() for col in df.columns]
 
-# ដក Column ពេលវេលាចេញ (បើផ្ដើមចេញពី Google Form)
 if "Timestamp" in df.columns:
     df = df.drop(columns=["Timestamp"])
 
-# ធានាថាមាន Column គ្រប់គ្រាន់ទៅតាមអក្សរក្នុង Form ថ្មី
+# ធានាថាមាន Column គ្រប់គ្រាន់ទៅតាមអក្សរក្នុង Form
 required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"]
 for col in required_cols:
     if col not in df.columns:
@@ -60,14 +61,14 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
     valid_rows = df[df["កូដកាត_clean"] == input_code]
     
     if not valid_rows.empty:
-        idx = valid_rows.index[-1] # ចាប់យកជួរចុងក្រោយបង្អស់
-        
+        idx = valid_rows.index[-1] 
         status = str(df.loc[idx, "ស្ថានភាព"]).strip()
+        
         if status == "បានប្រើរួច (Used)":
             st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
         else:
             try:
-                current_count = int(df.loc[idx, "ចំនួនអ្នកណែនាំ"]) + 1
+                current_count = int(float(df.loc[idx, "ចំនួនអ្នកណែនាំ"])) + 1
             except:
                 current_count = 1
                 
@@ -82,15 +83,11 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             }
             
             response = requests.post(FORM_URL, data=form_data)
-            
             if response.status_code == 200:
                 st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}**")
-                st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (ទទួលបានការបញ្ចុះតម្លៃ {current_count * 10}%)")
-                if current_count >= 10:
-                    st.balloons()
                 st.rerun()
             else:
-                st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
+                st.error("❌ មានបញ្ហាក្នុងការកត់ត្រាពិន្ទុ!")
     else:
         st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធទេ!")
 
@@ -100,7 +97,7 @@ st.markdown("---")
 st.header("➕ បង្កើតកូដថ្មី (សម្រាប់អតិថិជនទើបមកដំបូង)")
 col1, col2 = st.columns(2)
 with col1:
-    new_code = st.text_input("បង្កើតលេខកូដថ្មី (ឧទាហរណ៍៖ KR001):").strip().upper()
+    new_code = st.text_input("បង្កើតលេខកូដថ្មី:").strip().upper()
 with col2:
     new_name = st.text_input("ឈ្មោះអតិថិជន:")
 
@@ -129,7 +126,7 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
                 st.balloons()
                 st.rerun()
             else:
-                st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ!")
+                st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets តាមរយៈ Form បានទេ! សូមពិនិត្យមើលលេខ Entry ID ឡើងវិញ។")
     else:
         st.warning("⚠️ សូមបំពេញទាំងលេខកូដ និងឈ្មោះអតិថិជន។")
 
@@ -145,7 +142,6 @@ actual_data = df.dropna(subset=["កូដកាត"])
 
 if not actual_data.empty:
     display_df = actual_data.drop_duplicates(subset=["កូដកាត"], keep="last")
-    
     if "ចំនួនអ្នកណែនាំ" in display_df.columns:
         display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនួនអ្នកណែនាំ"].apply(
             lambda x: f"{int(float(x)) * 10}%" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) < 10 else ("FREE 1 ដង" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) >= 10 else "0%")
