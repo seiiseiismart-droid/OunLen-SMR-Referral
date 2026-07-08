@@ -32,7 +32,7 @@ except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# ប្រសិនបើទាញមកទទេរ ឬគ្មានទិន្នន័យ ឱ្យបង្កើតទម្រង់លំនាំដើមការពារ Error
+# បង្កើត DataFrame ទទេរជាមុនសិន បើគ្មានទិន្នន័យ
 if df is None or df.empty:
     df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"])
 
@@ -43,7 +43,7 @@ df.columns = [str(col).strip() for col in df.columns]
 if "Timestamp" in df.columns:
     df = df.drop(columns=["Timestamp"])
 
-# ពិនិត្យមើលបើគ្មាន Column ទាំងនេះទេ ឱ្យបង្កើតមកជាលំនាំដើម
+# ធានាថាមាន Column គ្រប់គ្រាន់
 required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"]
 for col in required_cols:
     if col not in df.columns:
@@ -56,8 +56,9 @@ st.header("📥 ទទួលកូដពីអតិថិជន")
 input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ KR001):").strip().upper()
 
 if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary"):
-    # ពិនិត្យមើលថាមានទិន្នន័យកូដក្នុងតារាងដែរឬទេ
-    valid_rows = df[df["កូដកាត"].astype(str).str.strip().upper() == input_code]
+    # បំប្លែង Column កូដកាត ទៅជា String ដើម្បីងាយស្រួលផ្ទៀងផ្ទាត់
+    df["កូដកាត_clean"] = df["កូដកាត"].astype(str).str.strip().str.upper()
+    valid_rows = df[df["កូដកាត_clean"] == input_code]
     
     if not valid_rows.empty:
         idx = valid_rows.index[-1] # ចាប់យកជួរចុងក្រោយបង្អស់
@@ -92,7 +93,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                     st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
                 st.rerun()
             else:
-                st.error("❌ 有问题 មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
+                st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
     else:
         st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធទេ!")
 
@@ -108,9 +109,15 @@ with col2:
 
 if st.button("ចុះឈ្មោះកូដថ្មី"):
     if new_code and new_name:
-        # ពិនិត្យមើលក្រែងលោមានកូដជាន់គ្នា
-        existing_codes = df["កូដកាត"].dropna().astype(str).str.strip().upper().values
-        if new_code in existing_codes:
+        # វិធីពិនិត្យកូដជាន់គ្នា បែបមានសុវត្ថិភាពខ្ពស់ ទោះតារាងទទេរក៏មិន Error
+        is_duplicate = False
+        if "កូដកាត" in df.columns:
+            for val in df["កូដកាត"].dropna().values:
+                if str(val).strip().upper() == new_code:
+                    is_duplicate = True
+                    break
+        
+        if is_duplicate:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
             # បញ្ជូនទិន្នន័យបង្កើតថ្មីទៅកាន់ Google Form
@@ -136,7 +143,10 @@ st.markdown("---")
 # --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យរួម ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
 
-# បង្ហាញតារាងលុះត្រាតែមានទិន្នន័យពិតប្រាកដ (មិនមែនជួរទទេរ)
+# សម្អាតទិន្នន័យមុនបង្ហាញ
+if "កូដកាត_clean" in df.columns:
+    df = df.drop(columns=["កូដកាត_clean"])
+
 actual_data = df.dropna(subset=["កូដកាត"])
 
 if not actual_data.empty:
@@ -145,7 +155,7 @@ if not actual_data.empty:
     
     if "ចំនូនអ្នកណែនាំ" in display_df.columns:
         display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនូនអ្នកណែនាំ"].apply(
-            lambda x: f"{int(x) * 10}%" if pd.notnull(x) and str(x).isdigit() and int(x) < 10 else ("FREE 1 ដង" if pd.notnull(x) and str(x).isdigit() and int(x) >= 10 else "0%")
+            lambda x: f"{int(x) * 10}%" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) < 10 else ("FREE 1 ដង" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) >= 10 else "0%")
         )
     st.dataframe(display_df, use_container_width=True)
 else:
