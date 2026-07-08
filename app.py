@@ -8,7 +8,7 @@ st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
 # ----------------------------------------------------------------
-# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form របស់ហាង អូនឡែន សម្រស់ (បានកែប្រែលីងត្រឹមត្រូវរួចរាល់)
+# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form របស់ហាង អូនឡែន សម្រស់
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScvhuVjcIYkX61RDDYvu3UuYNoHiQORJuhH5Tb1yL2CWEjUsw/formResponse"
 
 ENTRY_CODE = "entry.236683526"      # លេខសម្រាប់ 'កូដកាត'
@@ -32,7 +32,7 @@ except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# ករណីបើកដំបូង Sheets ទទេរស្អាត មិនទាន់មានទិន្នន័យ (ការពារកំហុស AttributeError)
+# ករណីបើកដំបូង Sheets ទទេរស្អាត មិនទាន់មានទិន្នន័យ
 if df is None or df.empty:
     df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"])
 
@@ -43,7 +43,7 @@ df.columns = [str(col).strip() for col in df.columns]
 if "Timestamp" in df.columns:
     df = df.drop(columns=["Timestamp"])
 
-# ធានាថាមាន Column គ្រប់គ្រាន់ ទោះបីជា Sheets ទើបបង្កើតថ្មីក៏ដោយ
+# ធានាថាមាន Column គ្រប់គ្រាន់
 required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"]
 for col in required_cols:
     if col not in df.columns:
@@ -53,16 +53,15 @@ st.markdown("---")
 
 # --- ផ្នែកទី ១៖ ទទួលកូដពីអតិថិជនថ្មី ---
 st.header("📥 ទទួលកូដពីអតិថិជន")
-input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ KR001):").strip().upper()
+input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ KR001):", key="verify_input").strip().upper()
 
 if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary"):
     if not df.empty and "កូដកាត" in df.columns:
-        # បំប្លែងទិន្នន័យទៅជា String ដើម្បីងាយស្រួលស្វែងរក
         df["កូដកាត_clean"] = df["កូដកាត"].astype(str).str.strip().str.upper()
         valid_rows = df[df["កូដកាត_clean"] == input_code]
         
         if not valid_rows.empty:
-            idx = valid_rows.index[-1] # ចាប់យកជួរចុងក្រោយបង្អស់ (បច្ចុប្បន្នភាពចុងក្រោយ)
+            idx = valid_rows.index[-1] # ចាប់យកជួរចុងក្រោយបង្អស់
             
             status = str(df.loc[idx, "ស្ថានភាព"]).strip()
             if status == "បានប្រើរួច (Used)":
@@ -92,7 +91,10 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                     if current_count >= 10:
                         st.balloons()
                         st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
-                    st.rerun()
+                    
+                    # បន្ថែមចូលក្នុងតារាងបណ្ដោះអាសន្នដើម្បីឱ្យបង្ហាញលើអេក្រង់ភ្លាមៗ
+                    new_row = pd.DataFrame([{"កូដកាត": input_code, "ឈ្មោះម្ចាស់កូដ": owner_name, "ចំនូនអ្នកណែនាំ": current_count, "ស្ថានភាព": new_status}])
+                    df = pd.concat([df, new_row], ignore_index=True)
                 else:
                     st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
         else:
@@ -103,16 +105,15 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
 st.markdown("---")
 
 # --- ផ្នែកទី ២៖ បង្កើតកូដថ្មី ---
-st.header("➕ បង្កើតកូដថ្មី (物理សម្រាប់អតិថិជនទើបមកដំបូង)")
+st.header("➕ បង្កើតកូដថ្មី (សម្រាប់អតិថិជនទើបមកដំបូង)")
 col1, col2 = st.columns(2)
 with col1:
-    new_code = st.text_input("បង្កើតលេខកូដថ្មី (ឧទាហរណ៍៖ KR001):").strip().upper()
+    new_code = st.text_input("បង្កើតលេខកូដថ្មី (ឧទាហរណ៍៖ KR001):", key="new_code_input").strip().upper()
 with col2:
-    new_name = st.text_input("ឈ្មោះអតិថិជន:")
+    new_name = st.text_input("ឈ្មោះអតិថិជន:", key="new_name_input")
 
 if st.button("ចុះឈ្មោះកូដថ្មី"):
     if new_code and new_name:
-        # វិធីសាស្ត្រពិនិត្យកូដជាន់គ្នាដោយសុវត្ថិភាពខ្ពស់បំផុត ទោះSheets ទទេក៏មិន Error
         is_duplicate = False
         if not df.empty and "កូដកាត" in df.columns:
             existing_codes = df["កូដកាត"].dropna().astype(str).str.strip().str.upper().tolist()
@@ -134,7 +135,10 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             if response.status_code == 200:
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
                 st.balloons()
-                st.rerun()
+                
+                # បន្ថែមចូលក្នុងតារាងបណ្ដោះអាសន្នដើម្បីឱ្យបង្ហាញលើអេក្រង់ភ្លាមៗ
+                new_row = pd.DataFrame([{"កូដកាត": new_code, "ឈ្មោះម្ចាស់កូដ": new_name, "ចំនូនអ្នកណែនាំ": 0, "ស្ថានភាព": "សកម្ម"}])
+                df = pd.concat([df, new_row], ignore_index=True)
             else:
                 st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ!")
     else:
@@ -144,7 +148,6 @@ st.markdown("---")
 
 # --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យរួម ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
-# បង្ហាញតារាងលុះត្រាតែមានទិន្នន័យពិតប្រាកដ (មិនមែនជួរទទេរ)
 if not df.empty and df["កូដកាត"].notnull().any():
     actual_data = df.dropna(subset=["កូដកាត"])
     # លុបជួរដែលជាន់គ្នា ចាប់យកតែទិន្នន័យចុងក្រោយបង្អស់មកបង្ហាញ
