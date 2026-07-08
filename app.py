@@ -10,15 +10,19 @@ st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិ
 # 1. ភ្ជាប់ទៅកាន់ Google Sheets (សន្លឹកទិន្នន័យអនឡាញ)
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    # អានទិន្នន័យពី Sheet ឈ្មោះ "Referrals"
-    df = conn.read(worksheet="Referrals", ttl="0")
+    # អានទិន្នន័យពី Sheet ធំតែម្តង (មិនទាន់កំណត់ឈ្មោះ worksheet ដើម្បីកុំឱ្យជួបកំហុសឈ្មោះ Tab)
+    df = conn.read(ttl=0)
 except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យការកំណត់ខាងក្រោម។")
+    st.info(f"ព័ត៌មានលម្អិតនៃកំហុស (Error Log): {e}")
     st.stop()
 
-# បំពេញទិន្នន័យបើទទេរ
-if df.empty:
+# ករណីទិន្នន័យទទេរ ឬអានមិនចេញ ឱ្យបង្កើតទម្រង់លំនាំដើម
+if df is None or df.empty:
     df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"])
+
+# បំប្លែងឈ្មោះ Column ឱ្យត្រូវស្តង់ដារ បើករណីអានមកខុសទម្រង់
+df.columns = [str(col).strip() for col in df.columns]
 
 st.markdown("---")
 
@@ -27,15 +31,21 @@ st.header("📥 ទទួលកូដពីអតិថិជន")
 input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ KR001):").strip().upper()
 
 if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary"):
-    if input_code in df["កូដកាត"].values:
+    if "កូដកាត" in df.columns and input_code in df["កូដកាត"].values:
         idx = df[df["កូដកាត"] == input_code].index[0]
         
-        if df.loc[idx, "ស្ថានភាព"] == "បានប្រើរួច (Used)":
+        # ពិនិត្យមើលស្ថានភាពសន្លឹកកិច្ចការ
+        status = str(df.loc[idx, "ស្ថានភាព"]).strip()
+        if status == "បានប្រើរួច (Used)":
             st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
         else:
             # បន្ថែមចំនួនអ្នកណែនាំ ១នាក់
-            df.loc[idx, "ចំនួនអ្នកណែនាំ"] = int(df.loc[idx, "ចំនួនអ្នកណែនាំ"]) + 1
-            current_count = int(df.loc[idx, "ចំនួនអ្នកណែនាំ"])
+            try:
+                current_count = int(df.loc[idx, "ចំនួនអ្នកណែនាំ"]) + 1
+            except:
+                current_count = 1
+                
+            df.loc[idx, "ចំនួនអ្នកណែនាំ"] = current_count
             owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
             
             st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}**")
@@ -47,10 +57,11 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                 df.loc[idx, "ស្ថានភាព"] = "គ្រប់លក្ខខណ្ឌ (Free)"
             
             # រក្សាទុកទិន្នន័យទៅលើ Google Sheets វិញភ្លាមៗ
-            conn.update(worksheet="Referrals", data=df)
+            conn.update(data=df)
             st.success("💾 បានរក្សាទុកទិន្នន័យទៅក្នុងប្រព័ន្ធអនឡាញរួចរាល់!")
+            st.rerun()
     else:
-        st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធឡើយ! សូមពិនិត្យមើលឡើងវិញ។")
+        st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធ ឬតារាង Google Sheets មិនទាន់មានក្បាលជួរឈរឡើយ!")
 
 st.markdown("---")
 
@@ -64,7 +75,7 @@ with col2:
 
 if st.button("ចុះឈ្មោះកូដថ្មី"):
     if new_code and new_name:
-        if new_code in df["កូដកាត"].values:
+        if "កូដកាត" in df.columns and new_code in df["កូដកាត"].values:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
             # បន្ថែមជួរថ្មី
@@ -72,7 +83,7 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             df = pd.concat([df, new_row], ignore_index=True)
             
             # រក្សាទុកទៅ Google Sheets
-            conn.update(worksheet="Referrals", data=df)
+            conn.update(data=df)
             st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
             st.rerun()
     else:
@@ -82,7 +93,10 @@ st.markdown("---")
 
 # --- ផ្នែកទី ៣៖ បង្ហាញទិន្នន័យសរុបក្នុងហាង ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
-display_df = df.copy()
-if not display_df.empty:
-    display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនួនអ្នកណែនាំ"].apply(lambda x: f"{int(x) * 10}%" if int(x) < 10 else "FREE 1 ដង")
-st.dataframe(display_df, use_container_width=True)
+if not df.empty:
+    display_df = df.copy()
+    if "ចំនួនអ្នកណែនាំ" in display_df.columns:
+        display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនួនអ្នកណែនាំ"].apply(lambda x: f"{int(x) * 10}%" if int(x) < 10 else "FREE 1 ដង")
+    st.dataframe(display_df, use_container_width=True)
+else:
+    st.write("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅឡើយទេ។")
