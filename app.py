@@ -11,10 +11,10 @@ st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិ
 # 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form ថ្មីស្រឡាង
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfD_S0rZ586p7YF6fBvDk_W3uM-V9Yc7HwA6q8Yj-Lw9Dzg_A/formResponse"
 
-ENTRY_CODE = "entry.1990119949"     # លេខសម្រាប់ 'កូដកាត' ថ្មី (ឈ្មោះម្ចាស់ហាង)
-ENTRY_NAME = "entry.1171471622"     # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កង្រី' (ឈ្មោះហាង)
-ENTRY_COUNT = "entry.727798281"     # លេខសម្រាប់ 'ចំនួនអ្នកណែនាំ' (ចំនួនបុគ្គលិក)
-ENTRY_STATUS = "entry.1264942129"   # លេខសម្រាប់ 'ស្ថានភាព' ថ្មី
+ENTRY_CODE = "entry.1990119949"     # លេខសម្រាប់ 'កូដកាត'
+ENTRY_NAME = "entry.1171471622"     # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កូដ'
+ENTRY_COUNT = "entry.727798281"     # លេខសម្រាប់ 'ចំនួនអ្នកណែនាំ'
+ENTRY_STATUS = "entry.1264942129"   # លេខសម្រាប់ 'ស្ថានភាព'
 # ----------------------------------------------------------------
 
 # 1. អានទិន្នន័យ Live ពី Google Sheets (លីងដែលអ្នកបានដាក់ក្នុង Secrets)
@@ -74,16 +74,17 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
             new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
             
+            # បំប្លែងទិន្នន័យទាំងអស់ទៅជា String មុននឹងបញ្ជូនទៅ Google Form
             form_data = {
-                ENTRY_CODE: input_code,
-                ENTRY_NAME: owner_name,
-                ENTRY_COUNT: current_count,
-                ENTRY_STATUS: new_status
+                ENTRY_CODE: str(input_code),
+                ENTRY_NAME: str(owner_name),
+                ENTRY_COUNT: str(current_count),
+                ENTRY_STATUS: str(new_status)
             }
             
             response = requests.post(FORM_URL, data=form_data)
             if response.status_code == 200:
-                st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}**")
+                st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}** និងបានរក្សាទុកពិន្ទុថ្មីជោគជ័យ!")
                 st.rerun()
             else:
                 st.error("❌ មានបញ្ហាក្នុងការកត់ត្រាពិន្ទុ!")
@@ -112,10 +113,11 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
         if is_duplicate:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
+            # ធានាថាតម្លៃទាំងអស់ត្រូវបានផ្ញើជាប្រភេទ String ទៅកាន់ Google Form
             form_data = {
-                ENTRY_CODE: new_code,
-                ENTRY_NAME: new_name,
-                ENTRY_COUNT: 0,
+                ENTRY_CODE: str(new_code),
+                ENTRY_NAME: str(new_name),
+                ENTRY_COUNT: "0",
                 ENTRY_STATUS: "សកម្ម"
             }
             response = requests.post(FORM_URL, data=form_data)
