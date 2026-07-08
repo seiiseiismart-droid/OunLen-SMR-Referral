@@ -9,7 +9,7 @@ st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិ
 
 # ----------------------------------------------------------------
 # 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form ថ្មីស្រឡាង
-FORM_URL = "https://forms.gle/TBkjty7pyhMPnMN58formResponse"
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf3HYyJ1bdmbq-9a3pVM7CYNI71pc1c4aULL1G4IW6WsDeKzg/viewform?usp=sharing&ouid=114621394815177597765formResponse"
 
 ENTRY_CODE = "entry.1990119949"     # លេខសម្រាប់ 'កូដកាត'
 ENTRY_NAME = "entry.1171471622"     # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កូដ'
