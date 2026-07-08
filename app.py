@@ -20,10 +20,15 @@ ENTRY_STATUS = "entry.1444218765"  # លេខសម្រាប់ 'ស្ថ�
 # 1. អានទិន្នន័យ Live ពី Google Sheets
 try:
     original_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-    if "edit?usp=sharing" in original_url:
-        csv_url = original_url.replace("edit?usp=sharing", "gviz/tq?tqx=out:csv")
-    elif "edit#" in original_url:
-        csv_url = original_url.split("edit#")[0] + "gviz/tq?tqx=out:csv"
+    
+    # បំប្លែងលីងទៅជា CSV លុះត្រាតែជាលីង Spreadsheet ត្រឹមត្រូវ
+    if "docs.google.com/spreadsheets" in original_url:
+        if "edit" in original_url:
+            csv_url = original_url.split("/edit")[0] + "/export?format=csv"
+        elif "pubhtml" in original_url:
+            csv_url = original_url.replace("pubhtml", "pub?output=csv")
+        else:
+            csv_url = original_url
     else:
         csv_url = original_url
         
@@ -32,22 +37,29 @@ except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# 🛠️ វិធីសាស្ត្រពិសេស៖ ចាប់យកទិន្នន័យតាមលំដាប់ជួរ (Columns) ការពារបញ្ហាខុសអក្ខរាវិរុទ្ធក្នុង Sheets
+# បង្កើតតារាងស្តង់ដារសម្រាប់ដំណើរការក្នុងប្រព័ន្ធ
+df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"])
+
 if raw_df is not None and not raw_df.empty:
-    # បើមានជាប់ជួរ Timestamp (ពេលវេលា) របស់ Google Form នៅជួរទី១ ត្រូវដកចេញ
-    if "Timestamp" in raw_df.columns or "ពេលវេលា" in str(raw_df.columns[0]):
+    # សម្អាតឈ្មោះ columns របស់ raw_df
+    raw_df.columns = [str(col).strip() for col in raw_df.columns]
+    
+    # លុបជួរឈរពេលវេលាចេញបើមាន
+    if "Timestamp" in raw_df.columns:
+        raw_df = raw_df.drop(columns=["Timestamp"])
+    elif "ពេលវេលា" in str(raw_df.columns[0]):
         raw_df = raw_df.iloc[:, 1:]
         
-    # បង្កើតតារាងថ្មីដោយកំណត់ឈ្មោះ Column ឱ្យស្តង់ដារ ទោះក្នុង Sheets បងសរសេរខុសក៏មិនអីដែរ
-    df = pd.DataFrame()
+    # ចាប់យកទិន្នន័យមកផ្គូផ្គងតាមលំដាប់ជួរ (ជួរទី១=កូដកាត, ទី២=ឈ្មោះ, ទី៣=ចំនួន, ទី៤=ស្ថានភាព)
     cols_count = len(raw_df.columns)
-    
-    df["កូដកាត"] = raw_df.iloc[:, 0] if cols_count > 0 else None
-    df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 1] if cols_count > 1 else None
-    df["ចំនូនអ្នកណែនាំ"] = raw_df.iloc[:, 2] if cols_count > 2 else 0
-    df["ស្ថានភាព"] = raw_df.iloc[:, 3] if cols_count > 3 else "សកម្ម"
-else:
-    df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"])
+    if cols_count >= 1: df["កូដកាត"] = raw_df.iloc[:, 0]
+    if cols_count >= 2: df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 1]
+    if cols_count >= 3: df["ចំនូនអ្នកណែនាំ"] = raw_df.iloc[:, 2]
+    if cols_count >= 4: df["ស្ថានភាព"] = raw_df.iloc[:, 3]
+
+# លុបជួរណាដែលមានកូដ HTML ញ៉ីញ៉ៃចេញ ការពារកំហុសទិន្នន័យចាស់
+if not df.empty:
+    df = df[~df["កូដកាត"].astype(str).str.contains("<DIV|<SPAN|html|none", case=False, na=True)]
 
 st.markdown("---")
 
@@ -75,7 +87,6 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                 owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
                 new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
                 
-                # បញ្ជូនទិន្នន័យថ្មីទៅកាន់ Google Form 
                 form_data = {
                     ENTRY_CODE: input_code,
                     ENTRY_NAME: owner_name,
@@ -90,14 +101,13 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                     st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (ទទួលបានការបញ្ចុះតម្លៃ {current_count * 10}%)")
                     if current_count >= 10:
                         st.balloons()
-                        st.warning(f"🎉 ម្ចាស់កូដ **{owner_name}** ណែនាំគ្រប់ ១០នាក់ហើយ! គាត់ទទួលបាន **សេវាកម្មហ្វ្រី ១ដង** នៅពេលមកលើកក្រោយ។")
-                    st.info("💡 រក្សាទុកជោគជ័យ! សូម Refresh កម្មវិធី ដើម្បីទាញទិន្នន័យថ្មី។")
+                    st.info("💡 រក្សាទុកជោគជ័យ! សូមធ្វើការបុក Refresh (F5) កម្មវិធីឡើងវិញ ដើម្បីទាញទិន្នន័យថ្មី។")
                 else:
                     st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យត្រឡប់ទៅ Sheets!")
         else:
             st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
     else:
-        st.error("❌ ប្រព័ន្ធទិន្នន័យទទេរ! សូមបង្កើតកូដថ្មីខាងក្រោមជាមុនសិន។")
+        st.error("❌ ប្រព័ន្ធទិន្នន័យទទេរ ឬលីង Sheets មិនទាន់ត្រឹមត្រូវ! សូមបង្កើតកូដថ្មីសាកល្បង។")
 
 st.markdown("---")
 
@@ -120,7 +130,6 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
         if is_duplicate:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
-            # បញ្ជូនទិន្នន័យបង្កើតថ្មីទៅកាន់ Google Form
             form_data = {
                 ENTRY_CODE: new_code,
                 ENTRY_NAME: new_name,
@@ -132,7 +141,7 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             if response.status_code == 200:
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
                 st.balloons()
-                st.info("💡 បង្កើតកូដជោគជ័យ! សូមរង់ចាំ ១ ទៅ ២ នាទី រួចធ្វើការ Refresh កម្មវិធីដើម្បីឱ្យទិន្នន័យលោតឡើងក្នុងតារាង។")
+                st.info("💡 បង្កើតកូដជោគជ័យ! សូមរង់ចាំបន្តិច រួចធ្វើការ Refresh កម្មវិធី ដើម្បីឱ្យទិន្នន័យបង្ហាញក្នុងតារាង។")
             else:
                 st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ!")
     else:
@@ -145,13 +154,11 @@ st.header("📊 តារាងតាមដានទិន្នន័យរួ�
 
 if not df.empty and df["កូដកាត"].notnull().any():
     actual_data = df.dropna(subset=["កូដកាត"])
-    # សម្អាតទិន្នន័យមុនបង្ហាញ
     actual_data["កូដកាត"] = actual_data["កូដកាត"].astype(str).str.strip().str.upper()
     
-    # លុបជួរដែលជាន់គ្នា ចាប់យកតែទិន្នន័យចុងក្រោយបង្អស់មកបង្ហាញ
+    # លុបជួរជាន់គ្នា បង្ហាញតែបច្ចុប្បន្នភាពចុងក្រោយ
     display_df = actual_data.drop_duplicates(subset=["កូដកាត"], keep="last")
     
-    # បង្កើត Column បញ្ចុះតម្លៃ
     def calculate_discount(x):
         try:
             val = int(float(x))
@@ -161,8 +168,7 @@ if not df.empty and df["កូដកាត"].notnull().any():
             
     display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនូនអ្នកណែនាំ"].apply(calculate_discount)
     
-    # រៀបចំ Columns ឱ្យស្អាតសម្រាប់បង្ហាញ
     final_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព", "ភាគរយបញ្ចុះតម្លៃសន្សំបាន"]
-    st.dataframe(display_df[final_cols], use_container_width=True)
+    st.dataframe(display_df[final_cols].reset_index(drop=True), use_container_width=True)
 else:
-    st.info("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅក្នុងប្រព័ន្ធឡើយ។ សូមសាកល្បងបង្កើតកូដថ្មីខាងលើ! 🥰")
+    st.info("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅក្នុងប្រព័ន្ធឡើយ ឬកំពុងរង់ចាំការកែសម្រួលលីងពី Secrets។ 🥰")
