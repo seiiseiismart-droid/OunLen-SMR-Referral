@@ -8,13 +8,13 @@ st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
 # ----------------------------------------------------------------
-# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form របស់ហាង អូនឡែន សម្រស់
+# 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form ថ្មីបង្អស់ (ផ្អែកលើរូបថតអេក្រង់)
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScvhuVjcIYkX61RDDYvu3UuYNoHiQORJuhH5Tb1yL2CWEjUsw/formResponse"
 
-ENTRY_CODE = "entry.236683526"      # លេខសម្រាប់ 'កូដកាត'
-ENTRY_NAME = "entry.1741541315"    # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កូដ'
-ENTRY_COUNT = "entry.1593503525"   # លេខសម្រាប់ 'ចំនូនអ្នកណែនាំ'
-ENTRY_STATUS = "entry.1444218765"  # លេខសម្រាប់ 'ស្ថានភាព'
+ENTRY_CODE = "entry.1742407519"      # លេខសម្រាប់ 'កូដកាត'
+ENTRY_NAME = "entry.1691242337"      # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កូដ'
+ENTRY_COUNT = "entry.31154562"       # លេខសម្រាប់ 'ចំនួនអ្នកណែនាំ'
+ENTRY_STATUS = "entry.402070104"     # លេខសម្រាប់ 'ស្ថានភាព'
 # ----------------------------------------------------------------
 
 # 1. អានទិន្នន័យ Live ពី Google Sheets (លីងដែលអ្នកបានដាក់ក្នុង Secrets)
@@ -27,7 +27,6 @@ try:
     else:
         csv_url = original_url
     
-    # បន្ថែមបច្ចេកទេសលុប Cache ដើម្បីឱ្យទិន្នន័យរត់ចូលភ្លាមៗពេលចុច Submit
     df = pd.read_csv(csv_url)
 except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
@@ -35,7 +34,7 @@ except Exception as e:
 
 # បង្កើត DataFrame ទទេរជាមុនសិន បើគ្មានទិន្នន័យ
 if df is None or df.empty:
-    df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"])
+    df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"])
 
 # សម្អាតឈ្មោះ Column ឱ្យត្រូវគ្នា (លុបចន្លោះទទេរចេញ)
 df.columns = [str(col).strip() for col in df.columns]
@@ -44,8 +43,8 @@ df.columns = [str(col).strip() for col in df.columns]
 if "Timestamp" in df.columns:
     df = df.drop(columns=["Timestamp"])
 
-# ធានាថាមាន Column គ្រប់គ្រាន់ទៅតាមអក្ខរាវិរុទ្ធក្នុង Form
-required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនូនអ្នកណែនាំ", "ស្ថានភាព"]
+# ធានាថាមាន Column គ្រប់គ្រាន់ទៅតាមអក្សរក្នុង Form ថ្មី
+required_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនួនអ្នកណែនាំ", "ស្ថានភាព"]
 for col in required_cols:
     if col not in df.columns:
         df[col] = None
@@ -68,7 +67,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
         else:
             try:
-                current_count = int(df.loc[idx, "ចំនូនអ្នកណែនាំ"]) + 1
+                current_count = int(df.loc[idx, "ចំនួនអ្នកណែនាំ"]) + 1
             except:
                 current_count = 1
                 
@@ -147,8 +146,8 @@ actual_data = df.dropna(subset=["កូដកាត"])
 if not actual_data.empty:
     display_df = actual_data.drop_duplicates(subset=["កូដកាត"], keep="last")
     
-    if "ចំនូនអ្នកណែនាំ" in display_df.columns:
-        display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនូនអ្នកណែនាំ"].apply(
+    if "ចំនួនអ្នកណែនាំ" in display_df.columns:
+        display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនួនអ្នកណែនាំ"].apply(
             lambda x: f"{int(float(x)) * 10}%" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) < 10 else ("FREE 1 ដង" if pd.notnull(x) and str(x).replace('.0','').isdigit() and int(float(x)) >= 10 else "0%")
         )
     st.dataframe(display_df, use_container_width=True)
