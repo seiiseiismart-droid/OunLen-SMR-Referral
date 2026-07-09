@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import json
 
 st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍♀️", layout="centered")
 
@@ -33,7 +32,7 @@ if raw_df is not None and not raw_df.empty:
     raw_df.columns = [str(col).strip() for col in raw_df.columns]
     cols_count = len(raw_df.columns)
     
-    if cols_count >= 6: # បើមានគ្រប់ ៦ ជួរឈរ
+    if cols_count >= 6: 
         df["កូដកាត"] = raw_df.iloc[:, 1]
         df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 2]
         df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 3]
@@ -66,7 +65,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                 status = str(df.loc[idx, "ស្ថានភាព"]).strip()
                 
                 if status == "បានប្រើរួច (Used)":
-                    st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដូរួចរាល់ហើយ!")
+                    st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដួត្រូវបានរួចរាល់ហើយ!")
                 else:
                     try:
                         current_count = int(float(df.loc[idx, "ចំនំនួនអ្នកណែនាំ"])) + 1
@@ -77,7 +76,6 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                     img_url = df.loc[idx, "រូបភាព"]
                     new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
                     
-                    # បង្ហាញរូបថតចាស់របស់គាត់បើមាន
                     if img_url and str(img_url).startswith("http"):
                         st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=150)
                     
@@ -114,14 +112,12 @@ with col1:
 with col2:
     new_name = st.text_input("ឈ្មោះអតិថិជន:", key="new_name_input")
 
-# 📸 មុខងារថតរូប ឬ ផ្ទុករូបភាពអតិថិជនចូល
-uploaded_file = st.file_uploader("📸 ផ្ទុករូបថតអតិថិជនចូល (បើមាន)", type=["png", "jpg", "jpeg"])
+# 📸 បើកកាមេរ៉ាទូរស័ព្ទថតផ្ទាល់ភ្លាមៗ
+st.write("📸 ថតរូបអតិថិជន៖")
+camera_photo = st.camera_input("ចុចប៊ូតុង Take Photo ដើម្បីថត")
 
-# 💡 មុខងារសម្ងាត់បម្លែងរូបទៅជាលីងអូតូ (Free Image Hosting API)
 def upload_image_to_cloud(file):
     try:
-        # ប្រើប្រាស់សេវាកម្ម Free ImageBB API រក្សារូបភាពសាធារណៈ
-        # បើបងចង់ប្រើប្រាស់វែងឆ្ងាយ អាចចុះឈ្មោះយក API Key ផ្ទាល់ខ្លួនបាន
         api_key = "6d207e02198a847aa98d0a2a901485a5" 
         url = "https://api.imgbb.com/1/upload"
         payload = {"key": api_key}
@@ -141,9 +137,9 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
             final_img_url = ""
-            if uploaded_file is not None:
-                with st.spinner("⏳ កំពុងផ្ទុករូបភាពចូលប្រព័ន្ធ..."):
-                    final_img_url = upload_image_to_cloud(uploaded_file)
+            if camera_photo is not None:
+                with st.spinner("⏳ កំពុងរក្សាទុករូបថតចូលក្នុងប្រព័ន្ធ..."):
+                    final_img_url = upload_image_to_cloud(camera_photo)
             
             params = {
                 "action": "create",
@@ -155,8 +151,6 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             
             if response.status_code == 200:
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
-                if final_img_url:
-                    st.image(final_img_url, width=100, caption="រូបថតដែលបានរក្សាទុក")
                 st.balloons()
             else:
                 st.error("❌ មិនអាចចុះឈ្មោះបានទេ!")
@@ -179,10 +173,7 @@ if not df.empty:
             
     display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនំនួនអ្នកណែនាំ"].apply(calculate_discount)
     
-    # កែសម្រួលការបង្ហាញរូបភាពក្នុងតារាងរបស់ Streamlit ឱ្យទៅជារូបថតស្អាត
     final_cols = ["រូបភាព", "កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព", "ភាគរយបញ្ចុះតម្លៃសន្សំបាន"]
-    
-    # បើជួរឈររូបភាពទទេរ ដាក់រូបតំណាងឱ្យគាត់
     display_df["រូបភាព"] = display_df["រូបភាព"].apply(lambda x: x if (isinstance(x, str) and x.startswith("http")) else "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
     
     st.data_editor(
