@@ -25,7 +25,7 @@ try:
 
     raw_df = pd.read_csv(csv_url)
 except Exception as e:
-    st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
+    st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ biographies។")
     st.stop()
 
 # រៀបចំរចនាសម្ព័ន្ធតារាងអាន
@@ -60,7 +60,6 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
 
-# មុខងារជំនួយសម្រាប់ Hash Password ដើម្បីកុំឱ្យឃើញលេខកូដចំៗ
 def make_hashes(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
@@ -71,39 +70,43 @@ if not st.session_state.logged_in:
     # ផ្ទាំងចូលប្រើប្រាស់
     with auth_tab1:
         st.subheader("សូមបំពេញព័ត៌មានដើម្បីចូលប្រើប្រាស់")
-        username = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ (Username)", key="login_user")
+        username = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ (Username)", key="login_user").strip()
         password = st.text_input("លេខកូដសម្ងាត់ (Password)", type="password", key="login_pass")
         
         if st.button("ចូលប្រើប្រាស់", type="primary", use_container_width=True):
             if username and password:
-                # ផ្ញើទិន្នន័យទៅផ្ទៀងផ្ទាត់លើ Google Sheets តាមរយៈ action: login
                 hashed_password = make_hashes(password)
                 params = {
                     "action": "login",
                     "username": username,
                     "password": hashed_password
                 }
+                
+                success_login = False
                 try:
                     with st.spinner("⏳ កំពុងផ្ទៀងផ្ទាត់..."):
                         response = requests.post(SCRIPT_URL, params=params)
                     
-                    # សន្មតថាបើត្រឹមត្រូវ Apps Script នឹងផ្ញើអក្សរ "success" មកវិញ
                     if response.status_code == 200 and "success" in response.text.lower():
                         st.session_state.logged_in = True
                         st.session_state.username = username
-                        st.success(f"👋 ស្វាគមន៍មកកាន់ប្រព័ន្ធ, {username}!")
-                        st.rerun()
+                        success_login = True
                     else:
                         st.error("❌ ឈ្មោះអ្នកប្រើ ឬ លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ!")
-                except:
-                    st.error("❌ មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនបម្រើ!")
+                except Exception as req_err:
+                    st.error(f"❌ មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនបម្រើ! ({str(req_err)})")
+                
+                # ដាក់កូដរ៉ាន់ឡើងវិញនៅក្រៅ try-except ដើម្បីការពារកុំឱ្យទើសជាមួយ st.rerun()
+                if success_login:
+                    st.success(f"👋 ស្វាគមន៍មកកាន់ប្រព័ន្ធ, {username}!")
+                    st.rerun()
             else:
                 st.warning("⚠️ សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។")
                 
     # ផ្ទាំងបង្កើតគណនីថ្មី
     with auth_tab2:
         st.subheader("បង្កើតគណនីសម្រាប់បុគ្គលិកថ្មី")
-        new_user = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ថ្មី (Username)", key="signup_user")
+        new_user = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ថ្មី (Username)", key="signup_user").strip()
         new_password = st.text_input("បង្កើតលេខកូដសម្ងាត់ (Password)", type="password", key="signup_pass")
         confirm_password = st.text_input("បញ្ជាក់លេខកូដសម្ងាត់ម្តងទៀត", type="password", key="signup_confirm")
         
@@ -122,16 +125,18 @@ if not st.session_state.logged_in:
                         with st.spinner("⏳ កំពុងបង្កើតគណនី..."):
                             response = requests.post(SCRIPT_URL, params=params)
                         
-                        if response.status_code == 200:
+                        if response.status_code == 200 and "success" in response.text.lower():
                             st.success("🎉 បង្កើតគណនីជោគជ័យ! សូមប្តូរទៅផ្ទាំង 'ចូលប្រើប្រាស់ (Login)' ដើម្បីចូលប្រើ។")
+                        elif response.status_code == 200 and "exists" in response.text.lower():
+                            st.error("❌ ឈ្មោះគណនីនេះមានរួចហើយ! សូមប្រើឈ្មោះផ្សេង។")
                         else:
-                            st.error("❌ មិនអាចបង្កើតគណនីបានទេ ឬឈ្មោះនេះមានរួចហើយ!")
+                            st.error("❌ មិនអាចបង្កើតគណនីបានទេ!")
                     except:
                         st.error("❌ មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនបម្រើ!")
             else:
                 st.warning("⚠️ សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។")
                 
-    st.stop() # ផ្អាកការបង្ហាញមុខងារខាងក្រោម ប្រសិនបើមិនទាន់ Login
+    st.stop()
 
 # ----------------------------------------------------------------
 # 🔓 បង្ហាញមុខងារខាងក្រោមទាំងអស់ នៅពេល Login រួចរាល់
@@ -145,7 +150,6 @@ if st.sidebar.button("🚪 ចាកចេញ (Logout)"):
 st.markdown("---")
 st.write("### 🎛️ សូមជ្រើសរើសមុខងារដែលចង់ប្រើប្រាស់៖")
 
-# ប៊ូតុងជ្រើសរើសធំៗចំនួន ២ នៅខាងលើគេ
 menu_option = st.radio(
     "👉 មេនូបញ្ជា៖",
     ["📱 ប្រើប្រាស់កូដ (បូកពិន្ទុ / គិតលុយ)", "➕ បង្កើតកូដអតិថិជនថ្មី"],
@@ -163,7 +167,6 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
 
     input_code = st.text_input("🔍 វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ 10231010):", key="verify_input").strip().upper()
 
-    # បង្កើតប្រឡោះបញ្ចូលតម្លៃជា ២ ជម្រើស (ដុល្លារ និង រៀល)
     st.write("💵 បញ្ចូលតម្លៃសេវាកម្មសរុប (ជ្រើសរើសវាយប្រឡោះណាមួយក៏បាន)៖")
     currency_col1, currency_col2 = st.columns(2)
 
@@ -172,7 +175,6 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
     with currency_col2:
         price_khr = st.number_input("តម្លៃជា រៀល (៛)", min_value=0, step=500)
 
-    # គណនាតម្លៃដើមសរុបជា USD
     if price_usd > 0:
         base_price_usd = price_usd
     elif price_khr > 0:
@@ -180,7 +182,6 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
     else:
         base_price_usd = 0.0
 
-    # បង្ហាញព័ត៌មានភាគរយសន្សំដែលមានស្រាប់ភ្លាមៗនៅពេលវាយកូដត្រូវ
     current_discount_pct = 0
     is_free = False
 
@@ -215,7 +216,6 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
 
     st.write("")
 
-    # បង្កើតប៊ូតុងសកម្មភាពធំៗចំនួន ២
     btn_col1, btn_col2 = st.columns(2)
 
     with btn_col1:
@@ -224,7 +224,6 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
     with btn_col2:
         use_discount_clicked = st.button("🎯 ប្រើប្រាស់ការបញ្ចុះតម្លៃ (គិតលុយ & Reset)", use_container_width=True)
 
-    # ករណីចុចប៊ូតុង "➕ បន្ថែមពិន្ទុថ្មី"
     if verify_clicked:
         if input_code:
             if not df.empty:
@@ -261,9 +260,8 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
             else:
                 st.error("❌ មិនទាន់មានទិន្នន័យនៅក្នុងតារាងទេ!")
         else:
-            st.warning("⚠️ សូមបំពេញលេខកូដកាតជាមុនសិន។")
+            st.warning("⚠️ សូមបំពេញលេខកូដកាតជាមុនសិន।")
 
-    # ករណីចុចប៊ូតុង "🎯 ប្រើប្រាស់ការបញ្ចុះតម្លៃ"
     if use_discount_clicked:
         if input_code:
             if not df.empty:
@@ -273,14 +271,10 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
                     owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
                     img_url = df.loc[idx, "រូបភាព"]
                     
-                    # គណនាតម្លៃទឹកប្រាក់ជាដុល្លារ
                     discount_usd = (base_price_usd * current_discount_pct) / 100
                     final_usd = base_price_usd - discount_usd
-                    
-                    # គណនាតម្លៃទឹកប្រាក់ជារៀល
                     final_khr = round(final_usd * EXCHANGE_RATE)
                     
-                    # បង្ហាញលទ្ធផលតម្លៃទឹកប្រាក់ច្បាស់ៗជា ២ ជម្រើស
                     st.markdown("---")
                     st.markdown("### 🧮 លទ្ធផលនៃការគិតប្រាក់ (អត្រា៖ 1$ = 4,050៛)៖")
                     st.write(f"📉 ទទួលបានការបញ្ចុះតម្លៃសរុប៖ **{current_discount_pct}%**")
@@ -292,7 +286,6 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
                         st.markdown(f"<div style='background-color:#f0f2f6; padding:15px; border-radius:10px; text-align:center;'>🇰🇭 <b>ទឹកប្រាក់ត្រូវបង់ជា រៀល</b><br><span style='color:#e65100; font-size:28px; font-weight:bold;'>{final_khr:,.0f} ៛</span></div>", unsafe_allow_html=True)
                     st.markdown("---")
                     
-                    # កំណត់ពិន្ទុត្រឡប់ទៅ ០
                     params = {
                         "action": "update",
                         "code": input_code,
@@ -302,7 +295,7 @@ if menu_option == "📱 ប្រើប្រាស់កូដ (បូកពិ
                         "image": img_url
                     }
                     
-                    with st.spinner("⏳ កំពុងកាត់ពិន្ទុ និងរក្សាទុកទិន្នន័យ..."):
+                    with st.spinner("⏳ កំពុងកាត់ពិន្ទុ..."):
                         response = requests.post(SCRIPT_URL, params=params)
                     
                     if response.status_code == 200:
@@ -362,7 +355,7 @@ else:
             else:
                 final_img_url = ""
                 if camera_photo is not None:
-                    with st.spinner("⏳ កំពុងរក្សាទុករូបថតចូលក្នុងប្រព័ន្ធ..."):
+                    with st.spinner("⏳ កំពុងរក្សាទុករូបថត..."):
                         final_img_url = upload_image_to_cloud(camera_photo)
                 
                 params = {
