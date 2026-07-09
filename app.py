@@ -5,7 +5,7 @@ import requests
 st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍♀️", layout="centered")
 
 st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្រប់គ្រងកូដណែនាំ 🇰🇭")
-st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
+st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងប្រើប្រាស់ការបញ្ចុះតម្លៃ")
 
 # ----------------------------------------------------------------
 # 🔗 ទាញយកព័ត៌មានលីងពី Secrets
@@ -51,79 +51,20 @@ if not df.empty:
 
 st.markdown("---")
 
-# --- ផ្នែកទី ១៖ ទទួលកូដពីអតិថិជន (បូកពិន្ទុ និង Reset ពិន្ទុ) ---
-st.header("📥 ទទួលកូដពីអតិថិជន")
+# --- ផ្នែកទី ១៖ ទទួលកូដពីអតិថិជន (ប៊ូតុង ២ ធំៗ) ---
+st.header("📥 គ្រប់គ្រងកូដអតិថិជន")
 input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ 10231010):", key="verify_input").strip().upper()
 
-# បង្កើតឡៅតឿប៊ូតុងជា ៣ ជួរឈរ
-btn_col1, btn_col2, btn_col3 = st.columns(3)
+# បង្កើតឡៅតឿប៊ូតុងជា ២ ជួរឈរធំៗស្រួលចុច
+btn_col1, btn_col2 = st.columns(2)
 
 with btn_col1:
-    verify_clicked = st.button("➕ ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary", use_container_width=True)
+    verify_clicked = st.button("➕ បន្ថែមពិន្ទុថ្មី", type="primary", use_container_width=True)
 
 with btn_col2:
-    view_photo_clicked = st.button("👁️ មើលរូបថតអតិថិជន", use_container_width=True)
+    use_discount_clicked = st.button("🎯 ប្រើប្រាស់ការបញ្ចុះតម្លៃ", use_container_width=True)
 
-with btn_col3:
-    reset_clicked = st.button("🔄 ប្រើប្រាស់ការបញ្ចុះតម្លៃ (Reset ពិន្ទុ)", use_container_width=True)
-
-# ករណីចុចប៊ូតុង "មើលរូបថត"
-if view_photo_clicked:
-    if input_code:
-        if not df.empty:
-            valid_rows = df[df["កូដកាត"] == input_code]
-            if not valid_rows.empty:
-                idx = valid_rows.index[-1]
-                owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
-                img_url = df.loc[idx, "រូបភាព"]
-                
-                st.info(f"👤 អតិថិជនឈ្មោះ៖ **{owner_name}**")
-                if img_url and str(img_url).startswith("http"):
-                    st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=300)
-                else:
-                    st.warning("⚠️ អតិថិជនម្នាក់នេះមិនទាន់មានរូបថតនៅក្នុងប្រព័ន្ធនៅឡើយទេ។")
-            else:
-                st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
-        else:
-            st.error("❌ មិនទាន់មានទិន្នន័យនៅក្នុងតារាងទេ!")
-    else:
-        st.warning("⚠️ សូមបំពេញលេខកូដកាតដែលចង់មើលរូបថតជាមុនសិន។")
-
-# ករណីចុចប៊ូតុង "🔄 ប្រើប្រាស់ការបញ្ចុះតម្លៃ (Reset ពិន្ទុ)"
-if reset_clicked:
-    if input_code:
-        if not df.empty:
-            valid_rows = df[df["កូដកាត"] == input_code]
-            if not valid_rows.empty:
-                idx = valid_rows.index[-1]
-                owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
-                img_url = df.loc[idx, "រូបភាព"]
-                
-                # កំណត់ពិន្ទុទៅ ០ និងស្ថានភាពទៅ "សកម្ម" ឡើងវិញ ដើម្បីឱ្យគាត់សន្សំសារជាថ្មី
-                params = {
-                    "action": "update",
-                    "code": input_code,
-                    "name": owner_name,
-                    "count": 0,
-                    "status": "សកម្ម",
-                    "image": img_url
-                }
-                response = requests.post(SCRIPT_URL, params=params)
-                
-                if response.status_code == 200:
-                    st.success(f"🎉 បានប្រើប្រាស់ការបញ្ចុះតម្លៃរួចរាល់! កូដរបស់ **{owner_name}** ត្រូវបាន Reset ទៅ ០ នាក់វិញហើយ។")
-                    st.info("📈 អតិថិជនអាចចាប់ផ្ដើមសន្សំពិន្ទុភាគរយបញ្ចុះតម្លៃសារជាថ្មីម្តងទៀតបានបាទ។")
-                    st.balloons()
-                else:
-                    st.error("❌ មិនអាចកែប្រែទិន្នន័យបានទេ!")
-            else:
-                st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
-        else:
-            st.error("❌ មិនទាន់មានទិន្នន័យនៅក្នុងតារាងទេ!")
-    else:
-        st.warning("⚠️ សូមបំពេញលេខកូដកាតជាមុនសិន។")
-
-# ករណីចុចប៊ូតុង "ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ"
+# ករណីចុចប៊ូតុង "➕ បន្ថែមពិន្ទុថ្មី" (+1 ពិន្ទុ)
 if verify_clicked:
     if input_code:
         if not df.empty:
@@ -131,7 +72,6 @@ if verify_clicked:
             
             if not valid_rows.empty:
                 idx = valid_rows.index[-1]
-                status = str(df.loc[idx, "ស្ថានភាព"]).strip()
                 
                 try:
                     current_count = int(float(df.loc[idx, "ចំនំនួនអ្នកណែនាំ"])) + 1
@@ -142,8 +82,10 @@ if verify_clicked:
                 img_url = df.loc[idx, "រូបភាព"]
                 new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
                 
+                # បង្ហាញព័ត៌មាន និងរូបថតអតិថិជនស្វ័យប្រវត្តដើម្បីផ្ទៀងផ្ទាត់
+                st.info(f"👤 អតិថិជនឈ្មោះ៖ **{owner_name}**")
                 if img_url and str(img_url).startswith("http"):
-                    st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=150)
+                    st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=200)
                 
                 params = {
                     "action": "update",
@@ -157,12 +99,51 @@ if verify_clicked:
                 
                 if response.status_code == 200:
                     st.success(f"✅ បានបូកពិន្ទុជូនកូដរបស់៖ **{owner_name}** ជោគជ័យ!")
-                    st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (បញ្ចុះតម្លៃ {current_count * 10}%)")
+                    st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (ទទួលបានការបញ្ចុះតម្លៃ {current_count * 10}%)")
                     if current_count >= 10: 
                         st.balloons()
-                        st.warning("🎉 អតិថិជនម្នាក់នេះសន្សំគ្រប់ ១០ នាក់ហើយ! គាត់ទទួលបានការធ្វើសក់ 🆓 Free 1 ដង។ បន្ទាប់ពីធ្វើជូនគាត់រួច សូមកុំភ្លេចចុចប៊ូតុង Reset ខាងលើបាទ!")
+                        st.warning("🎉 គ្រប់ ១០ នាក់ហើយ! អតិថិជនម្នាក់នេះទទួលបានការធ្វើសក់ 🆓 Free 1 ដង។ នៅពេលគាត់បើកប្រើ សូមកុំភ្លេចចុចប៊ូតុង '🎯 ប្រើប្រាស់ការបញ្ចុះតម្លៃ' ផងបាទ!")
                 else:
                     st.error("❌ មិនអាចរក្សាទុកទិន្នន័យបានទេ!")
+            else:
+                st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
+        else:
+            st.error("❌ មិនទាន់មានទិន្នន័យនៅក្នុងតារាងទេ!")
+    else:
+        st.warning("⚠️ សូមបំពេញលេខកូដកាតជាមុនសិន។")
+
+# ករណីចុចប៊ូតុង "🎯 ប្រើប្រាស់ការបញ្ចុះតម្លៃ" (Reset ទៅ ០ ដើម្បីសន្សំឡើងវិញ)
+if use_discount_clicked:
+    if input_code:
+        if not df.empty:
+            valid_rows = df[df["កូដកាត"] == input_code]
+            if not valid_rows.empty:
+                idx = valid_rows.index[-1]
+                owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
+                img_url = df.loc[idx, "រូបភាព"]
+                
+                # បង្ហាញព័ត៌មាន និងរូបថតអតិថិជនស្វ័យប្រវត្តដើម្បីផ្ទៀងផ្ទាត់
+                st.info(f"👤 អតិថិជនឈ្មោះ៖ **{owner_name}**")
+                if img_url and str(img_url).startswith("http"):
+                    st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=200)
+                
+                # កំណត់ពិន្ទុត្រឡប់ទៅ ០ និងស្ថានភាពទៅ "សកម្ម" ដើម្បីឱ្យសន្សំជាថ្មី
+                params = {
+                    "action": "update",
+                    "code": input_code,
+                    "name": owner_name,
+                    "count": 0,
+                    "status": "សកម្ម",
+                    "image": img_url
+                }
+                response = requests.post(SCRIPT_URL, params=params)
+                
+                if response.status_code == 200:
+                    st.success(f"🎉 បានប្រើប្រាស់ការបញ្ចុះតម្លៃរួចរាល់! កូដរបស់ **{owner_name}** ត្រូវបាន Reset ទៅ ០ ភាគរយវិញហើយ។")
+                    st.info("📈 អតិថិជនអាចចាប់ផ្ដើមសន្សំពិន្ទុណែនាំមិត្តភក្តិ ដើម្បីយកការបញ្ចុះតម្លៃសារជាថ្មីម្តងទៀតបានបាទ។")
+                    st.balloons()
+                else:
+                    st.error("❌ មិនអាចកែប្រែទិន្នន័យបានទេ!")
             else:
                 st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
         else:
