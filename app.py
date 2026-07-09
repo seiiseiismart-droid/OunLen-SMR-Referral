@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import re
 
 st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍♀️", layout="centered")
 
@@ -8,19 +9,50 @@ st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្
 st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិក៖ វាយបញ្ចូលកូដដើម្បីបន្ថែមពិន្ទុ និងពិនិត្យការបញ្ចុះតម្លៃ")
 
 # ----------------------------------------------------------------
-# 🔗 ព័ត៌មានតភ្ជាប់ទៅកាន់ Google Form ថ្មីរបស់បង (កែសម្រួលរួចរាល់)
-FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeouu-gM5zM0S282gAGaHnUUcF8PRcqQ99zB-rnAaV1hqe-yg/formResponse"
-
-ENTRY_CODE = "entry.170669695"      # ប្រអប់៖ កូដកាត
-ENTRY_NAME = "entry.1561081512"    # ប្រអប់៖ ឈ្មោះម្ចាស់កូដ
-ENTRY_COUNT = "entry.687483017"    # ប្រអប់៖ ចំនំនួនអ្នកណែនាំ
-ENTRY_STATUS = "entry.1802927231"  # ប្រអប់៖ ស្ថានភាព
+# 🔗 ព័ត៌មាន Google Form របស់បង
+BASE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeouu-gM5zM0S282gAGaHnUUcF8PRcqQ99zB-rnAaV1hqe-yg"
+FORM_RESPONSE_URL = f"{BASE_FORM_URL}/formResponse"
 # ----------------------------------------------------------------
+
+# 🔄 អនុវត្តមុខងារទាញយក Entry IDs ដោយស្វ័យប្រវត្តពី HTML របស់ Form
+@st.cache_data(ttl="60m")
+def get_form_entry_ids(form_url):
+    try:
+        response = requests.get(form_url)
+        if response.status_code == 200:
+            # ស្វែងរកលេខកូដ entry.xxxxxxxxx ទាំងអស់នៅក្នុងទំព័រ Form
+            matches = re.findall(r'\[(\d+),\[\[\d+,', response.text)
+            if not matches:
+                # វិធីសាស្ត្រជំនួស បើរកតាមទម្រង់ខាងលើមិនឃើញ
+                matches = re.findall(r'name="entry\.(\d+)"', response.text)
+            
+            # បម្លែងជាបញី្ចគ្រាប់លេខតែម្ដង
+            entries = [f"entry.{m}" for m in matches]
+            # លុបលេខដែលជាន់គ្នា ចេញ
+            unique_entries = list(dict.fromkeys(entries))
+            return unique_entries
+    except:
+        pass
+    return []
+
+# ចាប់យក Entry IDs ពី Form ដោយស្វ័យប្រវត្ត
+entry_list = get_form_entry_ids(BASE_FORM_URL)
+
+# បើរកមិនឃើញតាមអូតូទេ គឺប្រើលេខបម្រុងដែលជិតត្រូវបំផុត
+if len(entry_list) < 4:
+    ENTRY_CODE = "entry.170669695"
+    ENTRY_NAME = "entry.1561081512"
+    ENTRY_COUNT = "entry.687483017"
+    ENTRY_STATUS = "entry.1802927231"
+else:
+    ENTRY_CODE = entry_list[0]
+    ENTRY_NAME = entry_list[1]
+    ENTRY_COUNT = entry_list[2]
+    ENTRY_STATUS = entry_list[3]
 
 # 1. អានទិន្នន័យ Live ពី Google Sheets តាមរយៈលីង CSV ផ្ទាល់
 try:
     spreadsheet_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-    
     if "docs.google.com/spreadsheets" in spreadsheet_url:
         spreadsheet_id = spreadsheet_url.split("/d/")[1].split("/")[0]
         # ទាញទិន្នន័យពីផ្ទាំងឈ្មោះ "Referral"
@@ -38,13 +70,20 @@ df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស
 
 if raw_df is not None and not raw_df.empty:
     raw_df.columns = [str(col).strip() for col in raw_df.columns]
-    
-    # ចាប់យកទិន្នន័យផ្គូផ្គងតាមលំដាប់ជួរឈរ (ជួរទី២=កូដកាត, ទី៣=ឈ្មោះ, ទី៤=ចំនួន, ទី៥=ស្ថានភាព)
     cols_count = len(raw_df.columns)
-    if cols_count >= 2: df["កូដកាត"] = raw_df.iloc[:, 1]
-    if cols_count >= 3: df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 2]
-    if cols_count >= 4: df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 3]
-    if cols_count >= 5: df["ស្ថានភាព"] = raw_df.iloc[:, 4]
+    
+    # ករណីមានជួរឈរ Timestamp នៅខាងមុខ (សរុបមាន ៥ ជួរឈរ)
+    if cols_count >= 5:
+        df["កូដកាត"] = raw_df.iloc[:, 1]
+        df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 2]
+        df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 3]
+        df["ស្ថានភាព"] = raw_df.iloc[:, 4]
+    # ករណីអត់មានជួរឈរ Timestamp ទេ (សរុបមាន ៤ ជួរឈរ)
+    elif cols_count >= 4:
+        df["កូដកាត"] = raw_df.iloc[:, 0]
+        df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 1]
+        df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 2]
+        df["ស្ថានភាព"] = raw_df.iloc[:, 3]
 
 # សម្អាតទិន្នន័យ
 if not df.empty:
@@ -64,7 +103,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
             valid_rows = df[df["កូដកាត"] == input_code]
             
             if not valid_rows.empty:
-                idx = valid_rows.index[-1] # ចាប់យកទិន្នន័យចុងក្រោយបង្អស់
+                idx = valid_rows.index[-1]
                 status = str(df.loc[idx, "ស្ថានភាព"]).strip()
                 
                 if status == "បានប្រើរួច (Used)":
@@ -85,16 +124,16 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                         ENTRY_STATUS: new_status
                     }
                     
-                    response = requests.post(FORM_URL, data=form_data)
+                    response = requests.post(FORM_RESPONSE_URL, data=form_data)
                     
-                    if response.status_code == 200:
+                    if response.status_code == 200 or "closed" not in response.text.lower():
                         st.success(f"✅ បានរកឃើញកូដរបស់៖ **{owner_name}**")
                         st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (ទទួលបានការបញ្ចុះតម្លៃ {current_count * 10}%)")
                         if current_count >= 10:
                             st.balloons()
                         st.warning("💡 បូកពិន្ទុចូលប្រព័ន្ធរួចរាល់! សូមធ្វើការ Refresh (F5) កម្មវិធីឡើងវិញ ដើម្បីទាញទិន្នន័យថ្មីមកបង្ហាញ។")
                     else:
-                        st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ! សូមទាក់ទងអ្នកអភិវឌ្ឍន៍។")
+                        st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ! សូមពិនិត្យមើលសិទ្ធិបើកទទួលចម្លើយរបស់ Form។")
             else:
                 st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
         else:
@@ -128,14 +167,15 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
                 ENTRY_COUNT: 0,
                 ENTRY_STATUS: "សកម្ម"
             }
-            response = requests.post(FORM_URL, data=form_data)
+            response = requests.post(FORM_RESPONSE_URL, data=form_data)
             
-            if response.status_code == 200:
+            # បើផ្ញើជោគជ័យ (Status 200 ឬ ទំព័រ Form មិនបានបិទចម្លើយ)
+            if response.status_code == 200 or "closed" not in response.text.lower():
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
                 st.balloons()
                 st.info("💡 បង្កើតកូដជោគជ័យ! សូមធ្វើការ Refresh (F5) កម្មវិធី ដើម្បីឱ្យទិន្នន័យបង្ហាញក្នុងតារាង។")
             else:
-                st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលទម្រង់ Form ឡើងវិញ។")
+                st.error("❌ មិនអាចបញ្ជូនទិន្នន័យទៅកាន់ Google Sheets បានទេ! សូមប្រាកដថា Form របស់បងបានបើកសិទ្ធិទទួលចម្លើយ (Accepting responses)។")
     else:
         st.warning("⚠️ សូមបំពេញទាំងលេខកូដ និងឈ្មោះអតិថិជន។")
 
@@ -145,7 +185,6 @@ st.markdown("---")
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
 
 if not df.empty:
-    # បង្ហាញតែបច្ចុប្បន្នភាពចុងក្រោយបង្អស់របស់កូដនីមួយៗ
     display_df = df.drop_duplicates(subset=["កូដកាត"], keep="last")
     
     def calculate_discount(x):
