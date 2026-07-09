@@ -55,7 +55,39 @@ st.markdown("---")
 st.header("📥 ទទួលកូដពីអតិថិជន")
 input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ 10231010):", key="verify_input").strip().upper()
 
-if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary"):
+# បង្កើតឡៅតឿប៊ូតុងជា ២ ជួរឈរ (ប៊ូតុងបូកពិន្ទុ និង ប៊ូតុងមើលរូបថត)
+btn_col1, btn_col2 = st.columns(2)
+
+with btn_col1:
+    verify_clicked = st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary", use_container_width=True)
+
+with btn_col2:
+    view_photo_clicked = st.button("👁️ មើលរូបថតអតិថិជន", use_container_width=True)
+
+# ករណីចុចប៊ូតុង "មើលរូបថត"
+if view_photo_clicked:
+    if input_code:
+        if not df.empty:
+            valid_rows = df[df["កូដកាត"] == input_code]
+            if not valid_rows.empty:
+                idx = valid_rows.index[-1]
+                owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
+                img_url = df.loc[idx, "រូបភាព"]
+                
+                st.info(f"👤 អតិថិជនឈ្មោះ៖ **{owner_name}**")
+                if img_url and str(img_url).startswith("http"):
+                    st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=300)
+                else:
+                    st.warning("⚠️ អតិថិជនម្នាក់នេះមិនទាន់មានរូបថតនៅក្នុងប្រព័ន្ធនៅឡើយទេ។")
+            else:
+                st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
+        else:
+            st.error("❌ មិនទាន់មានទិន្នន័យនៅក្នុងតារាងទេ!")
+    else:
+        st.warning("⚠️ សូមបំពេញលេខកូដកាតដែលចង់មើលរូបថតជាមុនសិន។")
+
+# ករណីចុចប៊ូតុង "ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ"
+if verify_clicked:
     if input_code:
         if not df.empty:
             valid_rows = df[df["កូដកាត"] == input_code]
@@ -116,7 +148,6 @@ with col2:
 if "show_camera" not in st.session_state:
     st.session_state.show_camera = False
 
-# ចុចដើម្បី បើក ឬ បិទ កាមេរ៉ា
 if st.button("📸 បើក / បិទ កាមេរ៉ាថតរូប"):
     st.session_state.show_camera = not st.session_state.show_camera
 
@@ -160,7 +191,6 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             
             if response.status_code == 200:
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
-                # នៅពេលចុះឈ្មោះរួច ឱ្យវាបិទកាមេរ៉ាវិញអូតូ
                 st.session_state.show_camera = False
                 st.balloons()
             else:
