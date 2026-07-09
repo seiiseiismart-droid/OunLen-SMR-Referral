@@ -51,18 +51,21 @@ if not df.empty:
 
 st.markdown("---")
 
-# --- ផ្នែកទី ១៖ ទទួលកូដពីអតិថិជន (បូកពិន្ទុ) ---
+# --- ផ្នែកទី ១៖ ទទួលកូដពីអតិថិជន (បូកពិន្ទុ និង Reset ពិន្ទុ) ---
 st.header("📥 ទទួលកូដពីអតិថិជន")
 input_code = st.text_input("វាយបញ្ចូលលេខកូដកាត (ឧទាហរណ៍៖ 10231010):", key="verify_input").strip().upper()
 
-# បង្កើតឡៅតឿប៊ូតុងជា ២ ជួរឈរ (ប៊ូតុងបូកពិន្ទុ និង ប៊ូតុងមើលរូបថត)
-btn_col1, btn_col2 = st.columns(2)
+# បង្កើតឡៅតឿប៊ូតុងជា ៣ ជួរឈរ
+btn_col1, btn_col2, btn_col3 = st.columns(3)
 
 with btn_col1:
-    verify_clicked = st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary", use_container_width=True)
+    verify_clicked = st.button("➕ ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ", type="primary", use_container_width=True)
 
 with btn_col2:
     view_photo_clicked = st.button("👁️ មើលរូបថតអតិថិជន", use_container_width=True)
+
+with btn_col3:
+    reset_clicked = st.button("🔄 ប្រើប្រាស់ការបញ្ចុះតម្លៃ (Reset ពិន្ទុ)", use_container_width=True)
 
 # ករណីចុចប៊ូតុង "មើលរូបថត"
 if view_photo_clicked:
@@ -86,6 +89,40 @@ if view_photo_clicked:
     else:
         st.warning("⚠️ សូមបំពេញលេខកូដកាតដែលចង់មើលរូបថតជាមុនសិន។")
 
+# ករណីចុចប៊ូតុង "🔄 ប្រើប្រាស់ការបញ្ចុះតម្លៃ (Reset ពិន្ទុ)"
+if reset_clicked:
+    if input_code:
+        if not df.empty:
+            valid_rows = df[df["កូដកាត"] == input_code]
+            if not valid_rows.empty:
+                idx = valid_rows.index[-1]
+                owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
+                img_url = df.loc[idx, "រូបភាព"]
+                
+                # កំណត់ពិន្ទុទៅ ០ និងស្ថានភាពទៅ "សកម្ម" ឡើងវិញ ដើម្បីឱ្យគាត់សន្សំសារជាថ្មី
+                params = {
+                    "action": "update",
+                    "code": input_code,
+                    "name": owner_name,
+                    "count": 0,
+                    "status": "សកម្ម",
+                    "image": img_url
+                }
+                response = requests.post(SCRIPT_URL, params=params)
+                
+                if response.status_code == 200:
+                    st.success(f"🎉 បានប្រើប្រាស់ការបញ្ចុះតម្លៃរួចរាល់! កូដរបស់ **{owner_name}** ត្រូវបាន Reset ទៅ ០ នាក់វិញហើយ។")
+                    st.info("📈 អតិថិជនអាចចាប់ផ្ដើមសន្សំពិន្ទុភាគរយបញ្ចុះតម្លៃសារជាថ្មីម្តងទៀតបានបាទ។")
+                    st.balloons()
+                else:
+                    st.error("❌ មិនអាចកែប្រែទិន្នន័យបានទេ!")
+            else:
+                st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
+        else:
+            st.error("❌ មិនទាន់មានទិន្នន័យនៅក្នុងតារាងទេ!")
+    else:
+        st.warning("⚠️ សូមបំពេញលេខកូដកាតជាមុនសិន។")
+
 # ករណីចុចប៊ូតុង "ផ្ទៀងផ្ទាត់ និងបូកពិន្ទុ"
 if verify_clicked:
     if input_code:
@@ -96,37 +133,36 @@ if verify_clicked:
                 idx = valid_rows.index[-1]
                 status = str(df.loc[idx, "ស្ថានភាព"]).strip()
                 
-                if status == "បានប្រើរួច (Used)":
-                    st.error(f"❌ កូដ {input_code} នេះត្រូវបានប្រើប្រាស់ និងបើកកាដួត្រូវបានរួចរាល់ហើយ!")
+                try:
+                    current_count = int(float(df.loc[idx, "ចំនំនួនអ្នកណែនាំ"])) + 1
+                except:
+                    current_count = 1
+                    
+                owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
+                img_url = df.loc[idx, "រូបភាព"]
+                new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
+                
+                if img_url and str(img_url).startswith("http"):
+                    st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=150)
+                
+                params = {
+                    "action": "update",
+                    "code": input_code,
+                    "name": owner_name,
+                    "count": current_count,
+                    "status": new_status,
+                    "image": img_url
+                }
+                response = requests.post(SCRIPT_URL, params=params)
+                
+                if response.status_code == 200:
+                    st.success(f"✅ បានបូកពិន្ទុជូនកូដរបស់៖ **{owner_name}** ជោគជ័យ!")
+                    st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (បញ្ចុះតម្លៃ {current_count * 10}%)")
+                    if current_count >= 10: 
+                        st.balloons()
+                        st.warning("🎉 អតិថិជនម្នាក់នេះសន្សំគ្រប់ ១០ នាក់ហើយ! គាត់ទទួលបានការធ្វើសក់ 🆓 Free 1 ដង។ បន្ទាប់ពីធ្វើជូនគាត់រួច សូមកុំភ្លេចចុចប៊ូតុង Reset ខាងលើបាទ!")
                 else:
-                    try:
-                        current_count = int(float(df.loc[idx, "ចំនំនួនអ្នកណែនាំ"])) + 1
-                    except:
-                        current_count = 1
-                        
-                    owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
-                    img_url = df.loc[idx, "រូបភាព"]
-                    new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
-                    
-                    if img_url and str(img_url).startswith("http"):
-                        st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=150)
-                    
-                    params = {
-                        "action": "update",
-                        "code": input_code,
-                        "name": owner_name,
-                        "count": current_count,
-                        "status": new_status,
-                        "image": img_url
-                    }
-                    response = requests.post(SCRIPT_URL, params=params)
-                    
-                    if response.status_code == 200:
-                        st.success(f"✅ បានបូកពិន្ទុជូនកូដរបស់៖ **{owner_name}** ជោគជ័យ!")
-                        st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (បញ្ចុះតម្លៃ {current_count * 10}%)")
-                        if current_count >= 10: st.balloons()
-                    else:
-                        st.error("❌ មិនអាចរក្សាទុកទិន្នន័យបានទេ!")
+                    st.error("❌ មិនអាចរក្សាទុកទិន្នន័យបានទេ!")
             else:
                 st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
         else:
