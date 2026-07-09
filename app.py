@@ -9,7 +9,7 @@ st.write("សម្រាប់ម្ចាស់ហាង/បុគ្គលិ
 
 # ----------------------------------------------------------------
 # 🔗 ព័ត៌មានភ្ជាប់ទៅកាន់ Google Form របស់ហាង អូនឡែន សម្រស់
-FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScvhuVjcIYkX61RDDYvu3UuYNoHiQORJuhH5Tb1yL2CWEjUsw/formResponse"
+FORM_URL = "https://docs.google.com/spreadsheets/d/1UAarF-MnBFPFvdggCXPP9PwbIPORxbMMZ4ztrmKJ6dU/formResponse"
 
 ENTRY_CODE = "entry.236683526"      # លេខសម្រាប់ 'កូដកាត'
 ENTRY_NAME = "entry.1741541315"    # លេខសម្រាប់ 'ឈ្មោះម្ចាស់កូដ'
