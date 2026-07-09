@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import json
 
 st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍♀️", layout="centered")
 
@@ -25,23 +26,25 @@ except Exception as e:
     st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Google Sheets បានទេ! សូមពិនិត្យមើលលីងក្នុង Secrets ឡើងវិញ។")
     st.stop()
 
-# រៀបចំរចនាសម្ព័ន្ធតារាងអាន (Timestamp, កូដកាត, ឈ្មោះម្ចាស់កូដ, ចំនំនួនអ្នកណែនាំ, ស្ថានភាព)
-df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព"])
+# រៀបចំរចនាសម្ព័ន្ធតារាងអាន (Timestamp, កូដកាត, ឈ្មោះម្ចាស់កូដ, ចំនំនួនអ្នកណែនាំ, រូបភាព, ស្ថានភាព)
+df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "រូបភាព", "ស្ថានភាព"])
 
 if raw_df is not None and not raw_df.empty:
     raw_df.columns = [str(col).strip() for col in raw_df.columns]
     cols_count = len(raw_df.columns)
     
-    if cols_count >= 5: # មានជួរឈរ Timestamp
+    if cols_count >= 6: # បើមានគ្រប់ ៦ ជួរឈរ
+        df["កូដកាត"] = raw_df.iloc[:, 1]
+        df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 2]
+        df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 3]
+        df["រូបភាព"] = raw_df.iloc[:, 4]
+        df["ស្ថានភាព"] = raw_df.iloc[:, 5]
+    elif cols_count >= 5:
         df["កូដកាត"] = raw_df.iloc[:, 1]
         df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 2]
         df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 3]
         df["ស្ថានភាព"] = raw_df.iloc[:, 4]
-    elif cols_count >= 4: # គ្មានជួរឈរ Timestamp
-        df["កូដកាត"] = raw_df.iloc[:, 0]
-        df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 1]
-        df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 2]
-        df["ស្ថានភាព"] = raw_df.iloc[:, 3]
+        df["រូបភាព"] = ""
 
 if not df.empty:
     df = df.dropna(subset=["កូដកាត"])
@@ -71,15 +74,20 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                         current_count = 1
                         
                     owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
+                    img_url = df.loc[idx, "រូបភាព"]
                     new_status = "គ្រប់លក្ខខណ្ឌ (Free)" if current_count >= 10 else "សកម្ម"
                     
-                    # ផ្ញើទៅ Apps Script Direct Web App
+                    # បង្ហាញរូបថតចាស់របស់គាត់បើមាន
+                    if img_url and str(img_url).startswith("http"):
+                        st.image(img_url, caption=f"រូបថតរបស់ {owner_name}", width=150)
+                    
                     params = {
                         "action": "update",
                         "code": input_code,
                         "name": owner_name,
                         "count": current_count,
-                        "status": new_status
+                        "status": new_status,
+                        "image": img_url
                     }
                     response = requests.post(SCRIPT_URL, params=params)
                     
@@ -88,7 +96,7 @@ if st.button("ផ្ទៀងផ្ទាត់ និងបូកពិន្�
                         st.info(f"📈 ចំនួនអ្នកណែនាំបច្ចុប្បន្ន៖ **{current_count} នាក់** (បញ្ចុះតម្លៃ {current_count * 10}%)")
                         if current_count >= 10: st.balloons()
                     else:
-                        st.error("❌ មិនអាចរក្សាទុកទិន្នន័យបានទេ! សូមពិនិត្យមើលលីង Script URL ក្នុង Secrets។")
+                        st.error("❌ មិនអាចរក្សាទុកទិន្នន័យបានទេ!")
             else:
                 st.error(f"❌ មិនមានលេខកូដ {input_code} នេះក្នុងប្រព័ន្ធទេ!")
         else:
@@ -106,6 +114,23 @@ with col1:
 with col2:
     new_name = st.text_input("ឈ្មោះអតិថិជន:", key="new_name_input")
 
+# 📸 មុខងារថតរូប ឬ ផ្ទុករូបភាពអតិថិជនចូល
+uploaded_file = st.file_uploader("📸 ផ្ទុករូបថតអតិថិជនចូល (បើមាន)", type=["png", "jpg", "jpeg"])
+
+# 💡 មុខងារសម្ងាត់បម្លែងរូបទៅជាលីងអូតូ (Free Image Hosting API)
+def upload_image_to_cloud(file):
+    try:
+        # ប្រើប្រាស់សេវាកម្ម Free ImageBB API រក្សារូបភាពសាធារណៈ
+        # បើបងចង់ប្រើប្រាស់វែងឆ្ងាយ អាចចុះឈ្មោះយក API Key ផ្ទាល់ខ្លួនបាន
+        api_key = "6d207e02198a847aa98d0a2a901485a5" 
+        url = "https://api.imgbb.com/1/upload"
+        payload = {"key": api_key}
+        files = {"image": file.getvalue()}
+        res = requests.post(url, data=payload, files=files)
+        return res.json()["data"]["url"]
+    except:
+        return ""
+
 if st.button("ចុះឈ្មោះកូដថ្មី"):
     if new_code and new_name:
         is_duplicate = False
@@ -115,19 +140,26 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
         if is_duplicate:
             st.error("❌ លេខកូដនេះមានរួចហើយ!")
         else:
-            # ផ្ញើទៅ Apps Script ដើម្បីសរសេរចូល Sheets
+            final_img_url = ""
+            if uploaded_file is not None:
+                with st.spinner("⏳ កំពុងផ្ទុករូបភាពចូលប្រព័ន្ធ..."):
+                    final_img_url = upload_image_to_cloud(uploaded_file)
+            
             params = {
                 "action": "create",
                 "code": new_code,
-                "name": new_name
+                "name": new_name,
+                "image": final_img_url
             }
             response = requests.post(SCRIPT_URL, params=params)
             
             if response.status_code == 200:
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
+                if final_img_url:
+                    st.image(final_img_url, width=100, caption="រូបថតដែលបានរក្សាទុក")
                 st.balloons()
             else:
-                st.error("❌ មិនអាចចុះឈ្មោះបានទេ! សូមពិនិត្យមើលការកំណត់ Deployment លើ Apps Script។")
+                st.error("❌ មិនអាចចុះឈ្មោះបានទេ!")
     else:
         st.warning("⚠️ សូមបំពេញទាំងលេខកូដ និងឈ្មោះអតិថិជន។")
 
@@ -146,7 +178,20 @@ if not df.empty:
             return "0%"
             
     display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនំនួនអ្នកណែនាំ"].apply(calculate_discount)
-    final_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព", "ភាគរយបញ្ចុះតម្លៃសន្សំបាន"]
-    st.dataframe(display_df[final_cols].reset_index(drop=True), use_container_width=True)
+    
+    # កែសម្រួលការបង្ហាញរូបភាពក្នុងតារាងរបស់ Streamlit ឱ្យទៅជារូបថតស្អាត
+    final_cols = ["រូបភាព", "កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព", "ភាគរយបញ្ចុះតម្លៃសន្សំបាន"]
+    
+    # បើជួរឈររូបភាពទទេរ ដាក់រូបតំណាងឱ្យគាត់
+    display_df["រូបភាព"] = display_df["រូបភាព"].apply(lambda x: x if (isinstance(x, str) and x.startswith("http")) else "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
+    
+    st.data_editor(
+        display_df[final_cols].reset_index(drop=True),
+        column_config={
+            "រូបភាព": st.column_config.ImageColumn("រូបថត", help="រូបថតអតិថិជន", width="small")
+        },
+        disabled=True,
+        use_container_width=True
+    )
 else:
     st.info("📭 មិនទាន់មានទិន្នន័យអតិថិជននៅក្នុងប្រព័ន្ធឡើយ។ 🥰")
