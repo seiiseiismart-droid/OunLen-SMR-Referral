@@ -112,9 +112,18 @@ with col1:
 with col2:
     new_name = st.text_input("ឈ្មោះអតិថិជន:", key="new_name_input")
 
-# 📸 បើកកាមេរ៉ាទូរស័ព្ទថតផ្ទាល់ភ្លាមៗ
-st.write("📸 ថតរូបអតិថិជន៖")
-camera_photo = st.camera_input("ចុចប៊ូតុង Take Photo ដើម្បីថត")
+# 📸 បង្កើតប៊ូតុងសម្រាប់ បើក/បិទ កាមេរ៉ា
+if "show_camera" not in st.session_state:
+    st.session_state.show_camera = False
+
+# ចុចដើម្បី បើក ឬ បិទ កាមេរ៉ា
+if st.button("📸 បើក / បិទ កាមេរ៉ាថតរូប"):
+    st.session_state.show_camera = not st.session_state.show_camera
+
+camera_photo = None
+if st.session_state.show_camera:
+    st.write("📷 កាមេរ៉ារួចរាល់៖")
+    camera_photo = st.camera_input("ចុច Take Photo ដើម្បីថតរូបអតិថិជន")
 
 def upload_image_to_cloud(file):
     try:
@@ -151,6 +160,8 @@ if st.button("ចុះឈ្មោះកូដថ្មី"):
             
             if response.status_code == 200:
                 st.success(f"🎉 ចុះឈ្មោះកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
+                # នៅពេលចុះឈ្មោះរួច ឱ្យវាបិទកាមេរ៉ាវិញអូតូ
+                st.session_state.show_camera = False
                 st.balloons()
             else:
                 st.error("❌ មិនអាចចុះឈ្មោះបានទេ!")
