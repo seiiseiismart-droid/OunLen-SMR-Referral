@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import hashlib
 
 st.set_page_config(page_title="OunLen SMR - Referral System", page_icon="💇‍♀️", layout="centered")
 
@@ -52,10 +53,99 @@ if not df.empty:
     df["កូដកាត"] = df["កូដកាត"].astype(str).str.strip().str.upper()
 
 
+# ----------------------------------------------------------------
+# 🔐 ប្រព័ន្ធគ្រប់គ្រងការចូលប្រើប្រាស់ (Authentication)
+# ----------------------------------------------------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+
+# មុខងារជំនួយសម្រាប់ Hash Password ដើម្បីកុំឱ្យឃើញលេខកូដចំៗ
+def make_hashes(password):
+    return hashlib.sha256(str.encode(password)).hexdigest()
+
+if not st.session_state.logged_in:
+    st.markdown("---")
+    auth_tab1, auth_tab2 = st.tabs(["🔐 ចូលប្រើប្រាស់ (Login)", "📝 បង្កើតគណនីថ្មី (Sign Up)"])
+    
+    # ផ្ទាំងចូលប្រើប្រាស់
+    with auth_tab1:
+        st.subheader("សូមបំពេញព័ត៌មានដើម្បីចូលប្រើប្រាស់")
+        username = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ (Username)", key="login_user")
+        password = st.text_input("លេខកូដសម្ងាត់ (Password)", type="password", key="login_pass")
+        
+        if st.button("ចូលប្រើប្រាស់", type="primary", use_container_width=True):
+            if username and password:
+                # ផ្ញើទិន្នន័យទៅផ្ទៀងផ្ទាត់លើ Google Sheets តាមរយៈ action: login
+                hashed_password = make_hashes(password)
+                params = {
+                    "action": "login",
+                    "username": username,
+                    "password": hashed_password
+                }
+                try:
+                    with st.spinner("⏳ កំពុងផ្ទៀងផ្ទាត់..."):
+                        response = requests.post(SCRIPT_URL, params=params)
+                    
+                    # សន្មតថាបើត្រឹមត្រូវ Apps Script នឹងផ្ញើអក្សរ "success" មកវិញ
+                    if response.status_code == 200 and "success" in response.text.lower():
+                        st.session_state.logged_in = True
+                        st.session_state.username = username
+                        st.success(f"👋 ស្វាគមន៍មកកាន់ប្រព័ន្ធ, {username}!")
+                        st.rerun()
+                    else:
+                        st.error("❌ ឈ្មោះអ្នកប្រើ ឬ លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ!")
+                except:
+                    st.error("❌ មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនបម្រើ!")
+            else:
+                st.warning("⚠️ សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។")
+                
+    # ផ្ទាំងបង្កើតគណនីថ្មី
+    with auth_tab2:
+        st.subheader("បង្កើតគណនីសម្រាប់បុគ្គលិកថ្មី")
+        new_user = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ថ្មី (Username)", key="signup_user")
+        new_password = st.text_input("បង្កើតលេខកូដសម្ងាត់ (Password)", type="password", key="signup_pass")
+        confirm_password = st.text_input("បញ្ជាក់លេខកូដសម្ងាត់ម្តងទៀត", type="password", key="signup_confirm")
+        
+        if st.button("ចុះឈ្មោះគណនី", use_container_width=True):
+            if new_user and new_password and confirm_password:
+                if new_password != confirm_password:
+                    st.error("❌ លេខកូដសម្ងាត់ទាំងពីរមិនដូចគ្នាទេ!")
+                else:
+                    hashed_password = make_hashes(new_password)
+                    params = {
+                        "action": "signup",
+                        "username": new_user,
+                        "password": hashed_password
+                    }
+                    try:
+                        with st.spinner("⏳ កំពុងបង្កើតគណនី..."):
+                            response = requests.post(SCRIPT_URL, params=params)
+                        
+                        if response.status_code == 200:
+                            st.success("🎉 បង្កើតគណនីជោគជ័យ! សូមប្តូរទៅផ្ទាំង 'ចូលប្រើប្រាស់ (Login)' ដើម្បីចូលប្រើ។")
+                        else:
+                            st.error("❌ មិនអាចបង្កើតគណនីបានទេ ឬឈ្មោះនេះមានរួចហើយ!")
+                    except:
+                        st.error("❌ មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនបម្រើ!")
+            else:
+                st.warning("⚠️ សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។")
+                
+    st.stop() # ផ្អាកការបង្ហាញមុខងារខាងក្រោម ប្រសិនបើមិនទាន់ Login
+
+# ----------------------------------------------------------------
+# 🔓 បង្ហាញមុខងារខាងក្រោមទាំងអស់ នៅពេល Login រួចរាល់
+# ----------------------------------------------------------------
+st.sidebar.write(f"👤 គណនី៖ **{st.session_state.username}**")
+if st.sidebar.button("🚪 ចាកចេញ (Logout)"):
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+    st.rerun()
+
 st.markdown("---")
 st.write("### 🎛️ សូមជ្រើសរើសមុខងារដែលចង់ប្រើប្រាស់៖")
 
-# បង្កើតប៊ូតុងជ្រើសរើសធំៗចំនួន ២ នៅខាងលើគេ
+# ប៊ូតុងជ្រើសរើសធំៗចំនួន ២ នៅខាងលើគេ
 menu_option = st.radio(
     "👉 មេនូបញ្ជា៖",
     ["📱 ប្រើប្រាស់កូដ (បូកពិន្ទុ / គិតលុយ)", "➕ បង្កើតកូដអតិថិជនថ្មី"],
@@ -294,7 +384,7 @@ else:
 
 st.markdown("---")
 
-# --- ផ្នែកទិន្នន័យរួម (បង្ហាញនៅខាងក្រោមជានិច្ចដើម្បីងាយស្រួលមើលរួម) ---
+# --- ផ្នែកទិន្នន័យរួម ---
 st.header("📊 តារាងតាមដានទិន្នន័យរួម (Live)")
 
 if not df.empty:
