@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime
 
 # ----------------------------------------------------------------
 # 1. Page Configuration & Custom CSS Styling
@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS: Removed black buttons, increased text size, enhanced font-weight, bright colors
+# Custom CSS: High contrast buttons, No black buttons, Large Extra Bold Text
 st.markdown("""
 <style>
     /* Main Background & Base Styling */
@@ -42,7 +42,7 @@ st.markdown("""
         font-weight: 800 !important;
     }
 
-    /* Category Buttons (Left Sidebar) - Fixed dark buttons */
+    /* Base Button Styling - Removed Dark/Black background */
     .stButton > button {
         border-radius: 10px !important;
         font-size: 16px !important;
@@ -50,7 +50,7 @@ st.markdown("""
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* Primary Buttons (Selected State) */
+    /* Primary Buttons (Selected Category/Active States) */
     button[kind="primary"] {
         background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
         color: #ffffff !important;
@@ -58,7 +58,7 @@ st.markdown("""
         box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3) !important;
     }
 
-    /* Secondary Buttons (Unselected State - No black!) */
+    /* Secondary Buttons (Unselected States - Bright & Readable) */
     button[kind="secondary"] {
         background-color: #ffffff !important;
         color: #9f1239 !important;
@@ -90,9 +90,9 @@ st.markdown("""
         box-shadow: 0 8px 16px rgba(225,29,72,0.15);
     }
     .product-icon { font-size: 42px; margin: 4px 0; }
-    .product-title { font-size: 15px; font-weight: 800; color: #0f172a !important; height: 42px; overflow: hidden; line-height: 1.3; }
+    .product-title { font-size: 16px; font-weight: 900; color: #0f172a !important; height: 42px; overflow: hidden; line-height: 1.3; }
     .product-code { font-size: 13px; color: #be123c !important; font-weight: 800; }
-    .product-price { font-size: 18px; font-weight: 900; color: #047857 !important; margin: 4px 0; }
+    .product-price { font-size: 19px; font-weight: 900; color: #047857 !important; margin: 4px 0; }
 
     /* Custom Streamlit Add-to-Cart Button under each product card */
     .add-cart-btn button {
@@ -120,9 +120,9 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
-    /* POS Action Bar Buttons - Custom Vivid Colors, High Contrast & Extra Bold Large Text */
+    /* POS Action Bar Buttons - Custom Vivid Colors & Large Text */
     .btn-cancel button {
-        background-color: #dc2626 !important; /* Vivid Red */
+        background-color: #dc2626 !important; /* Red */
         color: #ffffff !important;
         font-weight: 900 !important;
         font-size: 17px !important;
@@ -131,12 +131,10 @@ st.markdown("""
         height: 50px !important;
         box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3) !important;
     }
-    .btn-cancel button:hover {
-        background-color: #991b1b !important;
-    }
+    .btn-cancel button:hover { background-color: #991b1b !important; }
 
     .btn-draft button {
-        background-color: #d97706 !important; /* Bright Amber / Orange */
+        background-color: #d97706 !important; /* Amber / Orange */
         color: #ffffff !important;
         font-weight: 900 !important;
         font-size: 17px !important;
@@ -145,9 +143,7 @@ st.markdown("""
         height: 50px !important;
         box-shadow: 0 4px 8px rgba(217, 119, 6, 0.3) !important;
     }
-    .btn-draft button:hover {
-        background-color: #92400e !important;
-    }
+    .btn-draft button:hover { background-color: #92400e !important; }
 
     .btn-pay button {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important; /* Vibrant Green */
@@ -159,9 +155,7 @@ st.markdown("""
         height: 50px !important;
         box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3) !important;
     }
-    .btn-pay button:hover {
-        background: #116329 !important;
-    }
+    .btn-pay button:hover { background: #116329 !important; }
 
     .btn-discount button {
         background-color: #7c3aed !important; /* Bright Purple */
@@ -219,12 +213,8 @@ if "sales_history" not in st.session_state:
     st.session_state.sales_history = []
 if "customer_name" not in st.session_state:
     st.session_state.customer_name = "General Customer"
-if "customer_code" not in st.session_state:
-    st.session_state.customer_code = "N/A"
 if "discount_pct" not in st.session_state:
     st.session_state.discount_pct = 0.0
-if "vat_pct" not in st.session_state:
-    st.session_state.vat_pct = 0.0
 if "hold_list" not in st.session_state:
     st.session_state.hold_list = []
 if "last_receipt" not in st.session_state:
@@ -239,27 +229,15 @@ if "payment_method" not in st.session_state:
 # ----------------------------------------------------------------
 def generate_receipt_html(data):
     items_html = ""
-    items_list = data.get('items', [])
-    for item in items_list:
+    for item in data.get('items', []):
         items_html += f"""
         <tr>
-            <td style="text-align: left; padding: 3px 0;">{item.get('name', 'N/A')}</td>
-            <td style="text-align: center; padding: 3px 0;">{item.get('qty', 1)}</td>
-            <td style="text-align: right; padding: 3px 0;">${item.get('price', 0.0):.2f}</td>
-            <td style="text-align: right; padding: 3px 0;">${item.get('total', 0.0):.2f}</td>
+            <td style="text-align: left; padding: 4px 0;">{item.get('name', 'N/A')}</td>
+            <td style="text-align: center; padding: 4px 0;">{item.get('qty', 1)}</td>
+            <td style="text-align: right; padding: 4px 0;">${item.get('price', 0.0):.2f}</td>
+            <td style="text-align: right; padding: 4px 0;">${item.get('total', 0.0):.2f}</td>
         </tr>
         """
-
-    inv_no = data.get('inv_no', 'N/A')
-    date_str = data.get('date', '')
-    customer = data.get('customer', 'General')
-    subtotal = data.get('subtotal', 0.0)
-    discount = data.get('discount', 0.0)
-    grand_total_usd = data.get('grand_total_usd', data.get('total_usd', 0.0))
-    grand_total_khr = data.get('grand_total_khr', round(grand_total_usd * EXCHANGE_RATE))
-    paid_usd = data.get('paid_usd', 0.0)
-    change_usd = data.get('change_usd', 0.0)
-    change_khr = data.get('change_khr', 0)
 
     return f"""
     <!DOCTYPE html>
@@ -293,14 +271,14 @@ def generate_receipt_html(data):
         <button class="print-btn no-print" onclick="window.print()">🖨️ ព្រីនវិក្កយបត្រ (80mm)</button>
         <div class="text-center">
             <h2 style="margin: 0; font-size: 16px;">💇‍♀️ អូនឡែន សម្រស់</h2>
-            <p style="margin: 2px 0; font-size: 10px;">អស័យដ្ឋាន ភូមិដំណាក់ពពូល សង្កាត់កំពង់ឆ្នាំង ក្រុងកំពង់ឆ្នាំង </p>
+            <p style="margin: 2px 0; font-size: 10px;">អស័យដ្ឋាន ភូមិដំណាក់ពពូល សង្កាត់កំពង់ឆ្នាំង ក្រុងកំពង់ឆ្នាំង</p>
             <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 067 969 877</p>
         </div>
         <div class="dashed-line"></div>
         <div style="font-size: 10px;">
-            <div class="flex-between"><span>លេខវិក្កយបត្រ:</span> <b>{inv_no}</b></div>
-            <div class="flex-between"><span>កាលបរិច្ឆេទ:</span> <span>{date_str}</span></div>
-            <div class="flex-between"><span>អតិថិជន:</span> <span>{customer}</span></div>
+            <div class="flex-between"><span>លេខវិក្កយបត្រ:</span> <b>{data.get('inv_no', 'N/A')}</b></div>
+            <div class="flex-between"><span>កាលបរិច្ឆេទ:</span> <span>{data.get('date', '')}</span></div>
+            <div class="flex-between"><span>អតិថិជន:</span> <span>{data.get('customer', 'General')}</span></div>
         </div>
         <div class="dashed-line"></div>
         <table>
@@ -316,25 +294,25 @@ def generate_receipt_html(data):
         </table>
         <div class="dashed-line"></div>
         <div style="font-size: 11px;">
-            <div class="flex-between"><span>សរុបរង (Subtotal):</span> <span>${subtotal:.2f}</span></div>
-            <div class="flex-between"><span>បញ្ចុះតម្លៃ:</span> <span>-${discount:.2f}</span></div>
+            <div class="flex-between"><span>សរុបរង (Subtotal):</span> <span>${data.get('subtotal', 0.0):.2f}</span></div>
+            <div class="flex-between"><span>បញ្ចុះតម្លៃ:</span> <span>-${data.get('discount', 0.0):.2f}</span></div>
             <div class="dashed-line"></div>
             <div class="flex-between" style="font-size: 13px; font-weight: bold;">
-                <span>ត្រូវបង់សរុប:</span> <span>${grand_total_usd:.2f}</span>
+                <span>ត្រូវបង់សរុប:</span> <span>${data.get('grand_total_usd', 0.0):.2f}</span>
             </div>
             <div class="flex-between" style="font-weight: bold;">
-                <span>ជាប្រាក់រៀល:</span> <span>៛ {grand_total_khr:,}</span>
+                <span>ជាប្រាក់រៀល:</span> <span>៛ {data.get('grand_total_khr', 0):,}</span>
             </div>
         </div>
         <div class="dashed-line"></div>
         <div style="font-size: 10px;">
-            <div class="flex-between"><span>ប្រាក់ទទួលបាន ($):</span> <span>${paid_usd:.2f}</span></div>
-            <div class="flex-between"><span>ប្រាក់អាប់ ($):</span> <span>${change_usd:.2f}</span></div>
-            <div class="flex-between"><span>ប្រាក់អាប់ (៛):</span> <span>៛ {change_khr:,}</span></div>
+            <div class="flex-between"><span>ប្រាក់ទទួលបាន ($):</span> <span>${data.get('paid_usd', 0.0):.2f}</span></div>
+            <div class="flex-between"><span>ប្រាក់អាប់ ($):</span> <span>${data.get('change_usd', 0.0):.2f}</span></div>
+            <div class="flex-between"><span>ប្រាក់អាប់ (៛):</span> <span>៛ {data.get('change_khr', 0):,}</span></div>
         </div>
         <div class="dashed-line"></div>
         <div class="text-center" style="margin-top: 10px; font-size: 10px;">
-            <p>🙏🏻 សូមអរគុណ ជូនពរសំណាងល្អ! </p>
+            <p>🙏🏻 សូមអរគុណ ជូនពរសំណាងល្អ!</p>
         </div>
     </body>
     </html>
@@ -345,7 +323,7 @@ def generate_receipt_html(data):
 # ----------------------------------------------------------------
 @st.dialog("🎁 បញ្ចុះតម្លៃ (Apply Discount)")
 def set_discount_dialog():
-    st.write("បញ្ចុះតម្លៃ៖")
+    st.write("កំណត់ភាគរយបញ្ចុះតម្លៃ៖")
     new_discount = st.number_input("ភាគរយបញ្ចុះតម្លៃ (%)", min_value=0.0, max_value=100.0, value=float(st.session_state.discount_pct), step=1.0)
     col_d1, col_d2 = st.columns(2)
     if col_d1.button("✅ យល់ព្រម", type="primary", use_container_width=True):
@@ -356,17 +334,8 @@ def set_discount_dialog():
         st.rerun()
 
 # ----------------------------------------------------------------
-# 5. Main Navigation
+# 5. Helper Function
 # ----------------------------------------------------------------
-main_mode = st.radio(
-    "📌 Navigation Menu", 
-    ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt 80mm)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
-    horizontal=True
-)
-
-st.markdown("---")
-
-# Helper to Add Item to Cart
 def add_to_cart(item):
     existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
     if existing:
@@ -382,22 +351,37 @@ def add_to_cart(item):
         })
 
 # ----------------------------------------------------------------
-# MODE 1: POS SYSTEM
+# 6. Main Navigation Menu
 # ----------------------------------------------------------------
+main_mode = st.radio(
+    "📌 Navigation Menu", 
+    ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt 80mm)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
+    horizontal=True
+)
+
+st.markdown("---")
+
+# ================================================================
+# MODE 1: POS SYSTEM (គ្រប់បូតុងទាំងអស់ដំណើរការ ១០០%)
+# ================================================================
 if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
     
     # 3-Column Layout: Categories Sidebar (1.2) | Products Grid (3.2) | Order Cart (2.4)
     col_cat, col_prod, col_cart = st.columns([1.2, 3.2, 2.4], gap="small")
 
-    # ================= 1. LEFT PANEL: Categories Sidebar =================
+    # ------------------------------------------------------------
+    # 1. LEFT PANEL: Category Buttons
+    # ------------------------------------------------------------
     with col_cat:
         st.markdown("##### 📂 ប្រភេទ (Categories)")
         
+        # Category "All"
         all_selected = (st.session_state.selected_category == "ទាំងអស់ (All)")
         if st.button("🌸 ទាំងអស់ (All)", key="cat_all", type="primary" if all_selected else "secondary", use_container_width=True):
             st.session_state.selected_category = "ទាំងអស់ (All)"
             st.rerun()
 
+        # Category Items
         for idx, cat_name in enumerate(st.session_state.categories):
             is_active = (st.session_state.selected_category == cat_name)
             icon = "✨" if "ទូទៅ" in cat_name else ("⚡" if "Laser" in cat_name else "🧴")
@@ -405,7 +389,9 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 st.session_state.selected_category = cat_name
                 st.rerun()
 
-    # ================= 2. CENTER PANEL: Products / Services Grid =================
+    # ------------------------------------------------------------
+    # 2. CENTER PANEL: Services Display & Add-to-Cart
+    # ------------------------------------------------------------
     with col_prod:
         st.markdown("##### 💇‍♀️ សេវាកម្ម (Services)")
         
@@ -438,6 +424,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                         <div class="product-price">${item['price']:.2f}</div>
                     </div>
                     """, unsafe_allow_html=True)
+                    
                     st.markdown('<div class="add-cart-btn">', unsafe_allow_html=True)
                     if st.button("➕ បញ្ចូល Cart", key=f"add_{item['code']}_{idx}"):
                         add_to_cart(item)
@@ -445,18 +432,20 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                     st.markdown('</div>', unsafe_allow_html=True)
                     st.write("")
 
-    # ================= 3. RIGHT PANEL: Cart & Checkout =================
+    # ------------------------------------------------------------
+    # 3. RIGHT PANEL: Cart & Actions
+    # ------------------------------------------------------------
     with col_cart:
         st.markdown("<div class='cart-container'>", unsafe_allow_html=True)
         
-        # Customer Field
+        # Customer Input
         c_col1, c_col2 = st.columns([4, 1])
         c_name = c_col1.text_input("Customer Name", value=st.session_state.customer_name, label_visibility="collapsed", placeholder="Enter Customer name or phone number")
         st.session_state.customer_name = c_name
         if c_col2.button("👤+", key="btn_quick_cust", type="secondary"):
             st.toast("បញ្ចូលឈ្មោះអតិថិជនរួចរាល់")
 
-        # Cart Items Header & Table
+        # Cart Table Header
         st.markdown("""
         <div style="background-color: #fff1f2; padding: 8px 10px; border-radius: 8px; border: 1px solid #fda4af; font-size: 13px; font-weight: 800; margin: 8px 0; color: #9f1239;">
             <div style="display: flex; justify-content: space-between;">
@@ -471,6 +460,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         subtotal = 0.0
         total_items_count = 0
 
+        # Cart Items Rendering
         if st.session_state.cart:
             for idx, item in enumerate(st.session_state.cart):
                 subtotal += item["total"]
@@ -480,7 +470,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 ic1.markdown(f"<div style='font-size:13px; font-weight:800;'>{item['name']}</div>", unsafe_allow_html=True)
                 ic2.markdown(f"<div style='font-size:13px; text-align:center;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
                 
-                # Qty selector
+                # Interactive Qty input inside cart
                 new_q = ic3.number_input("qty", min_value=1, value=int(item["qty"]), key=f"cart_q_{idx}", label_visibility="collapsed")
                 if new_q != item["qty"]:
                     st.session_state.cart[idx]["qty"] = new_q
@@ -493,7 +483,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("<hr style='margin: 10px 0; border-top: 1px dashed #f472b6;'>", unsafe_allow_html=True)
 
-        # Total Calculations
+        # Calculations
         discount_val = (subtotal * st.session_state.discount_pct) / 100
         grand_total_usd = subtotal - discount_val
         grand_total_khr = round(grand_total_usd * EXCHANGE_RATE)
@@ -521,7 +511,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
 
-        # Payment Methods Chips
+        # Payment Methods Selectable Buttons
         p_cols = st.columns(4)
         methods = ["Cash", "ABA/KHQR", "Paystack", "Stripe"]
         for m_idx, method in enumerate(methods):
@@ -532,7 +522,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # Action Buttons (Cancel / Draft / Pay)
+        # POS Action Bar Buttons: Cancel / Draft / Save & Complete
         ac1, ac2, ac3 = st.columns([1, 1, 1.5])
         with ac1:
             st.markdown('<div class="btn-cancel">', unsafe_allow_html=True)
@@ -556,12 +546,12 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.markdown('<div class="btn-pay">', unsafe_allow_html=True)
             if st.button("Save & Complete", key="pos_pay", use_container_width=True):
                 if not st.session_state.cart:
-                    st.warning("សូមជ្រើសរើសសេវាកម្ម!")
+                    st.warning("សូមជ្រើសរើសសេវាកម្មជាមុនសិន!")
                 else:
                     st.session_state.show_payment_modal = True
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # Quick Discount Link
+        # Discount Pop-up Trigger Button
         st.markdown('<div class="btn-discount" style="margin-top: 8px;">', unsafe_allow_html=True)
         if st.button("🎁 កំណត់ Discount (%)", key="btn_open_disc", use_container_width=True):
             set_discount_dialog()
@@ -569,7 +559,9 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Payment Confirmation Modal
+    # ------------------------------------------------------------
+    # 4. PAYMENT MODAL
+    # ------------------------------------------------------------
     if st.session_state.get("show_payment_modal", False):
         st.markdown("---")
         st.markdown("### 💵 បង្អួចទូទាត់ប្រាក់ (Payment Modal)")
@@ -608,7 +600,6 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.session_state.show_payment_modal = False
             st.session_state.discount_pct = 0.0
             st.session_state.customer_name = "General Customer"
-            st.session_state.customer_code = "N/A"
             st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ!")
             st.rerun()
 
@@ -616,9 +607,9 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.session_state.show_payment_modal = False
             st.rerun()
 
-# ----------------------------------------------------------------
+# ================================================================
 # MODE 2: SERVICE MANAGEMENT
-# ----------------------------------------------------------------
+# ================================================================
 elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)":
     st.markdown("## 🛠️ គ្រប់គ្រងសេវាកម្ម (Manage Services)")
     col_s_add, col_s_edit = st.columns(2, gap="large")
@@ -677,9 +668,9 @@ elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (
                         st.success("បានលុបសេវាកម្មរួចរាល់!")
                         st.rerun()
 
-# ----------------------------------------------------------------
+# ================================================================
 # MODE 3: CATEGORY MANAGEMENT
-# ----------------------------------------------------------------
+# ================================================================
 elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)":
     st.markdown("## ⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម")
     new_cat_name = st.text_input("ឈ្មោះប្រភេទសេវាកម្មថ្មី:")
@@ -689,9 +680,9 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
             st.success("បានបន្ថែមជោគជ័យ!")
             st.rerun()
 
-# ----------------------------------------------------------------
+# ================================================================
 # MODE 4: RECEIPT VIEW
-# ----------------------------------------------------------------
+# ================================================================
 elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
     st.markdown("## 🧾 ប្រវត្តិប្រតិបត្តិការ និង ការពិនិត្យវិក្កយបត្រ (80mm Thermal Paper)")
     
@@ -704,7 +695,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
             st.markdown("### 📋 បញ្ជីប្រតិបត្តិការទាំងអស់")
             df_display = []
             for idx, item in enumerate(reversed(st.session_state.sales_history)):
-                total_val = item.get('grand_total_usd', item.get('total_usd', 0.0))
+                total_val = item.get('grand_total_usd', 0.0)
                 df_display.append({
                     "ល.រ": len(st.session_state.sales_history) - idx,
                     "លេខវិក្កយបត្រ": item.get("inv_no", f"INV-{idx+1}"),
@@ -725,78 +716,71 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
                 html_code = generate_receipt_html(selected_receipt_data)
                 components.html(html_code, height=520, scrolling=True)
 
-# ----------------------------------------------------------------
+# ================================================================
 # MODE 5: SALES REPORT DASHBOARD
-# ----------------------------------------------------------------
+# ================================================================
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
-    st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
-    
+    st.markdown("## 📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Analytics)")
+
     if not st.session_state.sales_history:
-        st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
+        st.info("💡 មិនទាន់មានទិន្នន័យលក់សម្រាប់បង្ហាញរបាយការណ៍នៅឡើយទេ!")
     else:
-        filter_col1, _ = st.columns([2, 2])
-        with filter_col1:
-            today = datetime.now().date()
-            # ជ្រើសរើសចន្លោះថ្ងៃខែឆ្នាំ (Date Range)
-            date_range = st.date_input(
-                "🗓️ ជ្រើសរើសចន្លោះកាលបរិច្ឆេទ (Filter Date Range):",
-                value=(today, today)
-            )
+        total_invoices = len(st.session_state.sales_history)
+        total_revenue_usd = sum(item.get("grand_total_usd", 0.0) for item in st.session_state.sales_history)
+        total_revenue_khr = round(total_revenue_usd * EXCHANGE_RATE)
 
-        # ឆែកមើលការជ្រើសរើសចន្លោះថ្ងៃ (Start Date & End Date)
-        if isinstance(date_range, tuple) and len(date_range) == 2:
-            start_date, end_date = date_range
-        elif isinstance(date_range, tuple) and len(date_range) == 1:
-            start_date = end_date = date_range[0]
-        else:
-            start_date = end_date = date_range
-
-        sales_data = []
-        total_sales_usd = 0.0
-        total_sales_khr = 0
-        total_transactions = 0
-
-        for sale in st.session_state.sales_history:
-            # បំបែកយកតែថ្ងៃខែឆ្នាំ YYYY-MM-DD
-            sale_date = datetime.strptime(sale.get("date", "").split(" ")[0], "%Y-%m-%d").date()
-            
-            # ត្រួតពិនិត្យថា តើថ្ងៃលក់ស្ថិតនៅក្នុងចន្លោះថ្ងៃដែលបានជ្រើសរើសឬទេ
-            if start_date <= sale_date <= end_date:
-                total_val = sale.get("grand_total_usd", sale.get("total_usd", 0.0))
-                total_khr = sale.get("grand_total_khr", round(total_val * EXCHANGE_RATE))
-                
-                total_sales_usd += total_val
-                total_sales_khr += total_khr
-                total_transactions += 1
-                
-                sales_data.append({
-                    "Invoice No": sale.get("inv_no"),
-                    "Date": sale.get("date", "").split(" ")[0],
-                    "Time": sale.get("date", "").split(" ")[-1],
-                    "Customer": sale.get("customer"),
-                    "Subtotal ($)": f"${sale.get('subtotal', 0.0):.2f}",
-                    "Discount ($)": f"-${sale.get('discount', 0.0):.2f}",
-                    "Grand Total ($)": f"${total_val:.2f}",
-                    "Grand Total (៛)": f"៛ {total_khr:,}"
-                })
-
-        # បង្ហាញ Key Metrics
         m_col1, m_col2, m_col3 = st.columns(3)
-        m_col1.metric("📦 ការលក់សរុប (Transactions)", f"{total_transactions} លើក")
-        m_col2.metric("💵 ចំណូលសរុប ($)", f"${total_sales_usd:.2f}")
-        m_col3.metric("៛ ចំណូលសរុប (៛)", f"៛ {total_sales_khr:,}")
+        with m_col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>🧾 ចំនួនវិក្កយបត្រសរុប</h4>
+                <h2>{total_invoices}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+        with m_col2:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>💵 ចំណូលសរុប ($)</h4>
+                <h2>${total_revenue_usd:,.2f}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+        with m_col3:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>៛ ចំណូលសរុប (៛)</h4>
+                <h2>៛ {total_revenue_khr:,.0f}</h2>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown("---")
-        
-        # បង្ហាញចំណងជើងចន្លោះថ្ងៃ
-        if start_date == end_date:
-            date_str_display = f"{start_date}"
-        else:
-            date_str_display = f"{start_date} ដល់ {end_date}"
+
+        item_rows = []
+        for sale in st.session_state.sales_history:
+            inv = sale.get("inv_no")
+            dt = sale.get("date")
+            cust = sale.get("customer")
+            for it in sale.get("items", []):
+                item_rows.append({
+                    "Invoice": inv,
+                    "Date": dt,
+                    "Customer": cust,
+                    "Code": it.get("code"),
+                    "Service Name": it.get("name"),
+                    "Price": it.get("price"),
+                    "Qty": it.get("qty"),
+                    "Subtotal": it.get("total")
+                })
+
+        df_items = pd.DataFrame(item_rows)
+
+        st.markdown("### 🏆 សេវាកម្មលក់ដាច់បំផុត (Popular Services)")
+        if not df_items.empty:
+            summary_df = df_items.groupby(["Code", "Service Name"]).agg(
+                Total_Qty=("Qty", "sum"),
+                Total_Revenue=("Subtotal", "sum")
+            ).reset_index().sort_values(by="Total_Qty", ascending=False)
             
-        st.markdown(f"### 📋 បញ្ជីវិក្កយបត្រ ({date_str_display})")
-        
-        if sales_data:
-            st.dataframe(pd.DataFrame(sales_data), use_container_width=True, hide_index=True)
-        else:
-            st.warning(f"ពុំមានទិន្នន័យលក់សម្រាប់ចន្លោះថ្ងៃទី {date_str_display} ទេ។")
+            st.dataframe(summary_df, use_container_width=True, hide_index=True)
+
+        st.markdown("### 📑 បញ្ជីលម្អិតនៃការលក់ទាំងអស់")
+        st.dataframe(df_items, use_container_width=True, hide_index=True)
