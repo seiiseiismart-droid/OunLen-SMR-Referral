@@ -13,22 +13,22 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS - កែសម្រួល Background ពណ៌ទឹកផ្កាឈូក និងពណ៌អក្សរអោយលេចច្បាស់
+# Custom CSS - Background ពណ៌ទឹកផ្កាឈូក និងពណ៌អក្សរលេចច្បាស់
 st.markdown("""
 <style>
-    /* 1. Main Background (ពណ៌ទឹកផ្កាឈូក) & ពណ៌អក្សរទូទៅ (ពណ៌ប្រផេះចាស់/ខ្មៅ) */
+    /* Main Background & Text Color */
     .stApp {
         background-color: #fce7f3 !important; /* Soft Pink / ទឹកផ្កាឈូក */
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
-        color: #0f172a !important; /* Dark Slate / អក្សរខ្មៅច្បាស់ */
+        color: #0f172a !important;
     }
 
-    /* 2. Text elements inside Streamlit App */
+    /* Text elements inside Streamlit App */
     h1, h2, h3, h4, h5, h6, p, label, div, span {
         color: #0f172a !important;
     }
 
-    /* 3. Navigation Radio Header Options */
+    /* Navigation Radio Options */
     div[data-testid="stRadio"] > label {
         display: none !important;
     }
@@ -40,7 +40,7 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] span {
-        color: #831843 !important; /* Dark Magenta text for radio options */
+        color: #831843 !important;
         font-size: 15px !important;
         font-weight: 700 !important;
     }
@@ -48,7 +48,7 @@ st.markdown("""
         background-color: #db2777 !important;
     }
 
-    /* 4. Tabs Styling */
+    /* Tabs Styling */
     button[data-baseweb="tab"] p {
         font-size: 15px !important;
         font-weight: 700 !important;
@@ -59,7 +59,7 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* 5. Service Circle Buttons */
+    /* Service Circle Buttons */
     div.stButton > button {
         border-radius: 50% !important;
         width: 120px !important;
@@ -69,7 +69,7 @@ st.markdown("""
         font-size: 13px !important;
         font-weight: 700 !important;
         background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-        color: #ffffff !important; /* អក្សរពណ៌សលើប៊ូតុងបៃតង */
+        color: #ffffff !important;
         text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.6) !important;
         border: 3px solid #ffffff !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
@@ -88,13 +88,13 @@ st.markdown("""
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     }
 
-    /* 6. POS Action Buttons */
+    /* POS Action Buttons */
     .pos-btn div.stButton > button {
         border-radius: 8px !important;
         width: 100% !important;
         height: 48px !important;
         background: #831843 !important;
-        color: #ffffff !important; /* អក្សរពណ៌សលើប៊ូតុងស្វាយចាស់ */
+        color: #ffffff !important;
         border: none !important;
         font-size: 14px !important;
         font-weight: 600 !important;
@@ -104,7 +104,7 @@ st.markdown("""
         background: #9d174d !important;
     }
     
-    /* 7. Pay Button */
+    /* Pay Button */
     .pay-btn div.stButton > button {
         border-radius: 8px !important;
         width: 100% !important;
@@ -116,7 +116,7 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* 8. Info Boxes Styling */
+    /* Info Boxes Styling */
     .customer-info-box {
         background-color: #9d174d;
         color: #ffffff !important;
@@ -210,19 +210,32 @@ if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 
 # ----------------------------------------------------------------
-# 3. Receipt Generator (80mm)
+# 3. Receipt Generator (FIXED FOR KEYERROR SAFEGUARD)
 # ----------------------------------------------------------------
 def generate_receipt_html(data):
     items_html = ""
-    for item in data['items']:
+    items_list = data.get('items', [])
+    for item in items_list:
         items_html += f"""
         <tr>
-            <td style="text-align: left; padding: 3px 0;">{item['name']}</td>
-            <td style="text-align: center; padding: 3px 0;">{item['qty']}</td>
-            <td style="text-align: right; padding: 3px 0;">${item['price']:.2f}</td>
-            <td style="text-align: right; padding: 3px 0;">${item['total']:.2f}</td>
+            <td style="text-align: left; padding: 3px 0;">{item.get('name', 'N/A')}</td>
+            <td style="text-align: center; padding: 3px 0;">{item.get('qty', 1)}</td>
+            <td style="text-align: right; padding: 3px 0;">${item.get('price', 0.0):.2f}</td>
+            <td style="text-align: right; padding: 3px 0;">${item.get('total', 0.0):.2f}</td>
         </tr>
         """
+
+    # Safe Key Extraction
+    inv_no = data.get('inv_no', 'N/A')
+    date_str = data.get('date', '')
+    customer = data.get('customer', 'General')
+    subtotal = data.get('subtotal', 0.0)
+    discount = data.get('discount', 0.0)
+    grand_total_usd = data.get('grand_total_usd', data.get('total_usd', 0.0))
+    grand_total_khr = data.get('grand_total_khr', round(grand_total_usd * EXCHANGE_RATE))
+    paid_usd = data.get('paid_usd', 0.0)
+    change_usd = data.get('change_usd', 0.0)
+    change_khr = data.get('change_khr', 0)
 
     return f"""
     <!DOCTYPE html>
@@ -261,9 +274,9 @@ def generate_receipt_html(data):
         </div>
         <div class="dashed-line"></div>
         <div style="font-size: 10px;">
-            <div class="flex-between"><span>លេខវិក្កយបត្រ:</span> <b>{data['inv_no']}</b></div>
-            <div class="flex-between"><span>កាលបរិច្ឆេទ:</span> <span>{data['date']}</span></div>
-            <div class="flex-between"><span>អតិថិជន:</span> <span>{data['customer']}</span></div>
+            <div class="flex-between"><span>លេខវិក្កយបត្រ:</span> <b>{inv_no}</b></div>
+            <div class="flex-between"><span>កាលបរិច្ឆេទ:</span> <span>{date_str}</span></div>
+            <div class="flex-between"><span>អតិថិជន:</span> <span>{customer}</span></div>
         </div>
         <div class="dashed-line"></div>
         <table>
@@ -279,21 +292,21 @@ def generate_receipt_html(data):
         </table>
         <div class="dashed-line"></div>
         <div style="font-size: 11px;">
-            <div class="flex-between"><span>សរុបរង (Subtotal):</span> <span>${data.get('subtotal', 0):.2f}</span></div>
-            <div class="flex-between"><span>បញ្ចុះតម្លៃ:</span> <span>-${data.get('discount', 0):.2f}</span></div>
+            <div class="flex-between"><span>សរុបរង (Subtotal):</span> <span>${subtotal:.2f}</span></div>
+            <div class="flex-between"><span>បញ្ចុះតម្លៃ:</span> <span>-${discount:.2f}</span></div>
             <div class="dashed-line"></div>
             <div class="flex-between" style="font-size: 13px; font-weight: bold;">
-                <span>ត្រូវបង់សរុប:</span> <span>${data['grand_total_usd']:.2f}</span>
+                <span>ត្រូវបង់សរុប:</span> <span>${grand_total_usd:.2f}</span>
             </div>
             <div class="flex-between" style="font-weight: bold;">
-                <span>ជាប្រាក់រៀល:</span> <span>៛ {data['grand_total_khr']:,}</span>
+                <span>ជាប្រាក់រៀល:</span> <span>៛ {grand_total_khr:,}</span>
             </div>
         </div>
         <div class="dashed-line"></div>
         <div style="font-size: 10px;">
-            <div class="flex-between"><span>ប្រាក់ទទួលបាន ($):</span> <span>${data.get('paid_usd', 0):.2f}</span></div>
-            <div class="flex-between"><span>ប្រាក់អាប់ ($):</span> <span>${data.get('change_usd', 0):.2f}</span></div>
-            <div class="flex-between"><span>ប្រាក់អាប់ (៛):</span> <span>៛ {data.get('change_khr', 0):,}</span></div>
+            <div class="flex-between"><span>ប្រាក់ទទួលបាន ($):</span> <span>${paid_usd:.2f}</span></div>
+            <div class="flex-between"><span>ប្រាក់អាប់ ($):</span> <span>${change_usd:.2f}</span></div>
+            <div class="flex-between"><span>ប្រាក់អាប់ (៛):</span> <span>៛ {change_khr:,}</span></div>
         </div>
         <div class="dashed-line"></div>
         <div class="text-center" style="margin-top: 10px; font-size: 10px;">
@@ -639,19 +652,20 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
             st.markdown("### 📋 បញ្ជីប្រតិបត្តិការទាំងអស់")
             df_display = []
             for idx, item in enumerate(reversed(st.session_state.sales_history)):
+                total_val = item.get('grand_total_usd', item.get('total_usd', 0.0))
                 df_display.append({
                     "ល.រ": len(st.session_state.sales_history) - idx,
                     "លេខវិក្កយបត្រ": item.get("inv_no", f"INV-{idx+1}"),
                     "កាលបរិច្ឆេទ": item.get("date", ""),
                     "អតិថិជន": item.get("customer", "General"),
-                    "សរុប ($)": f"${item.get('grand_total_usd', item.get('total_usd', 0)):.2f}"
+                    "សរុប ($)": f"${total_val:.2f}"
                 })
             
             st.dataframe(pd.DataFrame(df_display), use_container_width=True, hide_index=True)
             st.markdown("---")
-            inv_list = [item["inv_no"] for item in reversed(st.session_state.sales_history)]
+            inv_list = [item.get("inv_no", "N/A") for item in reversed(st.session_state.sales_history)]
             selected_inv = st.selectbox("ជ្រើសរើសលេខវិក្កយបត្រដើម្បី Preview/Print:", inv_list)
-            selected_receipt_data = next((item for item in st.session_state.sales_history if item["inv_no"] == selected_inv), None)
+            selected_receipt_data = next((item for item in st.session_state.sales_history if item.get("inv_no") == selected_inv), None)
 
         with col_preview:
             st.markdown("### 👁️ Receipt Preview")
@@ -681,18 +695,21 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
         for sale in st.session_state.sales_history:
             sale_date_str = sale.get("date", "").split(" ")[0]
             if sale_date_str == str(selected_date):
-                total_sales_usd += sale.get("grand_total_usd", 0.0)
-                total_sales_khr += sale.get("grand_total_khr", 0)
+                total_val = sale.get("grand_total_usd", sale.get("total_usd", 0.0))
+                total_khr = sale.get("grand_total_khr", round(total_val * EXCHANGE_RATE))
+                
+                total_sales_usd += total_val
+                total_sales_khr += total_khr
                 total_transactions += 1
                 
                 sales_data.append({
                     "Invoice No": sale.get("inv_no"),
                     "Time": sale.get("date", "").split(" ")[-1],
                     "Customer": sale.get("customer"),
-                    "Subtotal ($)": f"${sale.get('subtotal', 0):.2f}",
-                    "Discount ($)": f"-${sale.get('discount', 0):.2f}",
-                    "Grand Total ($)": f"${sale.get('grand_total_usd', 0):.2f}",
-                    "Grand Total (៛)": f"៛ {sale.get('grand_total_khr', 0):,}"
+                    "Subtotal ($)": f"${sale.get('subtotal', 0.0):.2f}",
+                    "Discount ($)": f"-${sale.get('discount', 0.0):.2f}",
+                    "Grand Total ($)": f"${total_val:.2f}",
+                    "Grand Total (៛)": f"៛ {total_khr:,}"
                 })
 
         st.markdown("---")
