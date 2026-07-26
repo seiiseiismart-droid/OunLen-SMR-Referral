@@ -4,67 +4,84 @@ import pandas as pd
 from datetime import datetime
 
 # ----------------------------------------------------------------
-# 1. Page Configuration & Custom CSS
+# 1. Page Configuration
 # ----------------------------------------------------------------
 st.set_page_config(
     page_title="OunLen SMR - Professional POS & Sales Report",
     page_icon="💇‍♀️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS Styling
-st.markdown("""
+# ----------------------------------------------------------------
+# 2. Control Panel សម្រាប់កែប្រែ Style ប៊ូតុង និង តួអក្សរ (Sidebar Settings)
+# ----------------------------------------------------------------
+st.sidebar.header("🎨 កែសម្រួល Style ប្រព័ន្ធ (Styling Settings)")
+
+# កំណត់ Default Values ក្នុង Session State
+if "btn_bg_color" not in st.session_state:
+    st.session_state.btn_bg_color = "#e11d48"  # ពណ៌ប៊ូតុង Primary (ក្រហមឈាមជ្រូក)
+if "btn_text_color" not in st.session_state:
+    st.session_state.btn_text_color = "#ffffff"  # ពណ៌អក្សរលើប៊ូតុង
+if "btn_font_size" not in st.session_state:
+    st.session_state.btn_font_size = 15  # ទំហំអក្សរ (px)
+if "btn_border_radius" not in st.session_state:
+    st.session_state.btn_border_radius = 10  # កោងជ្រុងប៊ូតុង (px)
+if "btn_height" not in st.session_state:
+    st.session_state.btn_height = 42  # កម្ពស់ប៊ូតុង (px)
+
+# ឧបករណ៍កែប្រែក្នុង Sidebar
+st.sidebar.subheader("🔘 កែសម្រួល ប៊ូតុង (Button Controls)")
+btn_bg = st.sidebar.color_picker("ពណ៌ background ប៊ូតុង (Primary)", st.session_state.btn_bg_color)
+btn_text = st.sidebar.color_picker("ពណ៌តួអក្សរលើប៊ូតុង", st.session_state.btn_text_color)
+btn_size = st.sidebar.slider("ទំហំតួអក្សរលើប៊ូតុង (Font Size)", 10, 24, st.session_state.btn_font_size)
+btn_radius = st.sidebar.slider("កម្រិតកោងជ្រុងប៊ូតុង (Border Radius)", 0, 30, st.session_state.btn_border_radius)
+btn_h = st.sidebar.slider("កម្ពស់ប៊ូតុង (Button Height)", 30, 60, st.session_state.btn_height)
+
+# Dynamic CSS Injecting
+st.markdown(f"""
 <style>
-    .stApp {
+    /* ទម្រង់ Font & Background រួមនៃ App */
+    .stApp {{
         background-color: #fff1f2 !important;
-        font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
+        font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif !important;
         color: #0f172a !important;
-    }
+    }}
 
-    h1, h2, h3, h4, h5, h6, p, label, div, span {
+    h1, h2, h3, h4, h5, h6, p, label, div, span {{
         color: #0f172a !important;
-    }
+        font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif !important;
+    }}
 
-    /* Top Radio Menu */
-    div[data-testid="stRadio"] > label { display: none !important; }
-    div[data-testid="stRadio"] > div {
-        background-color: #ffffff !important;
-        padding: 8px 14px !important;
-        border-radius: 12px !important;
-        border: 2px solid #f472b6 !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
-    }
-    div[data-testid="stRadio"] label[data-baseweb="radio"] span {
-        color: #831843 !important;
-        font-size: 16px !important;
+    /* ------------------------------------ */
+    /* កំណត់ Style លើប៊ូតុងទាំងអស់ក្នុងប្រព័ន្ធ (Button Styling) */
+    /* ------------------------------------ */
+    .stButton > button {{
+        border-radius: {btn_radius}px !important;
+        font-size: {btn_size}px !important;
         font-weight: 800 !important;
-    }
-
-    /* Buttons base */
-    .stButton > button {
-        border-radius: 10px !important;
-        font-size: 15px !important;
-        font-weight: 800 !important;
+        min-height: {btn_h}px !important;
         transition: all 0.2s ease-in-out !important;
-    }
+        font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif !important;
+    }}
 
-    button[kind="primary"] {
-        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
-        color: #ffffff !important;
+    /* ប៊ូតុងប្រភេទ Primary (ដូចជា Pay, Accept, Confirm...) */
+    button[kind="primary"] {{
+        background: {btn_bg} !important;
+        color: {btn_text} !important;
         border: none !important;
-        box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3) !important;
-    }
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    }}
 
-    button[kind="secondary"] {
+    /* ប៊ូតុងប្រភេទ Secondary */
+    button[kind="secondary"] {{
         background-color: #ffffff !important;
-        color: #9f1239 !important;
-        border: 2px solid #f472b6 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04) !important;
-    }
+        color: {btn_bg} !important;
+        border: 2px solid {btn_bg} !important;
+    }}
 
-    /* Product Card */
-    .product-card {
+    /* Product Card CSS */
+    .product-card {{
         background: #ffffff;
         border: 2px solid #fda4af;
         border-radius: 14px;
@@ -76,40 +93,26 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-    }
-    .product-card:hover {
-        border-color: #e11d48;
-        box-shadow: 0 8px 16px rgba(225,29,72,0.15);
-    }
-    .product-icon { font-size: 40px; margin: 4px 0; }
-    .product-title { font-size: 15px; font-weight: 900; color: #0f172a !important; height: 40px; overflow: hidden; line-height: 1.3; }
-    .product-code { font-size: 12px; color: #be123c !important; font-weight: 800; }
-    .product-price { font-size: 18px; font-weight: 900; color: #047857 !important; margin: 4px 0; }
+    }}
+    .product-card:hover {{ border-color: {btn_bg}; }}
+    .product-icon {{ font-size: 36px; margin: 4px 0; }}
+    .product-title {{ font-size: 14px; font-weight: 900; height: 38px; overflow: hidden; line-height: 1.3; }}
+    .product-code {{ font-size: 11px; color: #be123c !important; font-weight: 800; }}
+    .product-price {{ font-size: 16px; font-weight: 900; color: #047857 !important; margin: 4px 0; }}
 
-    .add-cart-btn button {
-        border-radius: 10px !important;
-        width: 100% !important;
-        height: 42px !important;
-        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
-        color: #ffffff !important;
-        font-size: 15px !important;
-        font-weight: 900 !important;
-        border: none !important;
-    }
-
-    /* Cart Right Panel */
-    .cart-container {
+    /* Layout នៃ Cart */
+    .cart-container {{
         background: #ffffff;
         border: 2px solid #f472b6;
         border-radius: 14px;
         padding: 16px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
+    }}
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------
-# 2. Data Initialization
+# 3. Data Initialization
 # ----------------------------------------------------------------
 EXCHANGE_RATE = 4100
 
@@ -157,7 +160,7 @@ if "last_payment_info" not in st.session_state:
     st.session_state.last_payment_info = {}
 
 # ----------------------------------------------------------------
-# 3. Helper Functions
+# 4. Helper Functions
 # ----------------------------------------------------------------
 def add_to_cart(item):
     existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
@@ -221,9 +224,9 @@ def generate_receipt_html(inv, pay):
             .flex-between {{ display: flex; justify-content: space-between; margin: 2px 0; }}
             @media print {{ .no-print {{ display: none !important; }} body {{ width: 100%; }} }}
             .print-btn {{
-                background-color: #28a745; color: white; border: none;
-                padding: 12px; font-size: 16px; font-weight: bold;
-                border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px;
+                background-color: {btn_bg}; color: {btn_text}; border: none;
+                padding: 12px; font-size: {btn_size}px; font-weight: bold;
+                border-radius: {btn_radius}px; cursor: pointer; width: 100%; margin-bottom: 10px;
             }}
         </style>
     </head>
@@ -280,7 +283,7 @@ def generate_receipt_html(inv, pay):
     """
 
 # ----------------------------------------------------------------
-# 4. Dialogs (Pop-ups)
+# 5. Dialogs (Pop-ups)
 # ----------------------------------------------------------------
 @st.dialog("👤 ចុះឈ្មោះអតិថិជនពិសេស (Add New Customer)")
 def register_customer_dialog():
@@ -386,7 +389,7 @@ def receipt_dialog():
         reset_pos()
         st.rerun()
 
-# Triggering dialogs based on state
+# Open dialogs based on session state
 if st.session_state.get("show_payment_dialog", False):
     payment_dialog()
 
@@ -394,7 +397,7 @@ if st.session_state.get("show_receipt_dialog", False):
     receipt_dialog()
 
 # ----------------------------------------------------------------
-# 5. Main Navigation Menu
+# 6. Main Navigation Menu
 # ----------------------------------------------------------------
 main_mode = st.radio(
     "📌 Navigation Menu", 
@@ -455,11 +458,9 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    st.markdown('<div class="add-cart-btn">', unsafe_allow_html=True)
-                    if st.button("➕ បញ្ចូល Cart", key=f"add_{item['code']}_{idx}"):
+                    if st.button("➕ បញ្ចូល Cart", key=f"add_{item['code']}_{idx}", type="primary", use_container_width=True):
                         add_to_cart(item)
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
                     st.write("")
 
     # 3. Right Panel: Cart & Actions
@@ -511,7 +512,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("---")
         
-        # Calculation display
+        # Calculations
         global_disc_val = (subtotal * st.session_state.discount_pct) / 100.0
         grand_total_usd = subtotal - global_disc_val
         grand_total_khr = round(grand_total_usd * EXCHANGE_RATE)
@@ -528,12 +529,12 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Action buttons
+        # Action Buttons
         b1, b2 = st.columns(2)
-        if b1.button("🎁 ថែម Disc %", use_container_width=True):
+        if b1.button("🎁 ថែម Disc %", use_container_width=True, type="secondary"):
             set_global_discount_dialog()
             
-        if b2.button("❌ លុប Cart", use_container_width=True):
+        if b2.button("❌ លុប Cart", use_container_width=True, type="secondary"):
             st.session_state.cart = []
             st.session_state.discount_pct = 0.0
             st.rerun()
@@ -548,16 +549,12 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-# ================================================================
-# MODE 2 - 5: PLACEHOLDERS FOR OTHER PAGES
-# ================================================================
+# Other Navigation Sections
 elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)":
     st.title("🛠️ គ្រប់គ្រងសេវាកម្ម (Services Management)")
-    st.write("ផ្ទាំងគ្រប់គ្រង និងបន្ថែមសេវាកម្មក្នុងហាង")
 
 elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)":
     st.title("⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories Management)")
-    st.write("ផ្ទាំងគ្រប់គ្រងប្រភេទសេវាកម្ម")
 
 elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
     st.title("🧾 វិក្កយបត្រចុងក្រោយ")
