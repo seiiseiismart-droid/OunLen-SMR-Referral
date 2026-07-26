@@ -1,4 +1,145 @@
 import streamlit as st
+import pandas as pd
+from datetime import datetime
+
+# កំណត់ Exchange Rate
+EXCHANGE_RATE = 4100
+
+# -------------------------------------------------------------------
+# 1. POPUP សម្រាប់ទូទាត់ប្រាក់ (PAYMENT DIALOG)
+# -------------------------------------------------------------------
+@st.dialog("💵 ផ្ទាំងទទួលប្រាក់ (Payment)", width="large")
+def payment_dialog():
+    total_usd = st.session_state.get("cart_total_usd", 0.0)
+    total_khr = round(total_usd * EXCHANGE_RATE)
+
+    st.write(f"### ប្រាក់ត្រូវទូទាត់សរុប: **${total_usd:,.2f}** ({total_khr:,.0f} ៛)")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        paid_usd = st.number_input("ប្រាក់ទទួលជា ដុល្លារ ($):", min_value=0.0, value=total_usd, step=1.0)
+    with col2:
+        paid_khr = st.number_input("ប្រាក់ទទួលជា រៀល (៛):", min_value=0, value=0, step=1000)
+
+    # គណនាប្រាក់ទទួលបានសរុបគិតជា $
+    total_paid_in_usd = paid_usd + (paid_khr / EXCHANGE_RATE)
+    change_usd = total_paid_in_usd - total_usd
+    change_khr = round(change_usd * EXCHANGE_RATE)
+
+    # បង្ហាញប្រាក់អាប់
+    if change_usd >= 0:
+        st.success(f"💰 **ប្រាក់អាប់:** ${change_usd:,.2f} / {change_khr:,.0f} ៛")
+    else:
+        st.error(f"⚠️ **នៅខ្វះ:** ${abs(change_usd):,.2f} / {abs(change_khr):,.0f} ៛")
+
+    st.markdown("---")
+    c1, c2 = st.columns(2)
+    if c1.button("❌ បោះបង់", use_container_width=True):
+        st.rerun()
+
+    if c2.button("✅ បញ្ចប់ការទូទាត់", type="primary", use_container_width=True):
+        if change_usd < 0:
+            st.error("ប្រាក់ដែលទទួលបានមិនទាន់គ្រប់ចំនួនឡើយ!")
+        else:
+            # រក្សាទុកទិន្នន័យនៃការទូទាត់
+            st.session_state.last_payment_info = {
+                "paid_usd": paid_usd,
+                "paid_khr": paid_khr,
+                "change_usd": change_usd,
+                "change_khr": change_khr
+            }
+            # រក្សាទុកក្នុងប្រវត្តិលក់ (Sales History)
+            inv_number = f"INV-{len(st.session_state.get('sales_history', [])) + 1:04d}"
+            sales_data = {
+                "inv_no": inv_number,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "customer": st.session_state.get("selected_customer", "General Customer"),
+                "items": st.session_state.get("cart", []),
+                "grand_total_usd": total_usd
+            }
+            st.session_state.setdefault("sales_history", []).append(sales_data)
+            st.session_state.last_invoice = sales_data
+            
+            # ផ្លាស់ប្តូរ State ដើម្បីបើកផ្ទាំងវិក្កយបត្រ
+            st.session_state.show_payment_dialog = False
+            st.session_state.show_receipt_dialog = True
+            st.rerun()
+
+
+# -------------------------------------------------------------------
+# 2. POPUP សម្រាប់បង្ហាញវិក្កយបត្រ & Print (RECEIPT DIALOG)
+# -------------------------------------------------------------------
+@st.dialog("🧾 វិក្កយបត្រ (Receipt)", width="large")
+def receipt_dialog():
+    inv = st.session_state.get("last_invoice", {})
+    pay = st.session_state.get("last_payment_info", {})
+
+    st.markdown(f"### 🏪 ហាងកែសម្ផស្ស (Beauty Salon)")
+    st.write(f"**លេខវិក្កយបត្រ:** {inv.get('inv_no')} | **កាលបរិច្ឆេទ:** {inv.get('date')}")
+    st.write(f"**អតិថិជន:** {inv.get('customer')}")
+    st.markdown("---")
+
+    # តារាងទំនិញ
+    items = inv.get("items", [])
+    if items:
+        df = pd.DataFrame(items)[["name", "price", "qty", "total"]]
+        df.columns = ["សេវាកម្ម", "តម្លៃ ($)", "ចំនួន", "សរុប ($)"]
+        st.table(df)
+
+    total_usd = inv.get("grand_total_usd", 0.0)
+    st.markdown(f"**សរុបត្រូវបង់:** ${total_usd:,.2f} ({round(total_usd * EXCHANGE_RATE):,.0f} ៛)")
+    st.write(f"**ប្រាក់ទទួលបាន:** ${pay.get('paid_usd', 0):,.2f} + {pay.get('paid_khr', 0):,.0f} ៛")
+    st.write(f"**ប្រាក់អាប់:** ${pay.get('change_usd', 0):,.2f} ({pay.get('change_khr', 0):,.0f} ៛)")
+
+    st.markdown("---")
+    
+    col_print, col_close = st.columns(2)
+    
+    # ប៊ូតុង ព្រីន (Print Receipt)
+    with col_print:
+        # ប្រើ JavaScript សម្រាប់បញ្ជាឲ្យ Print ផ្ទាំង Receipt
+        st.components.v1.html(
+            """
+            <button onclick="window.print()" style="
+                width: 100%;
+                background-color: #FF4B4B;
+                color: white;
+                padding: 10px;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;">
+                🖨️ ព្រីនវិក្កយបត្រ (Print)
+            </button>
+            """,
+            height=50
+        )
+
+    with col_close:
+        if st.button("✅ រួចរាល់ (បិទ)", use_container_width=True):
+            # សម្អាត Cart ដើមី្បចាប់ផ្តើមលក់ថ្មី
+            st.session_state.cart = []
+            st.session_state.show_receipt_dialog = False
+            st.rerun()
+
+
+# -------------------------------------------------------------------
+# 3. ការហៅប្រើប្រាស់ dialog តាម State
+# -------------------------------------------------------------------
+if st.session_state.get("show_payment_dialog", False):
+    payment_dialog()
+
+if st.session_state.get("show_receipt_dialog", False):
+    receipt_dialog()
+
+# -------------------------------------------------------------------
+# 4. ផ្នែកចុចប៊ូតុង Payment លើអេក្រង់ POS (ឧទាហរណ៍ Cash, ABA...)
+# -------------------------------------------------------------------
+# កន្លែងចុចប៊ូតុង Cash / ABA / KHQR លើ POS UI របស់អ្នក៖
+# if st.button("Cash", type="primary"):
+#     st.session_state.cart_total_usd = 50.0 # តម្លៃសរុបចេញពី Cart របស់អ្នក
+#     st.session_state.show_payment_dialog = True
+#     st.rerun()import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 from datetime import datetime
