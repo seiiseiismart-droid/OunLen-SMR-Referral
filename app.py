@@ -13,17 +13,17 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for UI Enhancement (កែសម្រួល Contrast និងពណ៌អក្សរ)
+# Custom CSS for UI Enhancement (ប្តូរទៅជាពណ៌ផ្កាឈូកស្រាល - Light Pink Theme)
 st.markdown("""
 <style>
-    /* 1. Background និង Font ទូទៅ */
+    /* 1. Background App ទាំងមូល (ប្តូរទៅជាពណ៌ផ្កាឈូកស្រាល) */
     .stApp {
-        background-color: #f1f5f9;
+        background-color: #fdf2f8 !important; /* Soft Light Pink */
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a;
     }
     
-    /* 2. កែប្រែ Navigation Menu ខាងលើ (កន្លែងដែលមើលមិនច្បាស់) */
+    /* 2. Navigation Menu ខាងលើ */
     div[data-testid="stRadio"] > label {
         display: none !important;
     }
@@ -39,17 +39,17 @@ st.markdown("""
         font-weight: 600 !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] input:checked + div {
-        background-color: #10b981 !important; /* ពណ៌ពេល Hover/Select */
+        background-color: #db2777 !important; /* ពណ៌ផ្កាឈូកចាស់ពេល Hover/Select */
     }
 
-    /* 3. កែប្រែ Tabs (សេវាកម្មទូទៅ / Laser / ស្ប៉ា) */
+    /* 3. Tabs (សេវាកម្មទូទៅ / Laser / ស្ប៉ា) */
     button[data-baseweb="tab"] p {
         font-size: 15px !important;
         font-weight: 600 !important;
-        color: #334155 !important;
+        color: #475569 !important;
     }
     button[aria-selected="true"] p {
-        color: #059669 !important; /* ពណ៌ពេលជ្រើសរើស Tab */
+        color: #db2777 !important; /* ពណ៌ផ្កាឈូកពេលជ្រើសរើស Tab */
         font-weight: bold !important;
     }
 
@@ -98,7 +98,7 @@ st.markdown("""
     
     .pos-btn div.stButton > button:hover {
         background: #1e293b !important;
-        border-color: #3b82f6 !important;
+        border-color: #ec4899 !important;
     }
     
     .pay-btn div.stButton > button {
@@ -137,7 +137,7 @@ st.markdown("""
     
     .total-summary-body {
         background-color: #ffffff;
-        border: 1px solid #cbd5e1;
+        border: 1px solid #fbcfe8;
         border-top: none;
         border-radius: 0 0 8px 8px;
         padding: 15px;
@@ -166,8 +166,8 @@ st.markdown("""
 
     /* 8. Receipt Box Styling */
     .receipt-container {
-        background: #fffbeb;
-        border: 2px dashed #d97706;
+        background: #fff5f7;
+        border: 2px dashed #ec4899;
         padding: 20px;
         border-radius: 10px;
         font-family: 'Courier New', Courier, monospace;
@@ -179,7 +179,7 @@ st.markdown("""
         background: white;
         padding: 15px;
         border-radius: 10px;
-        border-left: 5px solid #059669;
+        border-left: 5px solid #db2777;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
 
@@ -499,11 +499,11 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
             <div class="receipt-container">
                 <h2 style="text-align: center; margin-bottom: 5px;">💇‍♀️ អូនឡេន SMR BEAUTY</h2>
                 <p style="text-align: center; font-size: 12px; margin-top: 0;">អាសយដ្ឋាន: រាជធានីភ្នំពេញ | ទូរស័ព្ទ: 012 345 678</p>
-                <hr style="border-top: 1px dashed #d97706;">
+                <hr style="border-top: 1px dashed #ec4899;">
                 <p><b>លេខវិក្កយបត្រ:</b> {rc['inv_no']}<br>
                 <b>កាលបរិច្ឆេទ:</b> {rc['date']}<br>
                 <b>អតិថិជន:</b> {rc['customer']}</p>
-                <hr style="border-top: 1px dashed #d97706;">
+                <hr style="border-top: 1px dashed #ec4899;">
                 <table style="width: 100%; font-size: 13px;">
                     <tr style="text-align: left; border-bottom: 1px solid #ccc;">
                         <th>បរិយាយ</th>
@@ -525,7 +525,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
 
             st.markdown(f"""
                 </table>
-                <hr style="border-top: 1px dashed #d97706;">
+                <hr style="border-top: 1px dashed #ec4899;">
                 <div style="display: flex; justify-content: space-between;"><span>សរុប (Subtotal):</span> <span>${rc['subtotal']:.2f}</span></div>
                 <div style="display: flex; justify-content: space-between;"><span>បញ្ចុះតម្លៃ (Discount):</span> <span>${rc['discount']:.2f}</span></div>
                 <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 5px;">
@@ -534,7 +534,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
                 <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
                     <span>ប្រាក់រៀល (KHR):</span> <span>៛ {rc['grand_total_khr']:,}</span>
                 </div>
-                <hr style="border-top: 1px dashed #d97706;">
+                <hr style="border-top: 1px dashed #ec4899;">
                 <div style="display: flex; justify-content: space-between;"><span>ប្រាក់ទទួលបាន ($):</span> <span>${rc['paid_usd']:.2f}</span></div>
                 <div style="display: flex; justify-content: space-between;"><span>ប្រាក់អាប់ (Change $):</span> <span>${rc['change_usd']:.2f}</span></div>
                 <div style="display: flex; justify-content: space-between;"><span>ប្រាក់អាប់ (Change ៛):</span> <span>៛ {rc['change_khr']:,}</span></div>
@@ -564,21 +564,21 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
             st.markdown(f"""
             <div class="metric-card">
                 <small style="color: #666;">ចំណូលសរុប ($)</small>
-                <h2 style="color: #059669; margin: 0;">$ {total_revenue_usd:.2f}</h2>
+                <h2 style="color: #db2777; margin: 0;">$ {total_revenue_usd:.2f}</h2>
             </div>
             """, unsafe_allow_html=True)
         with m2:
             st.markdown(f"""
             <div class="metric-card">
                 <small style="color: #666;">ចំណូលសរុប (៛)</small>
-                <h2 style="color: #059669; margin: 0;">៛ {total_revenue_khr:,.0f}</h2>
+                <h2 style="color: #db2777; margin: 0;">៛ {total_revenue_khr:,.0f}</h2>
             </div>
             """, unsafe_allow_html=True)
         with m3:
             st.markdown(f"""
             <div class="metric-card">
                 <small style="color: #666;">ចំនួនប្រតិបត្តិការសរុប</small>
-                <h2 style="color: #059669; margin: 0;">{total_orders} វិក្កយបត្រ</h2>
+                <h2 style="color: #db2777; margin: 0;">{total_orders} វិក្កយបត្រ</h2>
             </div>
             """, unsafe_allow_html=True)
             
