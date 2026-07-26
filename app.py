@@ -13,12 +13,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS - Background ពណ៌ទឹកផ្កាឈូក និងពណ៌អក្សរលេចច្បាស់
+# Custom CSS
 st.markdown("""
 <style>
     /* Main Background & Text Color */
     .stApp {
-        background-color: #fce7f3 !important; /* Soft Pink / ទឹកផ្កាឈូក */
+        background-color: #fce7f3 !important; /* Soft Pink */
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a !important;
     }
@@ -210,7 +210,7 @@ if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 
 # ----------------------------------------------------------------
-# 3. Receipt Generator (FIXED FOR KEYERROR SAFEGUARD)
+# 3. Receipt Generator
 # ----------------------------------------------------------------
 def generate_receipt_html(data):
     items_html = ""
@@ -225,7 +225,6 @@ def generate_receipt_html(data):
         </tr>
         """
 
-    # Safe Key Extraction
     inv_no = data.get('inv_no', 'N/A')
     date_str = data.get('date', '')
     customer = data.get('customer', 'General')
@@ -269,8 +268,8 @@ def generate_receipt_html(data):
         <button class="print-btn no-print" onclick="window.print()">🖨️ ព្រីនវិក្កយបត្រ (80mm)</button>
         <div class="text-center">
             <h2 style="margin: 0; font-size: 16px;">💇‍♀️ អូនឡែន សម្រស់</h2>
-            <p style="margin: 2px 0; font-size: 10px;">អស័យដ្ឋាន ភូមិដំណាក់ពពូល សង្កាត់កំពង់ឆ្នាំង ក្រុងកំពង់ឆ្នាំង​ </p>
-            <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 067 969​ 877</p>
+            <p style="margin: 2px 0; font-size: 10px;">អស័យដ្ឋាន ភូមិដំណាក់ពពូល សង្កាត់កំពង់ឆ្នាំង ក្រុងកំពង់ឆ្នាំង </p>
+            <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 067 969 877</p>
         </div>
         <div class="dashed-line"></div>
         <div style="font-size: 10px;">
@@ -712,15 +711,14 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                     "Grand Total (៛)": f"៛ {total_khr:,}"
                 })
 
-        st.markdown("---")
-        m1, m2, m3 = st.columns(3)
-        m1.metric("💵 ចំណូលសរុប (Total Revenue)", f"${total_sales_usd:.2f}", f"៛ {total_sales_khr:,}")
-        m2.metric("🧾 ចំនួនប្រតិបត្តិការ (Transactions)", f"{total_transactions}")
-        avg_sale = total_sales_usd / total_transactions if total_transactions > 0 else 0.0
-        m3.metric("📊 ចំណូលមធ្យម/វិក្កយបត្រ (Average Ticket)", f"${avg_sale:.2f}")
+        # Display Key Metrics
+        m_col1, m_col2, m_col3 = st.columns(3)
+        m_col1.metric("📦 ការលក់សរុប (Transactions)", f"{total_transactions} លើក")
+        m_col2.metric("💵 ចំណូលសរុប ($)", f"${total_sales_usd:.2f}")
+        m_col3.metric("៛ ចំណូលសរុប (៛)", f"៛ {total_sales_khr:,}")
 
         st.markdown("---")
-        st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការលក់សម្រាប់ថ្ងៃទី {selected_date}")
+        st.markdown(f"### 📋 បញ្ជីវិក្កយបត្រប្រចាំថ្ងៃ ({selected_date})")
         if sales_data:
             st.dataframe(pd.DataFrame(sales_data), use_container_width=True, hide_index=True)
         else:
