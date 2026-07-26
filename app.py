@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import json
 from datetime import datetime
 
 # ----------------------------------------------------------------
@@ -16,14 +15,14 @@ st.set_page_config(
 # Custom CSS for UI Enhancement (Theme ពណ៌ផ្កាឈូកស្រាល - Light Pink)
 st.markdown("""
 <style>
-    /* 1. Background App ទាំងមូល */
+    /* Background App ទាំងមូល */
     .stApp {
         background-color: #fdf2f8 !important;
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a;
     }
     
-    /* 2. Navigation Menu ខាងលើ */
+    /* Navigation Menu ខាងលើ */
     div[data-testid="stRadio"] > label {
         display: none !important;
     }
@@ -42,7 +41,7 @@ st.markdown("""
         background-color: #db2777 !important;
     }
 
-    /* 3. Tabs (ប្រភេទសេវាកម្ម) */
+    /* Tabs (ប្រភេទសេវាកម្ម) */
     button[data-baseweb="tab"] p {
         font-size: 15px !important;
         font-weight: 600 !important;
@@ -53,7 +52,7 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* 4. Circle Button Styling (ប៊ូតុងរង្វង់សេវាកម្ម) */
+    /* Circle Button Styling (ប៊ូតុងរង្វង់សេវាកម្ម) */
     div.stButton > button {
         border-radius: 50% !important;
         width: 125px !important;
@@ -83,7 +82,7 @@ st.markdown("""
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     }
 
-    /* 5. POS Action Buttons (ប៊ូតុងមុខងារខាងស្តាំ) */
+    /* POS Action Buttons (ប៊ូតុងមុខងារខាងស្តាំ) */
     .pos-btn div.stButton > button {
         border-radius: 8px !important;
         width: 100% !important;
@@ -113,7 +112,7 @@ st.markdown("""
         text-shadow: none !important;
     }
 
-    /* 6. Customer Info Box */
+    /* Customer Info Box */
     .customer-info-box {
         background-color: #047857;
         color: #ffffff;
@@ -124,7 +123,7 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    /* 7. Total Summary Box */
+    /* Total Summary Box */
     .total-summary-header {
         background-color: #047857;
         color: #ffffff;
@@ -164,7 +163,7 @@ st.markdown("""
         font-weight: bold;
     }
 
-    /* 8. Receipt Box Styling */
+    /* Receipt Box Styling */
     .receipt-container {
         background: #fff5f7;
         border: 2px dashed #ec4899;
@@ -174,7 +173,7 @@ st.markdown("""
         color: #0f172a;
     }
 
-    /* 9. Metric Cards Styling */
+    /* Metric Cards Styling */
     .metric-card {
         background: white;
         padding: 15px;
@@ -251,7 +250,43 @@ if "hold_list" not in st.session_state:
 if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 
-# Navigation Menu
+# ----------------------------------------------------------------
+# 3. Popup Dialogs (Discount & Customer)
+# ----------------------------------------------------------------
+@st.dialog("🎁 បញ្ចុះតម្លៃ (Apply Discount)")
+def set_discount_dialog():
+    st.write("សូមបញ្ចូលភាគរយ % ដែលត្រូវបញ្ចុះតម្លៃ៖")
+    new_discount = st.number_input(
+        "ភាគរយបញ្ចុះតម្លៃ (%)", 
+        min_value=0.0, 
+        max_value=100.0, 
+        value=float(st.session_state.discount_pct), 
+        step=1.0
+    )
+    col_d1, col_d2 = st.columns(2)
+    if col_d1.button("✅ យល់ព្រម", type="primary", use_container_width=True):
+        st.session_state.discount_pct = new_discount
+        st.toast(f"បានកំណត់ការបញ្ចុះតម្លៃ: {new_discount}%")
+        st.rerun()
+    if col_d2.button("❌ បោះបង់", use_container_width=True):
+        st.rerun()
+
+@st.dialog("👤 កំណត់ព័ត៌មានអតិថិជន")
+def set_customer_dialog():
+    c_name = st.text_input("ឈ្មោះអតិថិជន:", value=st.session_state.customer_name)
+    c_code = st.text_input("កូដអតិថិជន / លេខទូរស័ព្ទ:", value=st.session_state.customer_code)
+    col_c1, col_c2 = st.columns(2)
+    if col_c1.button("✅ រក្សាទុក", type="primary", use_container_width=True):
+        st.session_state.customer_name = c_name.strip() if c_name.strip() else "General"
+        st.session_state.customer_code = c_code.strip() if c_code.strip() else "N/A"
+        st.toast("បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានអតិថិជន!")
+        st.rerun()
+    if col_c2.button("❌ បោះបង់", use_container_width=True):
+        st.rerun()
+
+# ----------------------------------------------------------------
+# 4. Navigation Menu
+# ----------------------------------------------------------------
 main_mode = st.radio(
     "📌 Navigation Menu", 
     ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
@@ -291,7 +326,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 st.toast(f"បានបន្ថែម: {matched['name']}")
                 st.rerun()
 
-        # Dynamic Tabs តាមប្រភេទសេវាកម្មដែលមាន
+        # Dynamic Tabs តាមប្រភេទសេវាកម្ម
         if st.session_state.categories:
             category_tabs = st.tabs(st.session_state.categories)
 
@@ -376,7 +411,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         st.markdown(f"""
         <div class="total-summary-body">
             <div class="summary-row"><span>Sub Total:</span> <span>$ {subtotal:.2f}</span></div>
-            <div class="summary-row"><span>Discount ({st.session_state.discount_pct}%):</span> <span>$ {discount_val:.2f}</span></div>
+            <div class="summary-row"><span>Discount ({st.session_state.discount_pct}%):</span> <span>-$ {discount_val:.2f}</span></div>
             <div class="summary-row"><span>VAT:</span> <span>$ {vat_val:.2f}</span></div>
             <div class="summary-row"><span>Service Charge:</span> <span>$ {service_charge_val:.2f}</span></div>
             <hr style="margin: 6px 0; border-top: 1px dashed #ccc;">
@@ -422,10 +457,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         b_c3, b_c4 = st.columns(2)
         with b_c3:
             if st.button("% Discount", key="btn_discount"):
-                st.session_state.show_discount_dialog = True
+                set_discount_dialog()  # ហៅ Dialog ឱ្យបង្ហាញពេលចុច
         with b_c4:
             if st.button("🔑 Customer", key="btn_customer"):
-                st.session_state.show_customer_dialog = True
+                set_customer_dialog()  # ហៅ Dialog កំណត់អតិថិជន
 
         b_c5, b_c6 = st.columns(2)
         with b_c5:
@@ -502,7 +537,7 @@ elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (
     
     col_s_add, col_s_edit = st.columns(2, gap="large")
     
-    # 1. បញ្ចូលសេវាកម្មថ្មី (Add Service)
+    # 1. បញ្ចូលសេវាកម្មថ្មី
     with col_s_add:
         st.markdown("### ➕ បន្ថែមសេវាកម្មថ្មី")
         with st.form("add_service_form", clear_on_submit=True):
@@ -528,17 +563,16 @@ elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (
                         "icon": s_icon.strip() if s_icon.strip() else "✨"
                     }
                     st.session_state.services_catalog.append(new_item)
-                    st.success(f"បានបន្ថែមសេវាកម្ម '{s_name}' ដោយជោគជ័យ! វាបង្ហាញលើផ្ទាំងលក់ភ្លាមៗ។")
+                    st.success(f"បានបន្ថែមសេវាកម្ម '{s_name}' ដោយជោគជ័យ!")
                     st.rerun()
 
-    # 2. កែប្រែ ឬ លុបសេវាកម្ម (Edit or Delete Service)
+    # 2. កែប្រែ ឬ លុបសេវាកម្ម
     with col_s_edit:
         st.markdown("### ✏️ កែប្រែ ឬ លុបសេវាកម្ម")
         if st.session_state.services_catalog:
             service_options = [f"{item['code']} - {item['name']}" for item in st.session_state.services_catalog]
             selected_s_option = st.selectbox("ជ្រើសរើសសេវាកម្មដែលត្រូវកែប្រែ:", service_options)
             
-            # Find selected item
             selected_code = selected_s_option.split(" - ")[0]
             target_item = next((item for item in st.session_state.services_catalog if item["code"] == selected_code), None)
             
@@ -678,7 +712,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
                 </table>
                 <hr style="border-top: 1px dashed #ec4899;">
                 <div style="display: flex; justify-content: space-between;"><span>សរុប (Subtotal):</span> <span>${rc['subtotal']:.2f}</span></div>
-                <div style="display: flex; justify-content: space-between;"><span>បញ្ចុះតម្លៃ (Discount):</span> <span>${rc['discount']:.2f}</span></div>
+                <div style="display: flex; justify-content: space-between;"><span>បញ្ចុះតម្លៃ (Discount):</span> <span>-${rc['discount']:.2f}</span></div>
                 <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 5px;">
                     <span>សរុបត្រូវបង់ (Grand Total):</span> <span>${rc['grand_total_usd']:.2f}</span>
                 </div>
