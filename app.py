@@ -266,9 +266,9 @@ def generate_receipt_html(data):
         </style>
     </head>
     <body>
-        <button class="print-btn no-print" onclick="window.print()">🖨️ ចុចទីនេះដើម្បី ព្រីនវិក្កយបត្រ (80mm)</button>
+        <button class="print-btn no-print" onclick="window.print()">🖨️ ព្រីនវិក្កយបត្រ (80mm)</button>
         <div class="text-center">
-            <h2 style="margin: 0; font-size: 16px;">💇‍♀️ អូនឡេន SMR BEAUTY</h2>
+            <h2 style="margin: 0; font-size: 16px;">💇‍♀️ អូនឡែន សម្រស់</h2>
             <p style="margin: 2px 0; font-size: 10px;">អស័យដ្ឋាន ភូមិដំណាក់ពពូល សង្កាត់កំពង់ឆ្នាំង ក្រុងកំពង់ឆ្នាំង​ </p>
             <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 067 969​ 877</p>
         </div>
@@ -310,7 +310,7 @@ def generate_receipt_html(data):
         </div>
         <div class="dashed-line"></div>
         <div class="text-center" style="margin-top: 10px; font-size: 10px;">
-            <p>🙏🏻 សូមអរគុណ ជូនពរសំណាងល្អ! 🙏🏻</p>
+            <p>🙏🏻 សូមអរគុណ ជូនពរសំណាងល្អ! </p>
         </div>
     </body>
     </html>
@@ -321,7 +321,7 @@ def generate_receipt_html(data):
 # ----------------------------------------------------------------
 @st.dialog("🎁 បញ្ចុះតម្លៃ (Apply Discount)")
 def set_discount_dialog():
-    st.write("សូមបញ្ចូលភាគរយ % ដែលត្រូវបញ្ចុះតម្លៃ៖")
+    st.write("បញ្ចុះតម្លៃ៖")
     new_discount = st.number_input("ភាគរយបញ្ចុះតម្លៃ (%)", min_value=0.0, max_value=100.0, value=float(st.session_state.discount_pct), step=1.0)
     col_d1, col_d2 = st.columns(2)
     if col_d1.button("✅ យល់ព្រម", type="primary", use_container_width=True):
