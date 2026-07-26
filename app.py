@@ -13,12 +13,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS matching Ready POS Layout with Updated Vivid Color Palette & Larger Fonts
+# Custom CSS: Removed black buttons, increased text size, enhanced font-weight, bright colors
 st.markdown("""
 <style>
     /* Main Background & Base Styling */
     .stApp {
-        background-color: #fdf2f8 !important; /* Soft Pink tint */
+        background-color: #fff1f2 !important; /* Soft Rose tint */
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a !important;
     }
@@ -27,49 +27,58 @@ st.markdown("""
         color: #0f172a !important;
     }
 
-    /* Top Radio Bar Styling */
+    /* Top Navigation Radio Styling */
     div[data-testid="stRadio"] > label { display: none !important; }
     div[data-testid="stRadio"] > div {
         background-color: #ffffff !important;
-        padding: 6px 12px !important;
-        border-radius: 10px !important;
+        padding: 8px 14px !important;
+        border-radius: 12px !important;
         border: 2px solid #f472b6 !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] span {
         color: #831843 !important;
-        font-size: 16px !important;
-        font-weight: 700 !important;
+        font-size: 17px !important;
+        font-weight: 800 !important;
     }
 
-    /* Category Left Sidebar Tiles */
-    .cat-card {
-        background-color: #ffffff;
-        border: 2px solid #fbcfe8;
-        border-radius: 12px;
-        padding: 12px 8px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    /* Category Buttons (Left Sidebar) - Fixed dark buttons */
+    .stButton > button {
+        border-radius: 10px !important;
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        transition: all 0.2s ease-in-out !important;
     }
-    .cat-card:hover {
-        border-color: #db2777;
-        background-color: #fce7f3;
-        transform: translateY(-2px);
+
+    /* Primary Buttons (Selected State) */
+    button[kind="primary"] {
+        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3) !important;
     }
-    .cat-icon { font-size: 28px; margin-bottom: 4px; }
-    .cat-title { font-size: 14px; font-weight: bold; color: #831843 !important; }
+
+    /* Secondary Buttons (Unselected State - No black!) */
+    button[kind="secondary"] {
+        background-color: #ffffff !important;
+        color: #9f1239 !important;
+        border: 2px solid #f472b6 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04) !important;
+    }
+    button[kind="secondary"]:hover {
+        background-color: #ffe4e6 !important;
+        color: #881337 !important;
+        border-color: #e11d48 !important;
+    }
 
     /* Service / Product Cards Grid */
     .product-card {
         background: #ffffff;
-        border: 1px solid #f472b6;
-        border-radius: 12px;
+        border: 2px solid #fda4af;
+        border-radius: 14px;
         padding: 12px;
         text-align: center;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.04);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.04);
         transition: all 0.2s ease;
         height: 100%;
         display: flex;
@@ -77,115 +86,105 @@ st.markdown("""
         justify-content: space-between;
     }
     .product-card:hover {
-        border-color: #db2777;
-        box-shadow: 0 6px 12px rgba(219,39,119,0.15);
+        border-color: #e11d48;
+        box-shadow: 0 8px 16px rgba(225,29,72,0.15);
     }
-    .product-icon { font-size: 38px; margin: 4px 0; }
-    .product-title { font-size: 14px; font-weight: 700; color: #0f172a !important; height: 38px; overflow: hidden; }
-    .product-code { font-size: 12px; color: #9d174d !important; font-weight: 600; }
-    .product-price { font-size: 16px; font-weight: 800; color: #059669 !important; margin: 4px 0; }
+    .product-icon { font-size: 42px; margin: 4px 0; }
+    .product-title { font-size: 15px; font-weight: 800; color: #0f172a !important; height: 42px; overflow: hidden; line-height: 1.3; }
+    .product-code { font-size: 13px; color: #be123c !important; font-weight: 800; }
+    .product-price { font-size: 18px; font-weight: 900; color: #047857 !important; margin: 4px 0; }
 
-    /* Custom Streamlit Buttons in Product Grid (Pink background, White text, Larger Font) */
+    /* Custom Streamlit Add-to-Cart Button under each product card */
     .add-cart-btn button {
-        border-radius: 8px !important;
+        border-radius: 10px !important;
         width: 100% !important;
-        height: 40px !important;
-        background: #be185d !important;
+        height: 44px !important;
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important; /* Bright Blue */
         color: #ffffff !important;
-        font-size: 15px !important;
-        font-weight: 800 !important;
+        font-size: 16px !important;
+        font-weight: 900 !important;
         border: none !important;
-        padding: 0 !important;
+        box-shadow: 0 3px 6px rgba(2, 132, 199, 0.3) !important;
     }
     .add-cart-btn button:hover {
-        background: #9d174d !important;
-        color: #fef08a !important; /* Soft yellow contrast on hover */
+        background: #075985 !important;
+        color: #fef08a !important;
     }
 
     /* Cart Right Panel Styling */
     .cart-container {
         background: #ffffff;
         border: 2px solid #f472b6;
-        border-radius: 12px;
-        padding: 14px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    }
-    
-    .payment-chip {
-        background: #f1f5f9;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 8px;
-        text-align: center;
-        font-size: 13px;
-        font-weight: 700;
-        color: #334155 !important;
-        cursor: pointer;
-    }
-    .payment-chip.active {
-        background: #0284c7;
-        color: #ffffff !important;
-        border-color: #0284c7;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
-    /* POS Action Bar Buttons - Custom Vivid Colors & Larger Text */
+    /* POS Action Bar Buttons - Custom Vivid Colors, High Contrast & Extra Bold Large Text */
     .btn-cancel button {
-        background-color: #dc2626 !important; /* Dark Red */
-        color: #ffffff !important;            /* White Text */
-        font-weight: 800 !important;
-        font-size: 16px !important;
+        background-color: #dc2626 !important; /* Vivid Red */
+        color: #ffffff !important;
+        font-weight: 900 !important;
+        font-size: 17px !important;
         border: none !important;
-        border-radius: 8px !important;
-        height: 48px !important;
+        border-radius: 10px !important;
+        height: 50px !important;
+        box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3) !important;
     }
     .btn-cancel button:hover {
-        background-color: #b91c1c !important;
+        background-color: #991b1b !important;
     }
 
     .btn-draft button {
-        background-color: #d97706 !important; /* Amber / Dark Orange */
-        color: #ffffff !important;            /* White Text */
-        font-weight: 800 !important;
-        font-size: 16px !important;
+        background-color: #d97706 !important; /* Bright Amber / Orange */
+        color: #ffffff !important;
+        font-weight: 900 !important;
+        font-size: 17px !important;
         border: none !important;
-        border-radius: 8px !important;
-        height: 48px !important;
+        border-radius: 10px !important;
+        height: 50px !important;
+        box-shadow: 0 4px 8px rgba(217, 119, 6, 0.3) !important;
     }
     .btn-draft button:hover {
-        background-color: #b45309 !important;
+        background-color: #92400e !important;
     }
 
     .btn-pay button {
-        background: #15803d !important;      /* Deep Green */
-        color: #ffffff !important;            /* White Text */
-        font-weight: 800 !important;
-        font-size: 17px !important;
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important; /* Vibrant Green */
+        color: #ffffff !important;
+        font-weight: 900 !important;
+        font-size: 18px !important;
         border: none !important;
-        border-radius: 8px !important;
-        height: 48px !important;
+        border-radius: 10px !important;
+        height: 50px !important;
+        box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3) !important;
     }
     .btn-pay button:hover {
-        background: #166534 !important;
+        background: #116329 !important;
     }
 
-    /* General Streamlit Base Buttons Overrides for high-contrast colors and larger font */
-    div.stButton > button {
-        font-size: 15px !important;
-        font-weight: 700 !important;
-        border-radius: 8px !important;
+    .btn-discount button {
+        background-color: #7c3aed !important; /* Bright Purple */
+        color: #ffffff !important;
+        font-weight: 900 !important;
+        font-size: 16px !important;
+        border: none !important;
+        border-radius: 10px !important;
+        height: 46px !important;
+        box-shadow: 0 4px 8px rgba(124, 58, 237, 0.25) !important;
     }
 
     /* Metric Card in Sales Report */
     .metric-card {
         background-color: #ffffff;
         border: 2px solid #f472b6;
-        border-radius: 12px;
-        padding: 16px;
+        border-radius: 14px;
+        padding: 18px;
         text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
     }
-    .metric-card h4 { margin: 0; font-size: 15px; color: #831843 !important; }
-    .metric-card h2 { margin: 8px 0 0 0; font-size: 26px; color: #db2777 !important; }
+    .metric-card h4 { margin: 0; font-size: 16px; font-weight: 800; color: #831843 !important; }
+    .metric-card h2 { margin: 8px 0 0 0; font-size: 28px; font-weight: 900; color: #be123c !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -284,9 +283,9 @@ def generate_receipt_html(data):
             .flex-between {{ display: flex; justify-content: space-between; margin: 2px 0; }}
             @media print {{ .no-print {{ display: none !important; }} body {{ width: 100%; }} }}
             .print-btn {{
-                background-color: #db2777; color: white; border: none;
-                padding: 12px; font-size: 15px; font-weight: bold;
-                border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px;
+                background-color: #e11d48; color: white; border: none;
+                padding: 12px; font-size: 16px; font-weight: bold;
+                border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px;
             }}
         </style>
     </head>
@@ -383,7 +382,7 @@ def add_to_cart(item):
         })
 
 # ----------------------------------------------------------------
-# MODE 1: POS SYSTEM (Redesigned matching Ready POS Layout)
+# MODE 1: POS SYSTEM
 # ----------------------------------------------------------------
 if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
     
@@ -454,12 +453,12 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         c_col1, c_col2 = st.columns([4, 1])
         c_name = c_col1.text_input("Customer Name", value=st.session_state.customer_name, label_visibility="collapsed", placeholder="Enter Customer name or phone number")
         st.session_state.customer_name = c_name
-        if c_col2.button("👤+", key="btn_quick_cust"):
+        if c_col2.button("👤+", key="btn_quick_cust", type="secondary"):
             st.toast("បញ្ចូលឈ្មោះអតិថិជនរួចរាល់")
 
         # Cart Items Header & Table
         st.markdown("""
-        <div style="background-color: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 12px; font-weight: bold; margin: 8px 0;">
+        <div style="background-color: #fff1f2; padding: 8px 10px; border-radius: 8px; border: 1px solid #fda4af; font-size: 13px; font-weight: 800; margin: 8px 0; color: #9f1239;">
             <div style="display: flex; justify-content: space-between;">
                 <span style="width: 40%;">Product</span>
                 <span style="width: 20%; text-align: center;">Price</span>
@@ -478,8 +477,8 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 total_items_count += item["qty"]
                 
                 ic1, ic2, ic3, ic4 = st.columns([2.5, 1.2, 1.3, 1.5])
-                ic1.markdown(f"<div style='font-size:12px; font-weight:bold;'>{item['name']}</div>", unsafe_allow_html=True)
-                ic2.markdown(f"<div style='font-size:12px; text-align:center;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
+                ic1.markdown(f"<div style='font-size:13px; font-weight:800;'>{item['name']}</div>", unsafe_allow_html=True)
+                ic2.markdown(f"<div style='font-size:13px; text-align:center;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
                 
                 # Qty selector
                 new_q = ic3.number_input("qty", min_value=1, value=int(item["qty"]), key=f"cart_q_{idx}", label_visibility="collapsed")
@@ -488,19 +487,19 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                     st.session_state.cart[idx]["total"] = new_q * item["price"]
                     st.rerun()
 
-                ic4.markdown(f"<div style='font-size:12px; text-align:right; font-weight:bold;'>${item['total']:.2f}</div>", unsafe_allow_html=True)
+                ic4.markdown(f"<div style='font-size:13px; text-align:right; font-weight:800;'>${item['total']:.2f}</div>", unsafe_allow_html=True)
         else:
-            st.markdown("<div style='text-align:center; padding:20px; color:#64748b; font-size:13px;'>No products available in the list</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center; padding:20px; color:#94a3b8; font-size:14px; font-weight:700;'>No products available in the list</div>", unsafe_allow_html=True)
 
-        st.markdown("<hr style='margin: 10px 0; border-top: 1px dashed #cbd5e1;'>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin: 10px 0; border-top: 1px dashed #f472b6;'>", unsafe_allow_html=True)
 
-        # Calculation Calculations
+        # Total Calculations
         discount_val = (subtotal * st.session_state.discount_pct) / 100
         grand_total_usd = subtotal - discount_val
         grand_total_khr = round(grand_total_usd * EXCHANGE_RATE)
 
         st.markdown(f"""
-        <div style="font-size: 14px; line-height: 1.8;">
+        <div style="font-size: 15px; line-height: 1.8;">
             <div style="display:flex; justify-content:space-between;">
                 <span>Total Products:</span> <b>{len(st.session_state.cart)} ({total_items_count})</b>
             </div>
@@ -511,10 +510,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 <span>Discount ({st.session_state.discount_pct}%):</span> <b>-$ {discount_val:.2f}</b>
             </div>
             <hr style="margin:6px 0;">
-            <div style="display:flex; justify-content:space-between; font-size:17px; font-weight:bold; color:#0284c7;">
+            <div style="display:flex; justify-content:space-between; font-size:19px; font-weight:900; color:#0284c7;">
                 <span>Grand Total:</span> <span>$ {grand_total_usd:.2f}</span>
             </div>
-            <div style="display:flex; justify-content:flex-end; font-size:14px; font-weight:bold; color:#059669;">
+            <div style="display:flex; justify-content:flex-end; font-size:15px; font-weight:800; color:#059669;">
                 <span>៛ {grand_total_khr:,.0f}</span>
             </div>
         </div>
@@ -527,7 +526,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         methods = ["Cash", "ABA/KHQR", "Paystack", "Stripe"]
         for m_idx, method in enumerate(methods):
             with p_cols[m_idx]:
-                if st.button(method, key=f"pay_meth_{m_idx}", type="primary" if st.session_state.payment_method == method else "secondary"):
+                if st.button(method, key=f"pay_meth_{m_idx}", type="primary" if st.session_state.payment_method == method else "secondary", use_container_width=True):
                     st.session_state.payment_method = method
                     st.rerun()
 
@@ -563,8 +562,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.markdown('</div>', unsafe_allow_html=True)
 
         # Quick Discount Link
+        st.markdown('<div class="btn-discount" style="margin-top: 8px;">', unsafe_allow_html=True)
         if st.button("🎁 កំណត់ Discount (%)", key="btn_open_disc", use_container_width=True):
             set_discount_dialog()
+        st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -611,7 +612,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ!")
             st.rerun()
 
-        if confirm_c2.button("❌ បោះបង់", use_container_width=True):
+        if confirm_c2.button("❌ បោះបង់", type="secondary", use_container_width=True):
             st.session_state.show_payment_modal = False
             st.rerun()
 
