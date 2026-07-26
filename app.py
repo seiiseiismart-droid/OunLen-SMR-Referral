@@ -693,27 +693,101 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
+# MODE 5: SALES REPORT WITH DATE FILTER & 80mm RECEIPT PREVIEW
+# ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
-    if st.session_state.sales_history:
-        report_data = []
-        for item in st.session_state.sales_history:
-            report_data.append({
-                "Invoice No": item.get("inv_no"),
-                "Date": item.get("date"),
-                "Customer": item.get("customer"),
-                "Subtotal ($)": f"${item.get('subtotal', 0):.2f}",
-                "Discount ($)": f"${item.get('discount', 0):.2f}",
-                "Grand Total ($)": f"${item.get('grand_total_usd', 0):.2f}",
-                "Grand Total (KHR)": f"៛{item.get('grand_total_khr', 0):,}"
-            })
-        st.dataframe(pd.DataFrame(report_data), use_container_width=True)
+    
+    if not st.session_state.sales_history:
+        st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
     else:
-        st.info("មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។")
+        # 1. បង្កើត Filter ជ្រើសរើសចន្លោះកាលបរិច្ឆេទ (Date Range Filter)
+        filter_col1, filter_col2 = st.columns([1.5, 2.5])
+        with filter_col1:
+            today = datetime.now().date()
+            date_range = st.date_input(
+                "📅 ជ្រើសរើសចន្លោះកាលបរិច្ឆេទ (Date Range):",
+                value=(today, today),
+                key="sales_date_range"
+            )
 
-# Footer
-st.markdown("""
-<div class="pos-footer-bar">
-    <span><b>Outlet:</b> OunLen SMR</span> | <span><b>Status:</b> Ready</span>
-</div>
-""", unsafe_allow_html=True)
+        # ញែក Start Date និង End Date
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            start_date, end_date = date_range
+        elif isinstance(date_range, tuple) and len(date_range) == 1:
+            start_date = end_date = date_range[0]
+        else:
+            start_date = end_date = today
+
+        # Filter ទិន្នន័យ sales_history តាមចន្លោះថ្ងៃដែលបានជ្រើសរើស
+        filtered_sales = []
+        for item in st.session_state.sales_history:
+            item_date_str = item.get("date", "")
+            try:
+                item_date = datetime.strptime(item_date_str, "%Y-%m-%d %H:%M:%S").date()
+            except ValueError:
+                item_date = today
+
+            if start_date <= item_date <= end_date:
+                filtered_sales.append(item)
+
+        st.markdown("---")
+
+        if not filtered_sales:
+            st.warning(f"⚠️ មិនមានទិន្នន័យលក់ចន្លោះពីថ្ងៃ {start_date} ដល់ {end_date} ទេ។")
+        else:
+            # បង្កើត Column ២: ខាងឆ្វេងបង្ហាញតារាង + Dropdown, ខាងស្តាំបង្ហាញ Receipt 80mm Preview
+            col_rep_table, col_rep_preview = st.columns([1.5, 1], gap="medium")
+
+            with col_rep_table:
+                st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការ ({len(filtered_sales)} វិក្កយបត្រ)")
+                
+                # រៀបចំទិន្នន័យសម្រាប់ Dataframe
+                report_data = []
+                for idx, item in enumerate(reversed(filtered_sales)):
+                    report_data.append({
+                        "ល.រ": len(filtered_sales) - idx,
+                        "Invoice No": item.get("inv_no"),
+                        "Date": item.get("date"),
+                        "Customer": item.get("customer"),
+                        "Subtotal ($)": f"${item.get('subtotal', 0):.2f}",
+                        "Discount ($)": f"${item.get('discount', 0):.2f}",
+                        "Grand Total ($)": f"${item.get('grand_total_usd', 0):.2f}",
+                        "Grand Total (KHR)": f"៛{item.get('grand_total_khr', 0):,}"
+                    })
+
+                st.dataframe(pd.DataFrame(report_data), use_container_width=True, hide_index=True)
+
+                st.markdown("---")
+                # Dropdown ជ្រើសរើសវិក្កយបត្រដើម្បី Preview & Print
+                filtered_inv_list = [item["inv_no"] for item in reversed(filtered_sales)]
+                selected_rep_inv = st.selectbox(
+                    "🔍 ជ្រើសរើសលេខវិក្កយបត្រដើម្បីមើលទម្រង់ 80mm / ព្រីន:", 
+                    filtered_inv_list,
+                    key="select_report_inv"
+                )
+
+                selected_rep_data = next((item for item in filtered_sales if item["inv_no"] == selected_rep_inv), None)
+
+            with col_rep_preview:
+                st.markdown("### 🧾 វិក្កយបត្រ Preview (80mm)")
+                if selected_rep_data:
+                    receipt_payload = {
+                        "inv_no": selected_rep_data.get("inv_no", "N/A"),
+                        "date": selected_rep_data.get("date", ""),
+                        "customer": selected_rep_data.get("customer", "General"),
+                        "items": selected_rep_data.get("items", []),
+                        "subtotal": selected_rep_data.get("subtotal", selected_rep_data.get("grand_total_usd", 0)),
+                        "discount": selected_rep_data.get("discount", 0.0),
+                        "grand_total_usd": selected_rep_data.get("grand_total_usd", 0),
+                        "grand_total_khr": selected_rep_data.get("grand_total_khr", 0),
+                        "paid_usd": selected_rep_data.get("paid_usd", selected_rep_data.get("grand_total_usd", 0)),
+                        "paid_khr": selected_rep_data.get("paid_khr", 0),
+                        "change_usd": selected_rep_data.get("change_usd", 0.0),
+                        "change_khr": selected_rep_data.get("change_khr", 0)
+                    }
+                    
+                    # បង្ហាញ Receipt Preview 80mm
+                    rc_html = generate_receipt_html(receipt_payload)
+                    components.html(rc_html, height=620, scrolling=True)
