@@ -696,13 +696,16 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT WITH DATE FILTER & 80mm RECEIPT PREVIEW
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
+# MODE 5: SALES REPORT WITH TOTAL METRICS & RECEIPT PREVIEW
+# ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
     
     if not st.session_state.sales_history:
-        st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
+        st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន។")
     else:
-        # 1. បង្កើត Filter ជ្រើសរើសចន្លោះកាលបរិច្ឆេទ (Date Range Filter)
+        # 1. Date Range Picker
         filter_col1, filter_col2 = st.columns([1.5, 2.5])
         with filter_col1:
             today = datetime.now().date()
@@ -720,7 +723,7 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
         else:
             start_date = end_date = today
 
-        # Filter ទិន្នន័យ sales_history តាមចន្លោះថ្ងៃដែលបានជ្រើសរើស
+        # Filter ទិន្នន័យ sales_history តាមចន្លោះថ្ងៃ
         filtered_sales = []
         for item in st.session_state.sales_history:
             item_date_str = item.get("date", "")
@@ -737,17 +740,31 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
         if not filtered_sales:
             st.warning(f"⚠️ មិនមានទិន្នន័យលក់ចន្លោះពីថ្ងៃ {start_date} ដល់ {end_date} ទេ។")
         else:
-            # បង្កើត Column ២: ខាងឆ្វេងបង្ហាញតារាង + Dropdown, ខាងស្តាំបង្ហាញ Receipt 80mm Preview
+            # 2. គណនា និង បង្ហាញទិន្នន័យសរុប (Summary Metrics / KPI Cards)
+            total_invoices = len(filtered_sales)
+            total_subtotal = sum(item.get("subtotal", 0) for item in filtered_sales)
+            total_discount = sum(item.get("discount", 0) for item in filtered_sales)
+            total_grand_usd = sum(item.get("grand_total_usd", 0) for item in filtered_sales)
+            total_grand_khr = sum(item.get("grand_total_khr", 0) for item in filtered_sales)
+
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("🧾 វិក្កយបត្រសរុប", f"{total_invoices} វិក្កយបត្រ")
+            m2.metric("💵 ចំណូលសរុប ($)", f"${total_grand_usd:,.2f}")
+            m3.metric("🎁 បញ្ចុះតម្លៃសរុប ($)", f"${total_discount:,.2f}")
+            m4.metric("៛ ចំណូលសរុប (KHR)", f"៛ {total_grand_khr:,.0f}")
+
+            st.markdown("---")
+
+            # 3. តារាង + 80mm Preview
             col_rep_table, col_rep_preview = st.columns([1.5, 1], gap="medium")
 
             with col_rep_table:
-                st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការ ({len(filtered_sales)} វិក្កយបត្រ)")
+                st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការ ({total_invoices} វិក្កយបត្រ)")
                 
-                # រៀបចំទិន្នន័យសម្រាប់ Dataframe
                 report_data = []
                 for idx, item in enumerate(reversed(filtered_sales)):
                     report_data.append({
-                        "ល.រ": len(filtered_sales) - idx,
+                        "ល.រ": total_invoices - idx,
                         "Invoice No": item.get("inv_no"),
                         "Date": item.get("date"),
                         "Customer": item.get("customer"),
@@ -760,7 +777,6 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                 st.dataframe(pd.DataFrame(report_data), use_container_width=True, hide_index=True)
 
                 st.markdown("---")
-                # Dropdown ជ្រើសរើសវិក្កយបត្រដើម្បី Preview & Print
                 filtered_inv_list = [item["inv_no"] for item in reversed(filtered_sales)]
                 selected_rep_inv = st.selectbox(
                     "🔍 ជ្រើសរើសលេខវិក្កយបត្រដើម្បីមើលទម្រង់ 80mm / ព្រីន:", 
@@ -788,6 +804,5 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                         "change_khr": selected_rep_data.get("change_khr", 0)
                     }
                     
-                    # បង្ហាញ Receipt Preview 80mm
                     rc_html = generate_receipt_html(receipt_payload)
                     components.html(rc_html, height=620, scrolling=True)
