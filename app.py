@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 
 # ----------------------------------------------------------------
-# 1. Page Configuration & Custom CSS
+# 1. Page Configuration & Custom CSS (កែសម្រួលពណ៌អក្សរ និងផ្ទៃក្រោយ)
 # ----------------------------------------------------------------
 st.set_page_config(
     page_title="OunLen SMR - Professional POS & Sales Report",
@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS Styling
+# Custom CSS Styling (កម្រិត Contrast ច្បាស់អានស្រួល)
 st.markdown("""
 <style>
     .stApp {
@@ -159,9 +159,6 @@ if "customers_list" not in st.session_state:
         {"name": "កញ្ញា សុភា (Gold)", "phone": "098765432", "type": "Gold Member"}
     ]
 
-if "selected_customer" not in st.session_state:
-    st.session_state.selected_customer = "General Customer"
-
 if "services_catalog" not in st.session_state:
     st.session_state.services_catalog = [
         {"code": "S01", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនសារាយ", "price": 15.0, "icon": "🌿"},
@@ -184,10 +181,6 @@ if "discount_pct" not in st.session_state:
     st.session_state.discount_pct = 0.0
 if "show_payment_modal" not in st.session_state:
     st.session_state.show_payment_modal = False
-if "show_receipt_dialog" not in st.session_state:
-    st.session_state.show_receipt_dialog = False
-if "current_receipt" not in st.session_state:
-    st.session_state.current_receipt = None
 if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 if "payment_method" not in st.session_state:
@@ -196,33 +189,32 @@ if "payment_method" not in st.session_state:
 # ----------------------------------------------------------------
 # 3. Helper Functions
 # ----------------------------------------------------------------
+def recalculate_item(item):
+    base = item["price"] * item["qty"]
+    disc_amount = (base * item["item_disc"]) / 100.0
+    item["total"] = base - disc_amount
+
 def add_to_cart(item):
     existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
     if existing:
         existing["qty"] += 1
         recalculate_item(existing)
     else:
-        st.session_state.cart.append({
+        new_cart_item = {
             "code": item["code"],
             "name": item["name"],
             "price": item["price"],
             "qty": 1,
             "item_disc": 0.0,
             "total": item["price"]
-        })
-
-def recalculate_item(item):
-    base = item["price"] * item["qty"]
-    disc_amount = (base * item["item_disc"]) / 100.0
-    item["total"] = base - disc_amount
+        }
+        st.session_state.cart.append(new_cart_item)
 
 def reset_pos():
     st.session_state.cart = []
     st.session_state.discount_pct = 0.0
     st.session_state.customer_name = "General Customer"
-    st.session_state.selected_customer = "General Customer"
     st.session_state.show_payment_modal = False
-    st.session_state.show_receipt_dialog = False
 
 def generate_receipt_html(data):
     items_html = ""
@@ -332,7 +324,6 @@ def register_customer_dialog():
             new_cust = {"name": c_name.strip(), "phone": c_phone.strip(), "type": c_type}
             st.session_state.customers_list.append(new_cust)
             st.session_state.customer_name = c_name.strip()
-            st.session_state.selected_customer = c_name.strip()
             st.toast(f"បានចុះឈ្មោះអតិថិជន {c_name} រួចរាល់!")
             st.rerun()
         else:
@@ -347,6 +338,17 @@ def set_discount_dialog():
         st.session_state.discount_pct = new_d
         st.rerun()
     if c2.button("❌ បោះបង់", use_container_width=True):
+        st.rerun()
+
+@st.dialog("🧾 វិក្កយបត្រ (Receipt Modal)", width="large")
+def show_receipt_dialog():
+    st.success("🎉 ការទូទាត់ប្រាក់ជោគជ័យ! លោកអ្នកអាចព្រីនវិក្កយបត្រខាងក្រោមបាន។")
+    if st.session_state.last_receipt:
+        receipt_html = generate_receipt_html(st.session_state.last_receipt)
+        components.html(receipt_html, height=500, scrolling=True)
+    
+    if st.button("✅ រួចរាល់ / បញ្ចប់ប្រតិបត្តិការ (Reset POS)", type="primary", use_container_width=True):
+        reset_pos()
         st.rerun()
 
 # ----------------------------------------------------------------
@@ -365,7 +367,7 @@ st.markdown("---")
 # ----------------------------------------------------------------
 if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
     
-    col_cat, col_prod, col_cart = st.columns([1.2, 3.2, 2.4], gap="small")
+    col_cat, col_prod, col_cart = st.columns([1.2, 3.2, 2.6], gap="small")
 
     # ================= 1. LEFT PANEL: Categories Sidebar =================
     with col_cat:
@@ -431,12 +433,13 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             register_customer_dialog()
 
         st.markdown("""
-        <div style="background-color: #fff1f2; padding: 8px 10px; border-radius: 8px; border: 1px solid #fda4af; font-size: 14px; font-weight: 900; margin: 8px 0; color: #9f1239;">
+        <div style="background-color: #fff1f2; padding: 8px 10px; border-radius: 8px; border: 1px solid #fda4af; font-size: 13px; font-weight: 900; margin: 8px 0; color: #9f1239;">
             <div style="display: flex; justify-content: space-between;">
-                <span style="width: 40%;">Product</span>
-                <span style="width: 20%; text-align: center;">Price</span>
-                <span style="width: 20%; text-align: center;">QTY</span>
-                <span style="width: 20%; text-align: right;">Subtotal</span>
+                <span style="width: 35%;">Product</span>
+                <span style="width: 15%; text-align: center;">Price</span>
+                <span style="width: 18%; text-align: center;">QTY</span>
+                <span style="width: 17%; text-align: center;">Disc%</span>
+                <span style="width: 15%; text-align: right;">Total</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -449,17 +452,23 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 subtotal += item["total"]
                 total_items_count += item["qty"]
                 
-                ic1, ic2, ic3, ic4 = st.columns([2.5, 1.2, 1.3, 1.5])
-                ic1.markdown(f"<div style='font-size:14px; font-weight:900;'>{item['name']}</div>", unsafe_allow_html=True)
-                ic2.markdown(f"<div style='font-size:14px; text-align:center; font-weight:800;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
+                ic1, ic2, ic3, ic4, ic5 = st.columns([2.2, 1.0, 1.1, 1.1, 1.2])
+                ic1.markdown(f"<div style='font-size:13px; font-weight:900;'>{item['name']}</div>", unsafe_allow_html=True)
+                ic2.markdown(f"<div style='font-size:13px; text-align:center; font-weight:800;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
                 
+                # QTY Input
                 new_q = ic3.number_input("qty", min_value=1, value=int(item["qty"]), key=f"cart_q_{idx}", label_visibility="collapsed")
-                if new_q != item["qty"]:
+                
+                # Item Discount Input
+                new_disc = ic4.number_input("disc", min_value=0.0, max_value=100.0, value=float(item.get("item_disc", 0.0)), step=5.0, key=f"cart_d_{idx}", label_visibility="collapsed")
+                
+                if new_q != item["qty"] or new_disc != item.get("item_disc", 0.0):
                     st.session_state.cart[idx]["qty"] = new_q
-                    st.session_state.cart[idx]["total"] = new_q * item["price"]
+                    st.session_state.cart[idx]["item_disc"] = new_disc
+                    recalculate_item(st.session_state.cart[idx])
                     st.rerun()
 
-                ic4.markdown(f"<div style='font-size:14px; text-align:right; font-weight:900;'>${item['total']:.2f}</div>", unsafe_allow_html=True)
+                ic5.markdown(f"<div style='font-size:13px; text-align:right; font-weight:900;'>${item['total']:.2f}</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div style='text-align:center; padding:20px; color:#94a3b8; font-size:15px; font-weight:800;'>No products available in the list</div>", unsafe_allow_html=True)
 
@@ -478,7 +487,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 <span>Total Amount:</span> <b>$ {subtotal:.2f}</b>
             </div>
             <div style="display:flex; justify-content:space-between; color:#dc2626;">
-                <span>Discount ({st.session_state.discount_pct}%):</span> <b>-$ {discount_val:.2f}</b>
+                <span>Global Discount ({st.session_state.discount_pct}%):</span> <b>-$ {discount_val:.2f}</b>
             </div>
             <hr style="margin:6px 0;">
             <div style="display:flex; justify-content:space-between; font-size:22px; font-weight:900; color:#0284c7;">
@@ -506,8 +515,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         with ac1:
             st.markdown('<div class="btn-cancel">', unsafe_allow_html=True)
             if st.button("Cancel", key="pos_cancel", use_container_width=True):
-                st.session_state.cart = []
-                st.session_state.discount_pct = 0.0
+                reset_pos()
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -531,13 +539,15 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="btn-discount" style="margin-top: 8px;">', unsafe_allow_html=True)
-        if st.button("🎁 កំណត់ Discount (%)", key="btn_open_disc", use_container_width=True):
+        if st.button("🎁 កំណត់ Global Discount (%)", key="btn_open_disc", use_container_width=True):
             set_discount_dialog()
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Modal ទូទាត់ប្រាក់ (អក្សរធំៗ និងប្រអប់ច្បាស់ៗ)
+    # ----------------------------------------------------------------
+    # 💵 បង្អួចទូទាត់ប្រាក់ (Payment Modal)
+    # ----------------------------------------------------------------
     if st.session_state.get("show_payment_modal", False):
         st.markdown("---")
         st.markdown("### 💵 បង្អួចទូទាត់ប្រាក់ (Payment Modal)")
@@ -572,10 +582,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             
             st.session_state.last_receipt = receipt_data
             st.session_state.sales_history.append(receipt_data)
+            st.session_state.show_payment_modal = False
             
-            reset_pos()
-            st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ!")
-            st.rerun()
+            # បើកផ្ទាំងវិក្កយបត្រ ដែលមានបូតុងព្រីនស្រាប់
+            show_receipt_dialog()
 
         if confirm_c2.button("❌ បោះបង់", type="secondary", use_container_width=True):
             st.session_state.show_payment_modal = False
@@ -693,7 +703,6 @@ elif main_mode == "📊 របាយការណ៍លក់ (Sales Report)":
         df = pd.DataFrame(sales_records)
         st.dataframe(df, use_container_width=True)
         
-        # Total Summary Cards
         m1, m2, m3 = st.columns(3)
         m1.metric("Total Transactions", len(df))
         m2.metric("Total Revenue ($)", f"${df['Grand Total ($)'].sum():.2f}")
