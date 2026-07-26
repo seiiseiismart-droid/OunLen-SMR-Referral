@@ -13,12 +13,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for UI Enhancement (ប្តូរទៅជាពណ៌ផ្កាឈូកស្រាល - Light Pink Theme)
+# Custom CSS for UI Enhancement (Theme ពណ៌ផ្កាឈូកស្រាល - Light Pink)
 st.markdown("""
 <style>
-    /* 1. Background App ទាំងមូល (ប្តូរទៅជាពណ៌ផ្កាឈូកស្រាល) */
+    /* 1. Background App ទាំងមូល */
     .stApp {
-        background-color: #fdf2f8 !important; /* Soft Light Pink */
+        background-color: #fdf2f8 !important;
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a;
     }
@@ -34,22 +34,22 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] span {
-        color: #ffffff !important; /* អក្សរពណ៌សច្បាស់ */
+        color: #ffffff !important;
         font-size: 15px !important;
         font-weight: 600 !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] input:checked + div {
-        background-color: #db2777 !important; /* ពណ៌ផ្កាឈូកចាស់ពេល Hover/Select */
+        background-color: #db2777 !important;
     }
 
-    /* 3. Tabs (សេវាកម្មទូទៅ / Laser / ស្ប៉ា) */
+    /* 3. Tabs (ប្រភេទសេវាកម្ម) */
     button[data-baseweb="tab"] p {
         font-size: 15px !important;
         font-weight: 600 !important;
         color: #475569 !important;
     }
     button[aria-selected="true"] p {
-        color: #db2777 !important; /* ពណ៌ផ្កាឈូកពេលជ្រើសរើស Tab */
+        color: #db2777 !important;
         font-weight: bold !important;
     }
 
@@ -199,31 +199,34 @@ st.markdown("""
 # ----------------------------------------------------------------
 EXCHANGE_RATE = 4100
 
-SERVICES_CATALOG = [
-    # --- សេវាកម្ម (General Services) ---
-    {"code": "S01", "category": "សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនសារាយ", "price": 15.0, "icon": "🌿"},
-    {"code": "S02", "category": "សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីន baby Glow", "price": 15.0, "icon": "✨"},
-    {"code": "S03", "category": "សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីន college", "price": 12.5, "icon": "💧"},
-    {"code": "S04", "category": "សេវាកម្មទូទៅ", "name": "ញេចសម្អាតគ្រាប់មុន ជម្រុះកោសិកា", "price": 7.5, "icon": "🧖‍♀️"},
-    {"code": "S05", "category": "សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនVIP ពីមុខ ដល់ ក", "price": 25.0, "icon": "👑"},
-    {"code": "S06", "category": "សេវាកម្មទូទៅ", "name": "កក់សក់ + បិទម៉ាស", "price": 4.0, "icon": "💇‍♀️"},
-    {"code": "S07", "category": "សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនក្លៀកសរ ថែមបាញ់ laser ក្លៀក", "price": 15.0, "icon": "🌸"},
-    {"code": "S08", "category": "សេវាកម្មទូទៅ", "name": "ញេចសម្អាតមុនខ្នងជម្រុះកោសិកា", "price": 12.5, "icon": "🛁"},
-    {"code": "S09", "category": "សេវាកម្មទូទៅ", "name": "ញេចសម្អាតមុនខ្នង + ម៉ាសស្កាតបញ្ចូលវីតាមីន", "price": 20.0, "icon": "🌺"},
+# ប្រភេទសេវាកម្មដំបូង (Initial Categories)
+if "categories" not in st.session_state:
+    st.session_state.categories = ["✨ សេវាកម្មទូទៅ", "⚡ សេវាកម្ម Laser", "🧴 សេវាកម្ម ស្ប៉ា"]
 
-    # --- សេវាកម្ម Laser ---
-    {"code": "L01", "category": "សេវាកម្ម Laser", "name": "បាញ់ Laser ក្លៀក", "price": 5.0, "icon": "⚡"},
-    {"code": "L02", "category": "សេវាកម្ម Laser", "name": "បាញ់ Laser រោមដៃ", "price": 9.0, "icon": "⚡"},
-    {"code": "L03", "category": "សេវាកម្ម Laser", "name": "បាញ់ Laser រោមជើង", "price": 9.0, "icon": "⚡"},
-    {"code": "L04", "category": "សេវាកម្ម Laser", "name": "បាញ់ Bikini", "price": 12.0, "icon": "👙"},
-    {"code": "L05", "category": "សេវាកម្ម Laser", "name": "បករោម ក្លៀក", "price": 3.0, "icon": "✨"},
-    {"code": "L06", "category": "សេវាកម្ម Laser", "name": "បករោម ពុកមាត់", "price": 3.0, "icon": "✂️"},
+# បញ្ជីសេវាកម្មដំបូង (Initial Services Catalog)
+if "services_catalog" not in st.session_state:
+    st.session_state.services_catalog = [
+        {"code": "S01", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនសារាយ", "price": 15.0, "icon": "🌿"},
+        {"code": "S02", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីន baby Glow", "price": 15.0, "icon": "✨"},
+        {"code": "S03", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីន college", "price": 12.5, "icon": "💧"},
+        {"code": "S04", "category": "✨ សេវាកម្មទូទៅ", "name": "ញេចសម្អាតគ្រាប់មុន ជម្រុះកោសិកា", "price": 7.5, "icon": "🧖‍♀️"},
+        {"code": "S05", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនVIP ពីមុខ ដល់ ក", "price": 25.0, "icon": "👑"},
+        {"code": "S06", "category": "✨ សេវាកម្មទូទៅ", "name": "កក់សក់ + បិទម៉ាស", "price": 4.0, "icon": "💇‍♀️"},
+        {"code": "S07", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនក្លៀកសរ ថែមបាញ់ laser ក្លៀក", "price": 15.0, "icon": "🌸"},
+        {"code": "S08", "category": "✨ សេវាកម្មទូទៅ", "name": "ញេចសម្អាតមុនខ្នងជម្រុះកោសិកា", "price": 12.5, "icon": "🛁"},
+        {"code": "S09", "category": "✨ សេវាកម្មទូទៅ", "name": "ញេចសម្អាតមុនខ្នង + ម៉ាសស្កាតបញ្ចូលវីតាមីន", "price": 20.0, "icon": "🌺"},
 
-    # --- សេវាកម្ម ស្ប៉ា ---
-    {"code": "P01", "category": "សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាស្បែក", "price": 10.0, "icon": "🧴"},
-    {"code": "P02", "category": "សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាដោះគោស្រស់", "price": 15.0, "icon": "🥛"},
-    {"code": "P03", "category": "សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាដោះគោស្រស់កូនក្រមុំ", "price": 20.0, "icon": "👰"},
-]
+        {"code": "L01", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Laser ក្លៀក", "price": 5.0, "icon": "⚡"},
+        {"code": "L02", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Laser រោមដៃ", "price": 9.0, "icon": "⚡"},
+        {"code": "L03", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Laser រោមជើង", "price": 9.0, "icon": "⚡"},
+        {"code": "L04", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Bikini", "price": 12.0, "icon": "👙"},
+        {"code": "L05", "category": "⚡ សេវាកម្ម Laser", "name": "បករោម ក្លៀក", "price": 3.0, "icon": "✨"},
+        {"code": "L06", "category": "⚡ សេវាកម្ម Laser", "name": "បករោម ពុកមាត់", "price": 3.0, "icon": "✂️"},
+
+        {"code": "P01", "category": "🧴 សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាស្បែក", "price": 10.0, "icon": "🧴"},
+        {"code": "P02", "category": "🧴 សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាដោះគោស្រស់", "price": 15.0, "icon": "🥛"},
+        {"code": "P03", "category": "🧴 សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាដោះគោស្រស់កូនក្រមុំ", "price": 20.0, "icon": "👰"},
+    ]
 
 # State Initialization
 if "cart" not in st.session_state:
@@ -249,7 +252,11 @@ if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 
 # Navigation Menu
-main_mode = st.radio("📌 Navigation Menu", ["🖥️ ផ្ទាំងលក់ (POS System)", "🧾 វិក្កយបត្រ (Last Receipt)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], horizontal=True)
+main_mode = st.radio(
+    "📌 Navigation Menu", 
+    ["🖥️ ផ្ទាំងលក់ (POS System)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
+    horizontal=True
+)
 
 st.markdown("---")
 
@@ -260,7 +267,6 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
     col_left, col_right = st.columns([3.2, 1.3], gap="medium")
 
     with col_left:
-        # Search Bar
         top_c1, top_c2 = st.columns([1, 3])
         with top_c1:
             st.markdown("### 💇‍♀️ អូនឡេន SMR")
@@ -268,7 +274,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             search_query = st.text_input("Search / Barcode Scan", placeholder="[|||] ស្វែងរកតាមកូដ ឬ ឈ្មោះសេវាកម្ម...", label_visibility="collapsed")
 
         if search_query:
-            matched = next((item for item in SERVICES_CATALOG if item["code"].lower() == search_query.strip().lower() or search_query.strip().lower() in item["name"].lower()), None)
+            matched = next((item for item in st.session_state.services_catalog if item["code"].lower() == search_query.strip().lower() or search_query.strip().lower() in item["name"].lower()), None)
             if matched:
                 existing = next((i for i in st.session_state.cart if i["code"] == matched["code"]), None)
                 if existing:
@@ -285,38 +291,40 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 st.toast(f"បានបន្ថែម: {matched['name']}")
                 st.rerun()
 
-        # Service Tabs
-        tab_gen, tab_laser, tab_spa = st.tabs(["✨ សេវាកម្មទូទៅ", "⚡ សេវាកម្ម Laser", "🧴 សេវាកម្ម ស្ប៉ា"])
+        # Dynamic Tabs តាមប្រភេទសេវាកម្មដែលមាន
+        if st.session_state.categories:
+            category_tabs = st.tabs(st.session_state.categories)
 
-        # Function Render Circle Buttons
-        def render_circle_catalog(category_name):
-            items = [i for i in SERVICES_CATALOG if i["category"] == category_name]
-            cols = st.columns(4)
-            for idx, item in enumerate(items):
-                with cols[idx % 4]:
-                    button_text = f"{item['icon']}\n{item['name']}\n${item['price']:.2f}"
-                    if st.button(button_text, key=f"btn_{item['code']}"):
-                        existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
-                        if existing:
-                            existing["qty"] += 1
-                            existing["total"] = existing["qty"] * existing["price"]
-                        else:
-                            st.session_state.cart.append({
-                                "code": item["code"],
-                                "name": item["name"],
-                                "price": item["price"],
-                                "qty": 1,
-                                "total": item["price"]
-                            })
-                        st.rerun()
-                    st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+            def render_circle_catalog(category_name):
+                items = [i for i in st.session_state.services_catalog if i["category"] == category_name]
+                if not items:
+                    st.info("មិនទាន់មានសេវាកម្មនៅក្នុងប្រភេទនេះទេ។")
+                    return
+                cols = st.columns(4)
+                for idx, item in enumerate(items):
+                    with cols[idx % 4]:
+                        button_text = f"{item['icon']}\n{item['name']}\n${item['price']:.2f}"
+                        if st.button(button_text, key=f"btn_{item['code']}"):
+                            existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
+                            if existing:
+                                existing["qty"] += 1
+                                existing["total"] = existing["qty"] * existing["price"]
+                            else:
+                                st.session_state.cart.append({
+                                    "code": item["code"],
+                                    "name": item["name"],
+                                    "price": item["price"],
+                                    "qty": 1,
+                                    "total": item["price"]
+                                })
+                            st.rerun()
+                        st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
-        with tab_gen:
-            render_circle_catalog("សេវាកម្មទូទៅ")
-        with tab_laser:
-            render_circle_catalog("សេវាកម្ម Laser")
-        with tab_spa:
-            render_circle_catalog("សេវាកម្ម ស្ប៉ា")
+            for idx, cat_name in enumerate(st.session_state.categories):
+                with category_tabs[idx]:
+                    render_circle_catalog(cat_name)
+        else:
+            st.warning("សូមបន្ថែមប្រភេទសេវាកម្មជាមុនសិន!")
 
         st.markdown("---")
         
@@ -487,7 +495,74 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.rerun()
 
 # ----------------------------------------------------------------
-# MODE 2: RECEIPT VIEW
+# MODE 2: CATEGORY MANAGEMENT (បន្ថែម និង កែប្រែ ប្រភេទសេវាកម្ម)
+# ----------------------------------------------------------------
+elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)":
+    st.markdown("## ⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Manage Service Categories)")
+    
+    col_add, col_edit = st.columns(2, gap="large")
+    
+    # 1. ប៊ូតុង/ទម្រង់ បញ្ចូលប្រភេទសេវាកម្មថ្មី (Add Category)
+    with col_add:
+        st.markdown("### ➕ បន្ថែមប្រភេទសេវាកម្មថ្មី")
+        with st.form("add_cat_form", clear_on_submit=True):
+            new_cat_name = st.text_input("ឈ្មោះប្រភេទសេវាកម្មថ្មី", placeholder="ឧទាហរណ៍: 💅 សេវាកម្មធ្វើក្រចក")
+            submit_add = st.form_submit_button("➕ បញ្ចូលប្រភេទសេវាកម្ម", type="primary")
+            
+            if submit_add:
+                if new_cat_name.strip() == "":
+                    st.error("សូមបញ្ចូលឈ្មោះប្រភេទសេវាកម្ម!")
+                elif new_cat_name in st.session_state.categories:
+                    st.warning("ប្រភេទសេវាកម្មនេះមានរួចហើយ!")
+                else:
+                    st.session_state.categories.append(new_cat_name.strip())
+                    st.success(f"បានបន្ថែមប្រភេទសេវាកម្ម '{new_cat_name}' ជោគជ័យ!")
+                    st.rerun()
+
+    # 2. ប៊ូតុង/ទម្រង់ កែប្រែប្រភេទសេវាកម្ម (Edit Category)
+    with col_edit:
+        st.markdown("### ✏️ កែប្រែ ឬ លុបប្រភេទសេវាកម្ម")
+        if st.session_state.categories:
+            selected_cat = st.selectbox("ជ្រើសរើសប្រភេទសេវាកម្មដែលត្រូវកែប្រែ:", st.session_state.categories)
+            
+            with st.form("edit_cat_form"):
+                updated_cat_name = st.text_input("ឈ្មោះថ្មីសម្រាប់ប្រភេទនេះ:", value=selected_cat)
+                
+                col_b1, col_b2 = st.columns(2)
+                submit_edit = col_b1.form_submit_button("✏️ រក្សាទុកការកែប្រែ", type="primary")
+                submit_delete = col_b2.form_submit_button("🗑️ លុបប្រភេទនេះ")
+                
+                if submit_edit:
+                    if updated_cat_name.strip() == "":
+                        st.error("ឈ្មោះមិនអាចទទេបានទេ!")
+                    else:
+                        idx = st.session_state.categories.index(selected_cat)
+                        st.session_state.categories[idx] = updated_cat_name.strip()
+                        
+                        # បច្ចុប្បន្នភាពប្រភេទសេវាកម្មនៅក្នុង Catalog
+                        for item in st.session_state.services_catalog:
+                            if item["category"] == selected_cat:
+                                item["category"] = updated_cat_name.strip()
+                                
+                        st.success("បានធ្វើបច្ចុប្បន្នភាពឈ្មោះប្រភេទសេវាកម្មរួចរាល់!")
+                        st.rerun()
+                        
+                if submit_delete:
+                    st.session_state.categories.remove(selected_cat)
+                    # លុបសេវាកម្មដែលនៅក្នុងប្រភេទនេះចេញដែរ
+                    st.session_state.services_catalog = [item for item in st.session_state.services_catalog if item["category"] != selected_cat]
+                    st.success(f"បានលុបប្រភេទសេវាកម្ម '{selected_cat}' រួចរាល់!")
+                    st.rerun()
+        else:
+            st.info("មិនទាន់មានប្រភេទសេវាកម្មសម្រាប់កែប្រែទេ។")
+
+    st.markdown("---")
+    st.markdown("### 📋 បញ្ជីប្រភេទសេវាកម្មបច្ចុប្បន្ន")
+    cat_df = pd.DataFrame({"ល.រ": range(1, len(st.session_state.categories) + 1), "ឈ្មោះប្រភេទសេវាកម្ម": st.session_state.categories})
+    st.dataframe(cat_df, use_container_width=True)
+
+# ----------------------------------------------------------------
+# MODE 3: RECEIPT VIEW
 # ----------------------------------------------------------------
 elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
     st.markdown("## 🧾 វិក្កយបត្រ / RECEIPT")
@@ -547,7 +622,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
         st.info("មិនទាន់មានវិក្កយបត្រដែលបានចេញចុងក្រោយទេ។")
 
 # ----------------------------------------------------------------
-# MODE 3: SALES REPORT
+# MODE 4: SALES REPORT
 # ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល (Sales Dashboard)")
