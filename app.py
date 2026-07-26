@@ -158,14 +158,6 @@ st.markdown("""
         font-weight: bold;
     }
 
-    .metric-card {
-        background: white;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #db2777;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
     .pos-footer-bar {
         background-color: #0f172a;
         color: #ffffff;
@@ -211,8 +203,6 @@ if "discount_pct" not in st.session_state:
     st.session_state.discount_pct = 0.0
 if "vat_pct" not in st.session_state:
     st.session_state.vat_pct = 0.0
-if "service_charge" not in st.session_state:
-    st.session_state.service_charge = 0.0
 if "hold_list" not in st.session_state:
     st.session_state.hold_list = []
 if "last_receipt" not in st.session_state:
@@ -554,14 +544,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             }
             
             st.session_state.last_receipt = receipt_data
-            st.session_state.sales_history.append({
-                "inv_no": inv_no,
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "customer": st.session_state.customer_name,
-                "total_usd": grand_total_usd,
-                "total_khr": grand_total_khr,
-                "items": st.session_state.cart.copy()
-            })
+            st.session_state.sales_history.append(receipt_data)
             
             st.session_state.cart = []
             st.session_state.show_payment_modal = False
@@ -649,24 +632,82 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
             st.rerun()
 
 # ----------------------------------------------------------------
-# MODE 4: RECEIPT VIEW & 80MM PRINTING
+# MODE 4: RECEIPT VIEW & TRANSACTION HISTORY
 # ----------------------------------------------------------------
 elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
-    st.markdown("## 🧾 PREVIEW & PRINT RECEIPT (80mm Thermal Paper)")
-    if st.session_state.last_receipt:
-        rc_html = generate_receipt_html(st.session_state.last_receipt)
-        components.html(rc_html, height=600, scrolling=True)
+    st.markdown("## 🧾 ប្រវត្តិប្រតិបត្តិការ និង ការពិនិត្យវិក្កយបត្រ (80mm Thermal Paper)")
+    
+    if not st.session_state.sales_history:
+        st.info("💡 មិនទាន់មានប្រវត្តិប្រតិបត្តិការ/ការលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន។")
     else:
-        st.info("មិនទាន់មានវិក្កយបត្រដែលបានចេញចុងក្រោយទេ។")
+        col_list, col_preview = st.columns([1.5, 1], gap="medium")
+
+        with col_list:
+            st.markdown("### 📋 បញ្ជីប្រតិបត្តិការទាំងអស់")
+            
+            # បង្កើត DataFrame បង្ហាញតារាង
+            df_display = []
+            for idx, item in enumerate(reversed(st.session_state.sales_history)):
+                df_display.append({
+                    "ល.រ": len(st.session_state.sales_history) - idx,
+                    "លេខវិក្កយបត្រ": item.get("inv_no", f"INV-{idx+1}"),
+                    "កាលបរិច្ឆេទ": item.get("date", ""),
+                    "អតិថិជន": item.get("customer", "General"),
+                    "សរុប ($)": f"${item.get('grand_total_usd', item.get('total_usd', 0)):.2f}"
+                })
+            
+            st.dataframe(pd.DataFrame(df_display), use_container_width=True, hide_index=True)
+
+            st.markdown("---")
+            st.markdown("👉 **ជ្រើសរើសវិក្កយបត្រដើម្បីពិនិត្យ ឬ ព្រីនឡើងវិញ (Select Receipt to Preview/Print):**")
+            
+            # Selectbox សម្រាប់ជ្រើសរើសវិក្កយបត្រតាម លេខ INV-xxx
+            inv_list = [item["inv_no"] for item in reversed(st.session_state.sales_history)]
+            selected_inv = st.selectbox("ជ្រើសរើសលេខវិក្កយបត្រ:", inv_list)
+
+            # ស្វែងរកទិន្នន័យនៃ Transaction ដែលបានជ្រើសរើស
+            selected_receipt_data = next((item for item in st.session_state.sales_history if item["inv_no"] == selected_inv), None)
+
+        with col_preview:
+            st.markdown("### 👁️ Receipt Preview")
+            if selected_receipt_data:
+                receipt_payload = {
+                    "inv_no": selected_receipt_data.get("inv_no", "N/A"),
+                    "date": selected_receipt_data.get("date", ""),
+                    "customer": selected_receipt_data.get("customer", "General"),
+                    "items": selected_receipt_data.get("items", []),
+                    "subtotal": selected_receipt_data.get("subtotal", selected_receipt_data.get("grand_total_usd", 0)),
+                    "discount": selected_receipt_data.get("discount", 0.0),
+                    "grand_total_usd": selected_receipt_data.get("grand_total_usd", 0),
+                    "grand_total_khr": selected_receipt_data.get("grand_total_khr", 0),
+                    "paid_usd": selected_receipt_data.get("paid_usd", selected_receipt_data.get("grand_total_usd", 0)),
+                    "paid_khr": selected_receipt_data.get("paid_khr", 0),
+                    "change_usd": selected_receipt_data.get("change_usd", 0.0),
+                    "change_khr": selected_receipt_data.get("change_khr", 0)
+                }
+                
+                # បង្ហាញ Receipt Preview
+                rc_html = generate_receipt_html(receipt_payload)
+                components.html(rc_html, height=620, scrolling=True)
 
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT
 # ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
-    df_sales = pd.DataFrame(st.session_state.sales_history)
-    if not df_sales.empty:
-        st.dataframe(df_sales, use_container_width=True)
+    if st.session_state.sales_history:
+        report_data = []
+        for item in st.session_state.sales_history:
+            report_data.append({
+                "Invoice No": item.get("inv_no"),
+                "Date": item.get("date"),
+                "Customer": item.get("customer"),
+                "Subtotal ($)": f"${item.get('subtotal', 0):.2f}",
+                "Discount ($)": f"${item.get('discount', 0):.2f}",
+                "Grand Total ($)": f"${item.get('grand_total_usd', 0):.2f}",
+                "Grand Total (KHR)": f"៛{item.get('grand_total_khr', 0):,}"
+            })
+        st.dataframe(pd.DataFrame(report_data), use_container_width=True)
     else:
         st.info("មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។")
 
