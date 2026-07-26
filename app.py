@@ -13,161 +13,148 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS
+# Custom CSS matching Ready POS Layout with OunLen SMR Palette
 st.markdown("""
 <style>
-    /* Main Background & Text Color */
+    /* Main Background & Base Styling */
     .stApp {
-        background-color: #fce7f3 !important; /* Soft Pink */
+        background-color: #fdf2f8 !important; /* Soft Pink tint */
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a !important;
     }
 
-    /* Text elements inside Streamlit App */
     h1, h2, h3, h4, h5, h6, p, label, div, span {
         color: #0f172a !important;
     }
 
-    /* Navigation Radio Options */
-    div[data-testid="stRadio"] > label {
-        display: none !important;
-    }
+    /* Top Radio Bar Styling */
+    div[data-testid="stRadio"] > label { display: none !important; }
     div[data-testid="stRadio"] > div {
         background-color: #ffffff !important;
-        padding: 8px 16px !important;
-        border-radius: 12px !important;
+        padding: 6px 12px !important;
+        border-radius: 10px !important;
         border: 2px solid #f472b6 !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] span {
         color: #831843 !important;
-        font-size: 16px !important;
-        font-weight: 700 !important;
-    }
-    div[data-testid="stRadio"] label[data-baseweb="radio"] input:checked + div {
-        background-color: #db2777 !important;
-    }
-
-    /* Tabs Styling */
-    button[data-baseweb="tab"] p {
         font-size: 15px !important;
         font-weight: 700 !important;
-        color: #831843 !important;
-    }
-    button[aria-selected="true"] p {
-        color: #be185d !important;
-        font-weight: bold !important;
     }
 
-    /* Service Circle Buttons */
-    div.stButton > button {
-        border-radius: 50% !important;
-        width: 120px !important;
-        height: 120px !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
+    /* Category Left Sidebar Tiles */
+    .cat-card {
+        background-color: #ffffff;
+        border: 2px solid #fbcfe8;
+        border-radius: 12px;
+        padding: 12px 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+    .cat-card:hover {
+        border-color: #db2777;
+        background-color: #fce7f3;
+        transform: translateY(-2px);
+    }
+    .cat-icon { font-size: 28px; margin-bottom: 4px; }
+    .cat-title { font-size: 13px; font-weight: bold; color: #831843 !important; }
+
+    /* Service / Product Cards Grid */
+    .product-card {
+        background: #ffffff;
+        border: 1px solid #f472b6;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.04);
+        transition: all 0.2s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .product-card:hover {
+        border-color: #db2777;
+        box-shadow: 0 6px 12px rgba(219,39,119,0.15);
+    }
+    .product-icon { font-size: 38px; margin: 4px 0; }
+    .product-title { font-size: 13px; font-weight: 700; color: #0f172a !important; height: 38px; overflow: hidden; }
+    .product-code { font-size: 11px; color: #9d174d !important; font-weight: 600; }
+    .product-price { font-size: 15px; font-weight: 800; color: #059669 !important; margin: 4px 0; }
+
+    /* Custom Streamlit Buttons in Product Grid */
+    .add-cart-btn button {
+        border-radius: 8px !important;
+        width: 100% !important;
+        height: 36px !important;
+        background: #db2777 !important;
+        color: #ffffff !important;
         font-size: 13px !important;
         font-weight: 700 !important;
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-        color: #ffffff !important;
-        text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.6) !important;
-        border: 3px solid #ffffff !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
-        transition: all 0.2s ease-in-out !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: auto !important;
-        padding: 10px !important;
-        text-align: center !important;
-    }
-    
-    div.stButton > button:hover {
-        transform: scale(1.05) !important;
-        border-color: #f472b6 !important;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    }
-
-    /* POS Action Buttons */
-    .pos-btn div.stButton > button {
-        border-radius: 8px !important;
-        width: 100% !important;
-        height: 48px !important;
-        background: #831843 !important;
-        color: #ffffff !important;
         border: none !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
+        padding: 0 !important;
     }
-    
-    .pos-btn div.stButton > button:hover {
-        background: #9d174d !important;
-    }
-    
-    /* Pay Button */
-    .pay-btn div.stButton > button {
-        border-radius: 8px !important;
-        width: 100% !important;
-        height: 52px !important;
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
-        color: #ffffff !important;
-        border: none !important;
-        font-size: 20px !important;
-        font-weight: bold !important;
+    .add-cart-btn button:hover {
+        background: #be185d !important;
     }
 
-    /* Info Boxes Styling */
-    .customer-info-box {
-        background-color: #9d174d;
-        color: #ffffff !important;
-        padding: 14px 16px;
-        border-radius: 8px 8px 0px 0px;
-        font-size: 14px;
-        line-height: 1.6;
-    }
-    .customer-info-box * {
-        color: #ffffff !important;
-    }
-
-    .total-summary-header {
-        background-color: #831843;
-        color: #ffffff !important;
-        padding: 10px 15px;
-        font-weight: bold;
-        font-size: 15px;
-        border-radius: 8px 8px 0px 0px;
-        margin-top: 10px;
-    }
-    
-    .total-summary-body {
-        background-color: #ffffff;
+    /* Cart Right Panel Styling */
+    .cart-container {
+        background: #ffffff;
         border: 2px solid #f472b6;
-        border-top: none;
-        border-radius: 0 0 8px 8px;
-        padding: 15px;
-        font-size: 14px;
-        color: #0f172a !important;
-        line-height: 1.8;
-    }
-
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 4px;
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
     
-    .grand-total-usd {
-        color: #dc2626 !important;
-        font-size: 24px;
-        font-weight: bold;
+    .payment-chip {
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155 !important;
+        cursor: pointer;
     }
-    
-    .grand-total-khr {
-        color: #dc2626 !important;
-        font-size: 18px;
-        font-weight: bold;
+    .payment-chip.active {
+        background: #0284c7;
+        color: #ffffff !important;
+        border-color: #0284c7;
     }
 
+    /* POS Action Bar Buttons */
+    .btn-cancel button {
+        background-color: #fecdd3 !important;
+        color: #9f1239 !important;
+        font-weight: 700 !important;
+        border: 1px solid #fda4af !important;
+        border-radius: 8px !important;
+        height: 45px !important;
+    }
+    .btn-draft button {
+        background-color: #fef08a !important;
+        color: #854d0e !important;
+        font-weight: 700 !important;
+        border: 1px solid #fde047 !important;
+        border-radius: 8px !important;
+        height: 45px !important;
+    }
+    .btn-pay button {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        font-size: 16px !important;
+        border: none !important;
+        border-radius: 8px !important;
+        height: 45px !important;
+    }
+
+    /* Metric Card in Sales Report */
     .metric-card {
         background-color: #ffffff;
         border: 2px solid #f472b6;
@@ -176,16 +163,8 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
-    .metric-card h4 {
-        margin: 0;
-        font-size: 14px;
-        color: #831843 !important;
-    }
-    .metric-card h2 {
-        margin: 8px 0 0 0;
-        font-size: 24px;
-        color: #db2777 !important;
-    }
+    .metric-card h4 { margin: 0; font-size: 14px; color: #831843 !important; }
+    .metric-card h2 { margin: 8px 0 0 0; font-size: 24px; color: #db2777 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -196,6 +175,9 @@ EXCHANGE_RATE = 4100
 
 if "categories" not in st.session_state:
     st.session_state.categories = ["✨ សេវាកម្មទូទៅ", "⚡ សេវាកម្ម Laser", "🧴 សេវាកម្ម ស្ប៉ា"]
+
+if "selected_category" not in st.session_state:
+    st.session_state.selected_category = "ទាំងអស់ (All)"
 
 if "services_catalog" not in st.session_state:
     st.session_state.services_catalog = [
@@ -216,7 +198,7 @@ if "cart" not in st.session_state:
 if "sales_history" not in st.session_state:
     st.session_state.sales_history = []
 if "customer_name" not in st.session_state:
-    st.session_state.customer_name = "General"
+    st.session_state.customer_name = "General Customer"
 if "customer_code" not in st.session_state:
     st.session_state.customer_code = "N/A"
 if "discount_pct" not in st.session_state:
@@ -229,6 +211,8 @@ if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 if "show_payment_modal" not in st.session_state:
     st.session_state.show_payment_modal = False
+if "payment_method" not in st.session_state:
+    st.session_state.payment_method = "Cash"
 
 # ----------------------------------------------------------------
 # 3. Receipt Generator
@@ -351,19 +335,6 @@ def set_discount_dialog():
     if col_d2.button("❌ បោះបង់", use_container_width=True):
         st.rerun()
 
-@st.dialog("👤 កំណត់ព័ត៌មានអតិថិជន")
-def set_customer_dialog():
-    c_name = st.text_input("ឈ្មោះអតិថិជន:", value=st.session_state.customer_name)
-    c_code = st.text_input("កូដអតិថិជន / លេខទូរស័ព្ទ:", value=st.session_state.customer_code)
-    col_c1, col_c2 = st.columns(2)
-    if col_c1.button("✅ រក្សាទុក", type="primary", use_container_width=True):
-        st.session_state.customer_name = c_name.strip() if c_name.strip() else "General"
-        st.session_state.customer_code = c_code.strip() if c_code.strip() else "N/A"
-        st.toast("បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានអតិថិជន!")
-        st.rerun()
-    if col_c2.button("❌ បោះបង់", use_container_width=True):
-        st.rerun()
-
 # ----------------------------------------------------------------
 # 5. Main Navigation
 # ----------------------------------------------------------------
@@ -375,169 +346,208 @@ main_mode = st.radio(
 
 st.markdown("---")
 
+# Helper to Add Item to Cart
+def add_to_cart(item):
+    existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
+    if existing:
+        existing["qty"] += 1
+        existing["total"] = existing["qty"] * existing["price"]
+    else:
+        st.session_state.cart.append({
+            "code": item["code"],
+            "name": item["name"],
+            "price": item["price"],
+            "qty": 1,
+            "total": item["price"]
+        })
+
 # ----------------------------------------------------------------
-# MODE 1: POS SYSTEM
+# MODE 1: POS SYSTEM (Redesigned matching Ready POS Layout)
 # ----------------------------------------------------------------
 if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
-    col_left, col_right = st.columns([3.2, 1.3], gap="medium")
+    
+    # 3-Column Layout: Categories Sidebar (1.2) | Products Grid (3) | Order Cart (2.2)
+    col_cat, col_prod, col_cart = st.columns([1.2, 3.2, 2.4], gap="small")
 
-    with col_left:
-        top_c1, top_c2 = st.columns([1, 3])
-        with top_c1:
-            st.markdown("### 💇‍♀️ អូនឡេន SMR")
-        with top_c2:
-            search_query = st.text_input("Search / Barcode Scan", placeholder="[|||] ស្វែងរកតាមកូដ ឬ ឈ្មោះសេវាកម្ម...", label_visibility="collapsed")
+    # ================= 1. LEFT PANEL: Categories Sidebar =================
+    with col_cat:
+        st.markdown("##### 📂 ប្រភេទ (Categories)")
+        
+        all_selected = (st.session_state.selected_category == "ទាំងអស់ (All)")
+        if st.button("🌸 ទាំងអស់ (All)", key="cat_all", type="primary" if all_selected else "secondary", use_container_width=True):
+            st.session_state.selected_category = "ទាំងអស់ (All)"
+            st.rerun()
 
-        if search_query:
-            matched = next((item for item in st.session_state.services_catalog if item["code"].lower() == search_query.strip().lower() or search_query.strip().lower() in item["name"].lower()), None)
-            if matched:
-                existing = next((i for i in st.session_state.cart if i["code"] == matched["code"]), None)
-                if existing:
-                    existing["qty"] += 1
-                    existing["total"] = existing["qty"] * existing["price"]
-                else:
-                    st.session_state.cart.append({
-                        "code": matched["code"],
-                        "name": matched["name"],
-                        "price": matched["price"],
-                        "qty": 1,
-                        "total": matched["price"]
-                    })
-                st.toast(f"បានបន្ថែម: {matched['name']}")
+        for idx, cat_name in enumerate(st.session_state.categories):
+            is_active = (st.session_state.selected_category == cat_name)
+            icon = "✨" if "ទូទៅ" in cat_name else ("⚡" if "Laser" in cat_name else "🧴")
+            if st.button(f"{icon} {cat_name}", key=f"cat_btn_{idx}", type="primary" if is_active else "secondary", use_container_width=True):
+                st.session_state.selected_category = cat_name
                 st.rerun()
 
-        if st.session_state.categories:
-            category_tabs = st.tabs(st.session_state.categories)
-
-            def render_circle_catalog(category_name):
-                items = [i for i in st.session_state.services_catalog if i["category"] == category_name]
-                if not items:
-                    st.info("មិនទាន់មានសេវាកម្មនៅក្នុងប្រភេទនេះទេ។")
-                    return
-                cols = st.columns(4)
-                for idx, item in enumerate(items):
-                    with cols[idx % 4]:
-                        button_text = f"{item['icon']}\n{item['name']}\n${item['price']:.2f}"
-                        if st.button(button_text, key=f"btn_{item['code']}"):
-                            existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
-                            if existing:
-                                existing["qty"] += 1
-                                existing["total"] = existing["qty"] * existing["price"]
-                            else:
-                                st.session_state.cart.append({
-                                    "code": item["code"],
-                                    "name": item["name"],
-                                    "price": item["price"],
-                                    "qty": 1,
-                                    "total": item["price"]
-                                })
-                            st.rerun()
-                        st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
-
-            for idx, cat_name in enumerate(st.session_state.categories):
-                with category_tabs[idx]:
-                    render_circle_catalog(cat_name)
-
-        st.markdown("---")
-        st.markdown("##### 📋 បញ្ជីសេវាកម្មដែលបានជ្រើសរើស (Cart Items)")
-        if st.session_state.cart:
-            for idx, row in enumerate(st.session_state.cart):
-                c_code, c_name, c_price, c_qty = row["code"], row["name"], row["price"], row["qty"]
-                col_i1, col_i2, col_i3, col_i4, col_i5 = st.columns([1, 4, 1.5, 1.5, 1])
-                col_i1.write(f"**{c_code}**")
-                col_i2.write(f"{c_name}")
-                col_i3.write(f"${c_price:.2f}")
-                
-                new_qty = col_i4.number_input("Qty", min_value=1, value=int(c_qty), key=f"cart_qty_{idx}", label_visibility="collapsed")
-                if new_qty != c_qty:
-                    st.session_state.cart[idx]["qty"] = new_qty
-                    st.session_state.cart[idx]["total"] = new_qty * c_price
-                    st.rerun()
-                    
-                if col_i5.button("❌", key=f"cart_del_{idx}"):
-                    st.session_state.cart.pop(idx)
-                    st.rerun()
+    # ================= 2. CENTER PANEL: Products / Services Grid =================
+    with col_prod:
+        st.markdown("##### 💇‍♀️ សេវាកម្ម (Services)")
+        
+        # Search & Scan Bar
+        search_query = st.text_input("Search / Scan Code", placeholder="[|||] ស្វែងរកតាមកូដ ឬ ឈ្មោះសេវាកម្ម...", label_visibility="collapsed")
+        
+        # Filter services list
+        if st.session_state.selected_category == "ទាំងអស់ (All)":
+            filtered_services = st.session_state.services_catalog
         else:
-            st.info("💡 មិនទាន់មានសេវាកម្មក្នុង Cart នៅឡើយទេ!")
+            filtered_services = [s for s in st.session_state.services_catalog if s["category"] == st.session_state.selected_category]
 
-    with col_right:
-        st.markdown(f"""
-        <div class="customer-info-box">
-            <div>👤 <b>អតិថិជន:</b> {st.session_state.customer_name}</div>
-            <div>💳 <b>កូដអតិថិជន:</b> {st.session_state.customer_code}</div>
-            <hr style="margin: 6px 0; border-color: rgba(255,255,255,0.3);">
-            <div># <b>លេខវេន:</b> #001 | 🕒 <b>ម៉ោង:</b> {datetime.now().strftime('%H:%M')}</div>
+        if search_query:
+            filtered_services = [s for s in filtered_services if search_query.lower() in s["name"].lower() or search_query.lower() in s["code"].lower()]
+
+        # Display Services Grid (4 Columns like Ready POS)
+        if not filtered_services:
+            st.info("រកមិនឃើញសេវាកម្មឡើយ!")
+        else:
+            grid_cols = st.columns(4)
+            for idx, item in enumerate(filtered_services):
+                with grid_cols[idx % 4]:
+                    st.markdown(f"""
+                    <div class="product-card">
+                        <div>
+                            <div class="product-icon">{item.get('icon', '✨')}</div>
+                            <div class="product-title">{item['name']}</div>
+                            <div class="product-code">Code: {item['code']}</div>
+                        </div>
+                        <div class="product-price">${item['price']:.2f}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    st.markdown('<div class="add-cart-btn">', unsafe_allow_html=True)
+                    if st.button("➕ បញ្ចូល Cart", key=f"add_{item['code']}_{idx}"):
+                        add_to_cart(item)
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.write("")
+
+    # ================= 3. RIGHT PANEL: Cart & Checkout =================
+    with col_cart:
+        st.markdown("<div class='cart-container'>", unsafe_allow_html=True)
+        
+        # Customer Field
+        c_col1, c_col2 = st.columns([4, 1])
+        c_name = c_col1.text_input("Customer Name", value=st.session_state.customer_name, label_visibility="collapsed", placeholder="Enter Customer name or phone number")
+        st.session_state.customer_name = c_name
+        if c_col2.button("👤+", key="btn_quick_cust"):
+            st.toast("បញ្ចូលឈ្មោះអតិថិជនរួចរាល់")
+
+        # Cart Items Header & Table
+        st.markdown("""
+        <div style="background-color: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 11px; font-weight: bold; margin: 8px 0;">
+            <div style="display: flex; justify-content: space-between;">
+                <span style="width: 40%;">Product</span>
+                <span style="width: 20%; text-align: center;">Price</span>
+                <span style="width: 20%; text-align: center;">QTY</span>
+                <span style="width: 20%; text-align: right;">Subtotal</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        subtotal = sum(item["total"] for item in st.session_state.cart)
+        subtotal = 0.0
+        total_items_count = 0
+
+        if st.session_state.cart:
+            for idx, item in enumerate(st.session_state.cart):
+                subtotal += item["total"]
+                total_items_count += item["qty"]
+                
+                ic1, ic2, ic3, ic4 = st.columns([2.5, 1.2, 1.3, 1.5])
+                ic1.markdown(f"<div style='font-size:11px; font-weight:bold;'>{item['name']}</div>", unsafe_allow_html=True)
+                ic2.markdown(f"<div style='font-size:11px; text-align:center;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
+                
+                # Qty selector
+                new_q = ic3.number_input("qty", min_value=1, value=int(item["qty"]), key=f"cart_q_{idx}", label_visibility="collapsed")
+                if new_q != item["qty"]:
+                    st.session_state.cart[idx]["qty"] = new_q
+                    st.session_state.cart[idx]["total"] = new_q * item["price"]
+                    st.rerun()
+
+                ic4.markdown(f"<div style='font-size:11px; text-align:right; font-weight:bold;'>${item['total']:.2f}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='text-align:center; padding:20px; color:#64748b; font-size:12px;'>No products available in the list</div>", unsafe_allow_html=True)
+
+        st.markdown("<hr style='margin: 10px 0; border-top: 1px dashed #cbd5e1;'>", unsafe_allow_html=True)
+
+        # Calculation Calculations
         discount_val = (subtotal * st.session_state.discount_pct) / 100
-        after_discount = subtotal - discount_val
-        vat_val = (after_discount * st.session_state.vat_pct) / 100
-        grand_total_usd = after_discount + vat_val
+        grand_total_usd = subtotal - discount_val
         grand_total_khr = round(grand_total_usd * EXCHANGE_RATE)
 
-        st.markdown("""<div class="total-summary-header">Total Summary (សរុបត្រូវបង់)</div>""", unsafe_allow_html=True)
         st.markdown(f"""
-        <div class="total-summary-body">
-            <div class="summary-row"><span>Sub Total:</span> <span>$ {subtotal:.2f}</span></div>
-            <div class="summary-row"><span>Discount ({st.session_state.discount_pct}%):</span> <span>-$ {discount_val:.2f}</span></div>
-            <hr style="margin: 6px 0; border-top: 1px dashed #f472b6;">
-            <div class="summary-row" style="align-items: baseline;">
-                <span style="font-weight:bold;">Grand Total:</span> 
-                <span class="grand-total-usd">$ {grand_total_usd:.2f}</span>
+        <div style="font-size: 13px; line-height: 1.8;">
+            <div style="display:flex; justify-content:space-between;">
+                <span>Total Products:</span> <b>{len(st.session_state.cart)} ({total_items_count})</b>
             </div>
-            <div class="summary-row" style="justify-content: flex-end;">
-                <span class="grand-total-khr">៛ {grand_total_khr:,.0f}</span>
+            <div style="display:flex; justify-content:space-between;">
+                <span>Total Amount:</span> <b>$ {subtotal:.2f}</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#dc2626;">
+                <span>Discount ({st.session_state.discount_pct}%):</span> <b>-$ {discount_val:.2f}</b>
+            </div>
+            <hr style="margin:6px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold; color:#0284c7;">
+                <span>Grand Total:</span> <span>$ {grand_total_usd:.2f}</span>
+            </div>
+            <div style="display:flex; justify-content:flex-end; font-size:13px; font-weight:bold; color:#059669;">
+                <span>៛ {grand_total_khr:,.0f}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.write("")
+        st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
 
-        st.markdown("<div class='pay-btn'>", unsafe_allow_html=True)
-        if st.button("💵 PAYMENT (ទូទាត់ប្រាក់)", key="btn_pay_main", use_container_width=True):
-            if not st.session_state.cart:
-                st.warning("សូមជ្រើសរើសសេវាកម្មយ៉ាងហោចណាស់មួយ!")
-            else:
-                st.session_state.show_payment_modal = True
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Payment Methods Chips
+        p_cols = st.columns(4)
+        methods = ["Cash", "ABA/KHQR", "Paystack", "Stripe"]
+        for m_idx, method in enumerate(methods):
+            with p_cols[m_idx]:
+                if st.button(method, key=f"pay_meth_{m_idx}", type="primary" if st.session_state.payment_method == method else "secondary"):
+                    st.session_state.payment_method = method
+                    st.rerun()
 
-        st.markdown("<div class='pos-btn'>", unsafe_allow_html=True)
-        b_c1, b_c2 = st.columns(2)
-        with b_c1:
-            if st.button("💾 Save/Hold", key="btn_hold"):
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+        # Action Buttons (Cancel / Draft / Pay)
+        ac1, ac2, ac3 = st.columns([1, 1, 1.5])
+        with ac1:
+            st.markdown('<div class="btn-cancel">', unsafe_allow_html=True)
+            if st.button("Cancel", key="pos_cancel", use_container_width=True):
+                st.session_state.cart = []
+                st.session_state.discount_pct = 0.0
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with ac2:
+            st.markdown('<div class="btn-draft">', unsafe_allow_html=True)
+            if st.button("Draft", key="pos_draft", use_container_width=True):
                 if st.session_state.cart:
                     st.session_state.hold_list.append(st.session_state.cart.copy())
                     st.session_state.cart = []
-                    st.toast("រក្សាទុក Order រួចរាល់!")
+                    st.toast("បានរក្សាទុក Draft!")
                     st.rerun()
-        with b_c2:
-            if st.button("📋 Hold List", key="btn_hold_list"):
-                st.info(f"ចំនួន Order ដែល Hold: {len(st.session_state.hold_list)}")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        b_c3, b_c4 = st.columns(2)
-        with b_c3:
-            if st.button("% Discount", key="btn_discount"):
-                set_discount_dialog()
-        with b_c4:
-            if st.button("🔑 Customer", key="btn_customer"):
-                set_customer_dialog()
+        with ac3:
+            st.markdown('<div class="btn-pay">', unsafe_allow_html=True)
+            if st.button("Save & Complete", key="pos_pay", use_container_width=True):
+                if not st.session_state.cart:
+                    st.warning("សូមជ្រើសរើសសេវាកម្ម!")
+                else:
+                    st.session_state.show_payment_modal = True
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        b_c5, b_c6 = st.columns(2)
-        with b_c5:
-            if st.button("🗑️ Clear Cart", key="btn_clear"):
-                st.session_state.cart = []
-                st.session_state.discount_pct = 0.0
-                st.session_state.customer_name = "General"
-                st.session_state.customer_code = "N/A"
-                st.rerun()
-        with b_c6:
-            if st.button("🖨️ Last Receipt", key="btn_reprint"):
-                st.toast("បើកមើលវិក្កយបត្រចុងក្រោយលើ Tab 'Receipt'")
+        # Quick Discount Link
+        if st.button("🎁 កំណត់ Discount (%)", key="btn_open_disc", use_container_width=True):
+            set_discount_dialog()
+
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Payment Modal Dynamic Display
+    # Payment Confirmation Modal
     if st.session_state.get("show_payment_modal", False):
         st.markdown("---")
         st.markdown("### 💵 បង្អួចទូទាត់ប្រាក់ (Payment Modal)")
@@ -575,7 +585,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.session_state.cart = []
             st.session_state.show_payment_modal = False
             st.session_state.discount_pct = 0.0
-            st.session_state.customer_name = "General"
+            st.session_state.customer_name = "General Customer"
             st.session_state.customer_code = "N/A"
             st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ!")
             st.rerun()
@@ -694,7 +704,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
                 components.html(rc_html, height=620, scrolling=True)
 
 # ----------------------------------------------------------------
-# MODE 5: SALES REPORT (Complete Implementation)
+# MODE 5: SALES REPORT
 # ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
@@ -756,7 +766,7 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
 
         total_sales_khr = round(total_sales_usd * EXCHANGE_RATE)
 
-        # Overview Metrics Cards
+        # Summary Metric Cards
         st.markdown("### 📈 សង្ខេបចំណូល (Sales Summary)")
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
@@ -783,13 +793,12 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
 
         st.markdown("---")
 
-        # Detailed Transaction Table
+        # Detailed Transaction Log Table
         st.markdown("### 📄 ប្រវត្តិការលក់លម្អិត (Transaction Log)")
         if filtered_sales:
             df_filtered = pd.DataFrame(filtered_sales)
             st.dataframe(df_filtered, use_container_width=True, hide_index=True)
 
-            # Itemized Sales Breakdown
             st.markdown("### 🧴 របាយការណ៍លក់តាមសេវាកម្ម (Itemized Breakdown)")
             if item_sales_summary:
                 item_data = [
@@ -798,7 +807,6 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                 ]
                 st.dataframe(pd.DataFrame(item_data), use_container_width=True, hide_index=True)
 
-            # Download CSV Button
             csv = df_filtered.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
                 label="📥 រក្សាទុកជា CSV (Download Report)",
