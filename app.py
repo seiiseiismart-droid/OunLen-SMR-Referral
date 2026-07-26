@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 
 # ----------------------------------------------------------------
-# 1. Page Configuration & Custom CSS Styling
+# 1. Page Configuration & Custom Pink Theme CSS
 # ----------------------------------------------------------------
 st.set_page_config(
     page_title="OunLen SMR - Professional POS & Sales Report",
@@ -15,15 +15,22 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* 1. Background ពណ៌ទឹកផ្កាឈូក */
     .stApp {
-        background-color: #fdf2f8 !important;
+        background-color: #fce7f3 !important;
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
-        color: #0f172a;
+        color: #0f172a !important;
     }
     
+    /* 2. ពណ៌អក្សរ Heading & Label ទូទៅ */
+    h1, h2, h3, h4, h5, h6, label, p, span {
+        color: #0f172a !important;
+    }
+
+    /* 3. Radio / Navigation Menu Top Bar */
     div[data-testid="stRadio"] > label { display: none !important; }
     div[data-testid="stRadio"] > div {
-        background-color: #1e293b !important;
+        background-color: #be185d !important; /* ពណ៌ផ្កាឈូកចាស់ដិត */
         padding: 8px 16px !important;
         border-radius: 10px !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
@@ -34,10 +41,10 @@ st.markdown("""
         font-weight: 600 !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] input:checked + div {
-        background-color: #db2777 !important;
+        background-color: #831843 !important;
     }
 
-    /* Circle Button Styling */
+    /* 4. Circle Buttons (POS Products) */
     div.stButton > button {
         border-radius: 50% !important;
         width: 125px !important;
@@ -71,12 +78,11 @@ st.markdown("""
         border-radius: 8px !important;
         width: 100% !important;
         height: 48px !important;
-        background: #0f172a !important;
+        background: #831843 !important;
         color: #ffffff !important;
-        border: 1px solid #334155 !important;
+        border: 1px solid #9d174d !important;
         font-size: 13px !important;
         font-weight: 600 !important;
-        text-shadow: none !important;
     }
     
     .pay-btn div.stButton > button {
@@ -88,21 +94,42 @@ st.markdown("""
         border: none !important;
         font-size: 16px !important;
         font-weight: bold !important;
-        text-shadow: none !important;
     }
 
+    /* 5. Metric Cards (របាយការណ៍សរុប) */
+    div[data-testid="stMetric"] {
+        background-color: #ffffff !important;
+        border: 2px solid #be185d !important;
+        padding: 12px 16px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+    }
+    div[data-testid="stMetricLabel"] p {
+        color: #475569 !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stMetricValue"] div {
+        color: #be185d !important; /* ពណ៌លេចទិន្នន័យសរុប */
+        font-size: 22px !important;
+        font-weight: bold !important;
+    }
+
+    /* 6. Custom Summary Box in POS */
     .customer-info-box {
-        background-color: #047857;
-        color: #ffffff;
+        background-color: #be185d;
+        color: #ffffff !important;
         padding: 14px 16px;
         border-radius: 8px 8px 0px 0px;
         font-size: 14px;
         line-height: 1.6;
     }
+    .customer-info-box div, .customer-info-box b {
+        color: #ffffff !important;
+    }
 
     .total-summary-header {
-        background-color: #047857;
-        color: #ffffff;
+        background-color: #9d174d;
+        color: #ffffff !important;
         padding: 10px 15px;
         font-weight: bold;
         font-size: 15px;
@@ -112,12 +139,12 @@ st.markdown("""
     
     .total-summary-body {
         background-color: #ffffff;
-        border: 1px solid #fbcfe8;
+        border: 2px solid #be185d;
         border-top: none;
         border-radius: 0 0 8px 8px;
         padding: 15px;
         font-size: 13px;
-        color: #0f172a;
+        color: #0f172a !important;
         line-height: 1.8;
     }
 
@@ -128,12 +155,15 @@ st.markdown("""
     }
 
     .pos-footer-bar {
-        background-color: #0f172a;
-        color: #ffffff;
+        background-color: #be185d;
+        color: #ffffff !important;
         padding: 10px 18px;
         border-radius: 6px;
         font-size: 12px;
         margin-top: 20px;
+    }
+    .pos-footer-bar span, .pos-footer-bar b {
+        color: #ffffff !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -170,15 +200,9 @@ if "customer_code" not in st.session_state:
     st.session_state.customer_code = "N/A"
 if "discount_pct" not in st.session_state:
     st.session_state.discount_pct = 0.0
-if "vat_pct" not in st.session_state:
-    st.session_state.vat_pct = 0.0
-if "hold_list" not in st.session_state:
-    st.session_state.hold_list = []
-if "last_receipt" not in st.session_state:
-    st.session_state.last_receipt = None
 
 # ----------------------------------------------------------------
-# 3. Receipt HTML Generator
+# 3. Receipt HTML Generator (80mm)
 # ----------------------------------------------------------------
 def generate_receipt_html(data):
     items_html = ""
@@ -214,7 +238,7 @@ def generate_receipt_html(data):
             .flex-between {{ display: flex; justify-content: space-between; margin: 2px 0; }}
             @media print {{ .no-print {{ display: none !important; }} body {{ width: 100%; }} }}
             .print-btn {{
-                background-color: #059669; color: white; border: none;
+                background-color: #be185d; color: white; border: none;
                 padding: 10px; font-size: 14px; font-weight: bold;
                 border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px;
             }}
@@ -250,10 +274,10 @@ def generate_receipt_html(data):
             <div class="flex-between"><span>សរុបរង (Subtotal):</span> <span>${data.get('subtotal', 0):.2f}</span></div>
             <div class="flex-between"><span>បញ្ចុះតម្លៃ:</span> <span>-${data.get('discount', 0):.2f}</span></div>
             <div class="dashed-line"></div>
-            <div class="flex-between" style="font-size: 13px; font-weight: bold;">
+            <div class="flex-between" style="font-size: 13px; font-weight: bold; color: #be185d;">
                 <span>ត្រូវបង់សរុប:</span> <span>${data['grand_total_usd']:.2f}</span>
             </div>
-            <div class="flex-between" style="font-weight: bold;">
+            <div class="flex-between" style="font-weight: bold; color: #be185d;">
                 <span>ជាប្រាក់រៀល:</span> <span>៛ {data['grand_total_khr']:,}</span>
             </div>
         </div>
@@ -373,7 +397,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         <div class="customer-info-box">
             <div>👤 <b>អតិថិជន:</b> {st.session_state.customer_name}</div>
             <div>💳 <b>កូដអតិថិជន:</b> {st.session_state.customer_code}</div>
-            <hr style="margin: 6px 0; border-color: rgba(255,255,255,0.3);">
+            <hr style="margin: 6px 0; border-color: rgba(255,255,255,0.4);">
             <div># <b>លេខវេន:</b> #001 | 🕒 <b>ម៉ោង:</b> {datetime.now().strftime('%H:%M')}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -391,10 +415,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             <hr style="margin: 6px 0; border-top: 1px dashed #ccc;">
             <div class="summary-row" style="align-items: baseline;">
                 <span style="font-weight:bold;">Grand Total:</span> 
-                <span style="color: #dc2626; font-size: 24px; font-weight: bold;">$ {grand_total_usd:.2f}</span>
+                <span style="color: #be185d; font-size: 24px; font-weight: bold;">$ {grand_total_usd:.2f}</span>
             </div>
             <div class="summary-row" style="justify-content: flex-end;">
-                <span style="color: #dc2626; font-size: 18px; font-weight: bold;">៛ {grand_total_khr:,.0f}</span>
+                <span style="color: #be185d; font-size: 18px; font-weight: bold;">៛ {grand_total_khr:,.0f}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -467,13 +491,13 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
     st.markdown("## 🧾 ប្រវត្តិប្រតិបត្តិការ និង ការពិនិត្យវិក្កយបត្រ (80mm Thermal Paper)")
 
 # ----------------------------------------------------------------
-# MODE 5: SALES REPORT WITH TOTAL SUMMARY
+# MODE 5: SALES REPORT WITH DYNAMIC HIGH-CONTRAST METRICS
 # ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
     
     if not st.session_state.sales_history:
-        st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន។")
+        st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
     else:
         # Date Filter
         filter_col1, _ = st.columns([1.5, 2.5])
@@ -504,14 +528,14 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
         if not filtered_sales:
             st.warning(f"⚠️ មិនមានទិន្នន័យលក់ចន្លោះពីថ្ងៃ {start_date} ដល់ {end_date} ទេ។")
         else:
-            # 1. គណនាចំណូលសរុប និងទិន្នន័យផ្សេងៗ
+            # 1. គណនាចំណូលសរុប និងទិន្នន័យ
             total_invoices = len(filtered_sales)
             total_subtotal = sum(item.get("subtotal", 0) for item in filtered_sales)
             total_discount = sum(item.get("discount", 0) for item in filtered_sales)
             total_grand_usd = sum(item.get("grand_total_usd", 0) for item in filtered_sales)
             total_grand_khr = sum(item.get("grand_total_khr", 0) for item in filtered_sales)
 
-            # បង្ហាញ Metric Cards
+            # បង្ហាញ Metric Cards ពណ៌លេចច្បាស់
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("🧾 វិក្កយបត្រសរុប", f"{total_invoices} វិក្កយបត្រ")
             m2.metric("💵 ចំណូលសរុប ($)", f"${total_grand_usd:,.2f}")
@@ -525,7 +549,6 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
             with col_rep_table:
                 st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការ ({total_invoices} វិក្កយបត្រ)")
                 
-                # បង្កើតតារាងប្រតិបត្តិការ
                 report_data = []
                 for idx, item in enumerate(reversed(filtered_sales)):
                     report_data.append({
@@ -539,7 +562,7 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                         "Grand Total (KHR)": f"៛{item.get('grand_total_khr', 0):,}"
                     })
 
-                # បន្ថែមបន្ទាត់ចំណូលសរុប (Total Row) នៅខាងក្រោមតារាង
+                # បន្ទាត់ចំណូលសរុប (Summary Row) នៅបាតតារាង
                 report_data.append({
                     "ល.រ": "សរុប",
                     "Invoice No": f"សរុប {total_invoices} វិក្កយបត្រ",
