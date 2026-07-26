@@ -149,6 +149,9 @@ if "categories" not in st.session_state:
 if "selected_category" not in st.session_state:
     st.session_state.selected_category = "ទាំងអស់ (All)"
 
+if "customer_name" not in st.session_state:
+    st.session_state.customer_name = "General Customer"
+
 if "customers_list" not in st.session_state:
     st.session_state.customers_list = [
         {"name": "General Customer", "phone": "-", "type": "Normal"},
@@ -173,6 +176,8 @@ if "services_catalog" not in st.session_state:
 
 if "cart" not in st.session_state:
     st.session_state.cart = []
+if "hold_list" not in st.session_state:
+    st.session_state.hold_list = []
 if "sales_history" not in st.session_state:
     st.session_state.sales_history = []
 if "discount_pct" not in st.session_state:
@@ -183,6 +188,8 @@ if "show_receipt_dialog" not in st.session_state:
     st.session_state.show_receipt_dialog = False
 if "current_receipt" not in st.session_state:
     st.session_state.current_receipt = None
+if "last_receipt" not in st.session_state:
+    st.session_state.last_receipt = None
 if "payment_method" not in st.session_state:
     st.session_state.payment_method = "Cash"
 
@@ -212,6 +219,7 @@ def recalculate_item(item):
 def reset_pos():
     st.session_state.cart = []
     st.session_state.discount_pct = 0.0
+    st.session_state.customer_name = "General Customer"
     st.session_state.selected_customer = "General Customer"
     st.session_state.show_payment_modal = False
     st.session_state.show_receipt_dialog = False
@@ -323,6 +331,7 @@ def register_customer_dialog():
         if c_name.strip():
             new_cust = {"name": c_name.strip(), "phone": c_phone.strip(), "type": c_type}
             st.session_state.customers_list.append(new_cust)
+            st.session_state.customer_name = c_name.strip()
             st.session_state.selected_customer = c_name.strip()
             st.toast(f"បានចុះឈ្មោះអតិថិជន {c_name} រួចរាល់!")
             st.rerun()
@@ -330,7 +339,7 @@ def register_customer_dialog():
             st.error("សូមបញ្ចូលឈ្មោះអតិថិជន!")
 
 @st.dialog("🎁 កំណត់បញ្ចុះតម្លៃសរុប (Global Discount)")
-def set_global_discount_dialog():
+def set_discount_dialog():
     st.write("កំណត់ភាគរយបញ្ចុះតម្លៃលើវិក្កយបត្រសរុប (%)")
     new_d = st.number_input("ភាគរយបញ្ចុះតម្លៃ (%)", min_value=0.0, max_value=100.0, value=float(st.session_state.discount_pct))
     c1, c2 = st.columns(2)
@@ -338,17 +347,6 @@ def set_global_discount_dialog():
         st.session_state.discount_pct = new_d
         st.rerun()
     if c2.button("❌ បោះបង់", use_container_width=True):
-        st.rerun()
-
-@st.dialog("🧾 វិក្កយបត្រទូទាត់ប្រាក់ (Receipt Preview)", width="large")
-def show_receipt_modal_dialog():
-    st.success("🎉 ការទូទាត់ប្រាក់ជោគជ័យ! លោកអ្នកអាចព្រីនវិក្កយបត្រខាងក្រោមបាន។")
-    if st.session_state.current_receipt:
-        html_code = generate_receipt_html(st.session_state.current_receipt)
-        components.html(html_code, height=450, scrolling=True)
-    
-    if st.button("✅ រួចរាល់ / បញ្ចប់ប្រតិបត្តិការ (Reset POS)", type="primary", use_container_width=True):
-        reset_pos()
         st.rerun()
 
 # ----------------------------------------------------------------
@@ -361,6 +359,7 @@ main_mode = st.radio(
 )
 
 st.markdown("---")
+
 # ----------------------------------------------------------------
 # MODE 1: POS SYSTEM
 # ----------------------------------------------------------------
@@ -426,10 +425,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         st.markdown("<div class='cart-container'>", unsafe_allow_html=True)
         
         c_col1, c_col2 = st.columns([4, 1])
-        c_name = c_col1.text_input("Customer Name", value=st.session_state.customer_name, label_visibility="collapsed", placeholder="Enter Customer name or phone number")
+        c_name = c_col1.text_input("Customer Name", value=st.session_state.get("customer_name", "General Customer"), label_visibility="collapsed", placeholder="Enter Customer name or phone number")
         st.session_state.customer_name = c_name
         if c_col2.button("👤+", key="btn_quick_cust", type="secondary"):
-            st.toast("បញ្ចូលឈ្មោះអតិថិជនរួចរាល់")
+            register_customer_dialog()
 
         st.markdown("""
         <div style="background-color: #fff1f2; padding: 8px 10px; border-radius: 8px; border: 1px solid #fda4af; font-size: 14px; font-weight: 900; margin: 8px 0; color: #9f1239;">
@@ -559,6 +558,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 "inv_no": inv_no,
                 "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "customer": st.session_state.customer_name,
+                "payment_method": st.session_state.payment_method,
                 "items": st.session_state.cart.copy(),
                 "subtotal": subtotal,
                 "discount": discount_val,
@@ -573,11 +573,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.session_state.last_receipt = receipt_data
             st.session_state.sales_history.append(receipt_data)
             
-            st.session_state.cart = []
-            st.session_state.show_payment_modal = False
-            st.session_state.discount_pct = 0.0
-            st.session_state.customer_name = "General Customer"
-            st.session_state.customer_code = "N/A"
+            reset_pos()
             st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ!")
             st.rerun()
 
@@ -661,7 +657,7 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
 # ----------------------------------------------------------------
 # MODE 4: RECEIPT VIEW
 # ----------------------------------------------------------------
-elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
+elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
     st.markdown("## 🧾 ប្រវត្តិប្រតិបត្តិការ និង ការពិនិត្យវិក្កយបត្រ (80mm Thermal Paper)")
     
     if st.session_state.last_receipt:
@@ -673,7 +669,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT
 # ----------------------------------------------------------------
-elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
+elif main_mode == "📊 របាយការណ៍លក់ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ប្រចាំថ្ងៃ / ខែ")
     
     if not st.session_state.sales_history:
@@ -686,51 +682,19 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                 "Invoice No": sale['inv_no'],
                 "Date Time": sale['date'],
                 "Customer": sale['customer'],
+                "Payment Method": sale.get('payment_method', 'Cash'),
                 "Items Sold": total_items,
                 "Subtotal ($)": sale['subtotal'],
                 "Discount ($)": sale['discount'],
                 "Grand Total ($)": sale['grand_total_usd'],
                 "Grand Total (KHR)": sale['grand_total_khr']
             })
-            
-        df = pd.DataFrame(sales_records)
-
-        m1, m2, m3, m4 = st.columns(4)
         
-        tot_rev_usd = df["Grand Total ($)"].sum()
-        tot_rev_khr = df["Grand Total (KHR)"].sum()
-        tot_transactions = len(df)
-        tot_items = df["Items Sold"].sum()
-
-        with m1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h4>ចំណូលសរុប ($)</h4>
-                <h2>${tot_rev_usd:,.2f}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with m2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h4>ចំណូលសរុប (៛)</h4>
-                <h2>៛ {tot_rev_khr:,.0f}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with m3:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h4>ចំនួនវិក្កយបត្រ</h4>
-                <h2>{tot_transactions}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with m4:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h4>សេវាកម្មលក់បានសរុប</h4>
-                <h2>{tot_items}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 📋 បញ្ជីប្រវត្តិប្រតិបត្តិការលក់")
+        df = pd.DataFrame(sales_records)
         st.dataframe(df, use_container_width=True)
+        
+        # Total Summary Cards
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Total Transactions", len(df))
+        m2.metric("Total Revenue ($)", f"${df['Grand Total ($)'].sum():.2f}")
+        m3.metric("Total Revenue (KHR)", f"៛ {df['Grand Total (KHR)'].sum():,.0f}")
