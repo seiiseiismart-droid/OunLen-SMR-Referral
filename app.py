@@ -693,27 +693,144 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
+# MODE 5: SALES REPORT WITH FIXED TOTAL CALCULATION
+# ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
-    if st.session_state.sales_history:
-        report_data = []
-        for item in st.session_state.sales_history:
-            report_data.append({
-                "Invoice No": item.get("inv_no"),
-                "Date": item.get("date"),
-                "Customer": item.get("customer"),
-                "Subtotal ($)": f"${item.get('subtotal', 0):.2f}",
-                "Discount ($)": f"${item.get('discount', 0):.2f}",
-                "Grand Total ($)": f"${item.get('grand_total_usd', 0):.2f}",
-                "Grand Total (KHR)": f"៛{item.get('grand_total_khr', 0):,}"
-            })
-        st.dataframe(pd.DataFrame(report_data), use_container_width=True)
+    
+    if not st.session_state.sales_history:
+        st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
     else:
-        st.info("មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។")
+        # Date Filter
+        filter_col1, _ = st.columns([1.5, 2.5])
+        with filter_col1:
+            today = datetime.now().date()
+            date_range = st.date_input("📅 ជ្រើសរើសចន្លោះកាលបរិច្ឆេទ (Date Range):", value=(today, today), key="sales_date_range")
 
-# Footer
-st.markdown("""
-<div class="pos-footer-bar">
-    <span><b>Outlet:</b> OunLen SMR</span> | <span><b>Status:</b> Ready</span>
-</div>
-""", unsafe_allow_html=True)
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            start_date, end_date = date_range
+        elif isinstance(date_range, tuple) and len(date_range) == 1:
+            start_date = end_date = date_range[0]
+        else:
+            start_date = end_date = today
+
+        filtered_sales = []
+        for item in st.session_state.sales_history:
+            item_date_str = item.get("date", "")
+            try:
+                item_date = datetime.strptime(item_date_str, "%Y-%m-%d %H:%M:%S").date()
+            except ValueError:
+                try:
+                    item_date = datetime.strptime(item_date_str.split(" ")[0], "%Y-%m-%d").date()
+                except Exception:
+                    item_date = today
+
+            if start_date <= item_date <= end_date:
+                filtered_sales.append(item)
+
+        st.markdown("---")
+
+        if not filtered_sales:
+            st.warning(f"⚠️ មិនមានទិន្នន័យលក់ចន្លោះពីថ្ងៃ {start_date} ដល់ {end_date} ទេ។")
+        else:
+            # 1. គណនាចំណូលសរុប ដោយមានការត្រួតពិនិត្យ Key យ៉ាងច្បាស់លាស់ (Robust Total Calculation)
+            total_invoices = len(filtered_sales)
+            
+            total_subtotal = 0.0
+            total_discount = 0.0
+            total_grand_usd = 0.0
+            total_grand_khr = 0.0
+
+            for item in filtered_sales:
+                sub = float(item.get("subtotal", 0.0))
+                disc = float(item.get("discount", 0.0))
+                
+                # ស្វែងរកតម្លៃ Grand Total USD (ប្រសិនបើគ្មាន Key grand_total_usd វានឹងយក grand_total ឬ subtotal - discount)
+                gt_usd = item.get("grand_total_usd", item.get("grand_total", sub - disc))
+                gt_usd = float(gt_usd) if gt_usd is not None else 0.0
+                
+                # ស្វែងរកតម្លៃ Grand Total KHR
+                gt_khr = item.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE))
+                gt_khr = float(gt_khr) if gt_khr is not None else 0.0
+
+                total_subtotal += sub
+                total_discount += disc
+                total_grand_usd += gt_usd
+                total_grand_khr += gt_khr
+
+            # បង្ហាញ Metric Cards ពណ៌លេចច្បាស់
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("🧾 វិក្កយបត្រសរុប", f"{total_invoices} វិក្កយបត្រ")
+            m2.metric("💵 ចំណូលសរុប ($)", f"${total_grand_usd:,.2f}")
+            m3.metric("🎁 បញ្ចុះតម្លៃសរុប ($)", f"${total_discount:,.2f}")
+            m4.metric("៛ ចំណូលសរុប (KHR)", f"៛ {total_grand_khr:,.0f}")
+
+            st.markdown("---")
+
+            col_rep_table, col_rep_preview = st.columns([1.5, 1], gap="medium")
+
+            with col_rep_table:
+                st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការ ({total_invoices} វិក្កយបត្រ)")
+                
+                report_data = []
+                for idx, item in enumerate(reversed(filtered_sales)):
+                    sub = float(item.get("subtotal", 0.0))
+                    disc = float(item.get("discount", 0.0))
+                    gt_usd = float(item.get("grand_total_usd", item.get("grand_total", sub - disc)))
+                    gt_khr = float(item.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE)))
+
+                    report_data.append({
+                        "ល.រ": total_invoices - idx,
+                        "Invoice No": item.get("inv_no", "N/A"),
+                        "Date": item.get("date", ""),
+                        "Customer": item.get("customer", "General"),
+                        "Subtotal ($)": f"${sub:.2f}",
+                        "Discount ($)": f"${disc:.2f}",
+                        "Grand Total ($)": f"${gt_usd:.2f}",
+                        "Grand Total (KHR)": f"៛{gt_khr:,.0f}"
+                    })
+
+                # បន្ទាត់ចំណូលសរុប (Summary Row) នៅបាតតារាង
+                report_data.append({
+                    "ល.រ": "សរុប",
+                    "Invoice No": f"សរុប {total_invoices} វិក្កយបត្រ",
+                    "Date": "-",
+                    "Customer": "-",
+                    "Subtotal ($)": f"${total_subtotal:,.2f}",
+                    "Discount ($)": f"${total_discount:,.2f}",
+                    "Grand Total ($)": f"${total_grand_usd:,.2f}",
+                    "Grand Total (KHR)": f"៛{total_grand_khr:,.0f}"
+                })
+
+                st.dataframe(pd.DataFrame(report_data), use_container_width=True, hide_index=True)
+
+                st.markdown("---")
+                filtered_inv_list = [item.get("inv_no", "N/A") for item in reversed(filtered_sales)]
+                selected_rep_inv = st.selectbox("🔍 ជ្រើសរើសលេខវិក្កយបត្រដើម្បីមើលទម្រង់ 80mm / ព្រីន:", filtered_inv_list, key="select_report_inv")
+                selected_rep_data = next((item for item in filtered_sales if item.get("inv_no") == selected_rep_inv), None)
+
+            with col_rep_preview:
+                st.markdown("### 🧾 វិក្កយបត្រ Preview (80mm)")
+                if selected_rep_data:
+                    sub = float(selected_rep_data.get("subtotal", 0.0))
+                    disc = float(selected_rep_data.get("discount", 0.0))
+                    gt_usd = float(selected_rep_data.get("grand_total_usd", selected_rep_data.get("grand_total", sub - disc)))
+                    gt_khr = float(selected_rep_data.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE)))
+
+                    receipt_payload = {
+                        "inv_no": selected_rep_data.get("inv_no", "N/A"),
+                        "date": selected_rep_data.get("date", ""),
+                        "customer": selected_rep_data.get("customer", "General"),
+                        "items": selected_rep_data.get("items", []),
+                        "subtotal": sub,
+                        "discount": disc,
+                        "grand_total_usd": gt_usd,
+                        "grand_total_khr": gt_khr,
+                        "paid_usd": selected_rep_data.get("paid_usd", gt_usd),
+                        "paid_khr": selected_rep_data.get("paid_khr", 0),
+                        "change_usd": selected_rep_data.get("change_usd", 0.0),
+                        "change_khr": selected_rep_data.get("change_khr", 0)
+                    }
+                    rc_html = generate_receipt_html(receipt_payload)
+                    components.html(rc_html, height=620, scrolling=True)
