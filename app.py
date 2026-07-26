@@ -675,16 +675,31 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
+# MODE 5: SALES REPORT (មានការកែប្រែជ្រើសរើសចន្លោះថ្ងៃ)
+# ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
     
     if not st.session_state.sales_history:
         st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
     else:
-        filter_col1, _ = st.columns([1.5, 2.5])
+        filter_col1, _ = st.columns([2, 2])
         with filter_col1:
             today = datetime.now().date()
-            selected_date = st.date_input("🗓️ ជ្រើសរើសកាលបរិច្ឆេទ (Filter Date):", value=today)
+            # ជ្រើសរើសចន្លោះថ្ងៃខែឆ្នាំ (Date Range)
+            date_range = st.date_input(
+                "🗓️ ជ្រើសរើសចន្លោះកាលបរិច្ឆេទ (Filter Date Range):",
+                value=(today, today)
+            )
+
+        # ឆែកមើលការជ្រើសរើសចន្លោះថ្ងៃ (Start Date & End Date)
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            start_date, end_date = date_range
+        elif isinstance(date_range, tuple) and len(date_range) == 1:
+            start_date = end_date = date_range[0]
+        else:
+            start_date = end_date = date_range
 
         sales_data = []
         total_sales_usd = 0.0
@@ -692,8 +707,11 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
         total_transactions = 0
 
         for sale in st.session_state.sales_history:
-            sale_date_str = sale.get("date", "").split(" ")[0]
-            if sale_date_str == str(selected_date):
+            # បំបែកយកតែថ្ងៃខែឆ្នាំ YYYY-MM-DD
+            sale_date = datetime.strptime(sale.get("date", "").split(" ")[0], "%Y-%m-%d").date()
+            
+            # ត្រួតពិនិត្យថា តើថ្ងៃលក់ស្ថិតនៅក្នុងចន្លោះថ្ងៃដែលបានជ្រើសរើសឬទេ
+            if start_date <= sale_date <= end_date:
                 total_val = sale.get("grand_total_usd", sale.get("total_usd", 0.0))
                 total_khr = sale.get("grand_total_khr", round(total_val * EXCHANGE_RATE))
                 
@@ -703,6 +721,7 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                 
                 sales_data.append({
                     "Invoice No": sale.get("inv_no"),
+                    "Date": sale.get("date", "").split(" ")[0],
                     "Time": sale.get("date", "").split(" ")[-1],
                     "Customer": sale.get("customer"),
                     "Subtotal ($)": f"${sale.get('subtotal', 0.0):.2f}",
@@ -711,15 +730,23 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                     "Grand Total (៛)": f"៛ {total_khr:,}"
                 })
 
-        # Display Key Metrics
+        # បង្ហាញ Key Metrics
         m_col1, m_col2, m_col3 = st.columns(3)
         m_col1.metric("📦 ការលក់សរុប (Transactions)", f"{total_transactions} លើក")
         m_col2.metric("💵 ចំណូលសរុប ($)", f"${total_sales_usd:.2f}")
         m_col3.metric("៛ ចំណូលសរុប (៛)", f"៛ {total_sales_khr:,}")
 
         st.markdown("---")
-        st.markdown(f"### 📋 បញ្ជីវិក្កយបត្រប្រចាំថ្ងៃ ({selected_date})")
+        
+        # បង្ហាញចំណងជើងចន្លោះថ្ងៃ
+        if start_date == end_date:
+            date_str_display = f"{start_date}"
+        else:
+            date_str_display = f"{start_date} ដល់ {end_date}"
+            
+        st.markdown(f"### 📋 បញ្ជីវិក្កយបត្រ ({date_str_display})")
+        
         if sales_data:
             st.dataframe(pd.DataFrame(sales_data), use_container_width=True, hide_index=True)
         else:
-            st.warning(f"ពុំមានទិន្នន័យលក់សម្រាប់ថ្ងៃទី {selected_date} ទេ។")
+            st.warning(f"ពុំមានទិន្នន័យលក់សម្រាប់ចន្លោះថ្ងៃទី {date_str_display} ទេ។")
