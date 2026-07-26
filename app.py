@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from datetime import datetime
 
@@ -12,17 +13,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for UI Enhancement (Theme ពណ៌ផ្កាឈូកស្រាល - Light Pink)
+# Custom CSS for UI Enhancement
 st.markdown("""
 <style>
-    /* Background App ទាំងមូល */
     .stApp {
         background-color: #fdf2f8 !important;
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a;
     }
     
-    /* Navigation Menu ខាងលើ */
     div[data-testid="stRadio"] > label {
         display: none !important;
     }
@@ -41,7 +40,6 @@ st.markdown("""
         background-color: #db2777 !important;
     }
 
-    /* Tabs (ប្រភេទសេវាកម្ម) */
     button[data-baseweb="tab"] p {
         font-size: 15px !important;
         font-weight: 600 !important;
@@ -52,7 +50,7 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* Circle Button Styling (ប៊ូតុងរង្វង់សេវាកម្ម) */
+    /* Circle Button Styling */
     div.stButton > button {
         border-radius: 50% !important;
         width: 125px !important;
@@ -82,7 +80,6 @@ st.markdown("""
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     }
 
-    /* POS Action Buttons (ប៊ូតុងមុខងារខាងស្តាំ) */
     .pos-btn div.stButton > button {
         border-radius: 8px !important;
         width: 100% !important;
@@ -112,7 +109,6 @@ st.markdown("""
         text-shadow: none !important;
     }
 
-    /* Customer Info Box */
     .customer-info-box {
         background-color: #047857;
         color: #ffffff;
@@ -123,7 +119,6 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    /* Total Summary Box */
     .total-summary-header {
         background-color: #047857;
         color: #ffffff;
@@ -163,17 +158,6 @@ st.markdown("""
         font-weight: bold;
     }
 
-    /* Receipt Box Styling */
-    .receipt-container {
-        background: #fff5f7;
-        border: 2px dashed #ec4899;
-        padding: 20px;
-        border-radius: 10px;
-        font-family: 'Courier New', Courier, monospace;
-        color: #0f172a;
-    }
-
-    /* Metric Cards Styling */
     .metric-card {
         background: white;
         padding: 15px;
@@ -198,11 +182,9 @@ st.markdown("""
 # ----------------------------------------------------------------
 EXCHANGE_RATE = 4100
 
-# ប្រភេទសេវាកម្មដំបូង (Initial Categories)
 if "categories" not in st.session_state:
     st.session_state.categories = ["✨ សេវាកម្មទូទៅ", "⚡ សេវាកម្ម Laser", "🧴 សេវាកម្ម ស្ប៉ា"]
 
-# បញ្ជីសេវាកម្មដំបូង (Initial Services Catalog)
 if "services_catalog" not in st.session_state:
     st.session_state.services_catalog = [
         {"code": "S01", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនសារាយ", "price": 15.0, "icon": "🌿"},
@@ -211,30 +193,16 @@ if "services_catalog" not in st.session_state:
         {"code": "S04", "category": "✨ សេវាកម្មទូទៅ", "name": "ញេចសម្អាតគ្រាប់មុន ជម្រុះកោសិកា", "price": 7.5, "icon": "🧖‍♀️"},
         {"code": "S05", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនVIP ពីមុខ ដល់ ក", "price": 25.0, "icon": "👑"},
         {"code": "S06", "category": "✨ សេវាកម្មទូទៅ", "name": "កក់សក់ + បិទម៉ាស", "price": 4.0, "icon": "💇‍♀️"},
-        {"code": "S07", "category": "✨ សេវាកម្មទូទៅ", "name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនក្លៀកសរ ថែមបាញ់ laser ក្លៀក", "price": 15.0, "icon": "🌸"},
-        {"code": "S08", "category": "✨ សេវាកម្មទូទៅ", "name": "ញេចសម្អាតមុនខ្នងជម្រុះកោសិកា", "price": 12.5, "icon": "🛁"},
-        {"code": "S09", "category": "✨ សេវាកម្មទូទៅ", "name": "ញេចសម្អាតមុនខ្នង + ម៉ាសស្កាតបញ្ចូលវីតាមីន", "price": 20.0, "icon": "🌺"},
-
         {"code": "L01", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Laser ក្លៀក", "price": 5.0, "icon": "⚡"},
         {"code": "L02", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Laser រោមដៃ", "price": 9.0, "icon": "⚡"},
-        {"code": "L03", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Laser រោមជើង", "price": 9.0, "icon": "⚡"},
-        {"code": "L04", "category": "⚡ សេវាកម្ម Laser", "name": "បាញ់ Bikini", "price": 12.0, "icon": "👙"},
-        {"code": "L05", "category": "⚡ សេវាកម្ម Laser", "name": "បករោម ក្លៀក", "price": 3.0, "icon": "✨"},
-        {"code": "L06", "category": "⚡ សេវាកម្ម Laser", "name": "បករោម ពុកមាត់", "price": 3.0, "icon": "✂️"},
-
         {"code": "P01", "category": "🧴 សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាស្បែក", "price": 10.0, "icon": "🧴"},
         {"code": "P02", "category": "🧴 សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាដោះគោស្រស់", "price": 15.0, "icon": "🥛"},
-        {"code": "P03", "category": "🧴 សេវាកម្ម ស្ប៉ា", "name": "ឈុតស្ប៉ាដោះគោស្រស់កូនក្រមុំ", "price": 20.0, "icon": "👰"},
     ]
 
-# State Initialization
 if "cart" not in st.session_state:
     st.session_state.cart = []
 if "sales_history" not in st.session_state:
-    st.session_state.sales_history = [
-        {"inv_no": "INV-1001", "date": datetime.now().strftime("%Y-%m-%d %H:%M"), "customer": "General", "total_usd": 15.0, "total_khr": 61500, "items": [{"name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនសារាយ", "qty": 1, "price": 15.0}]},
-        {"inv_no": "INV-1002", "date": datetime.now().strftime("%Y-%m-%d %H:%M"), "customer": "Srey Leak", "total_usd": 25.0, "total_khr": 102500, "items": [{"name": "ម៉ាសស្កាតបញ្ចូលវីតាមីនVIP ពីមុខ ដល់ ក", "qty": 1, "price": 25.0}]},
-    ]
+    st.session_state.sales_history = []
 if "customer_name" not in st.session_state:
     st.session_state.customer_name = "General"
 if "customer_code" not in st.session_state:
@@ -251,7 +219,102 @@ if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 
 # ----------------------------------------------------------------
-# 3. Popup Dialogs (Discount & Customer)
+# 3. Function Generator - 80mm HTML Receipt Component
+# ----------------------------------------------------------------
+def generate_receipt_html(data):
+    items_html = ""
+    for item in data['items']:
+        items_html += f"""
+        <tr>
+            <td style="text-align: left; padding: 3px 0;">{item['name']}</td>
+            <td style="text-align: center; padding: 3px 0;">{item['qty']}</td>
+            <td style="text-align: right; padding: 3px 0;">${item['price']:.2f}</td>
+            <td style="text-align: right; padding: 3px 0;">${item['total']:.2f}</td>
+        </tr>
+        """
+
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @page {{ size: 80mm auto; margin: 0; }}
+            body {{
+                font-family: 'Kantumruy Pro', 'Khmer OS Battambang', monospace;
+                width: 72mm;
+                margin: 0 auto;
+                padding: 5px;
+                background-color: #ffffff;
+                color: #000000;
+                font-size: 12px;
+            }}
+            .text-center {{ text-align: center; }}
+            .dashed-line {{ border-top: 1px dashed #000; margin: 6px 0; }}
+            table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
+            .flex-between {{ display: flex; justify-content: space-between; margin: 2px 0; }}
+            @media print {{ .no-print {{ display: none !important; }} body {{ width: 100%; }} }}
+            .print-btn {{
+                background-color: #059669; color: white; border: none;
+                padding: 10px; font-size: 14px; font-weight: bold;
+                border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px;
+            }}
+            .print-btn:hover {{ background-color: #047857; }}
+        </style>
+    </head>
+    <body>
+        <button class="print-btn no-print" onclick="window.print()">🖨️ ចុចទីនេះដើម្បី ព្រីនវិក្កយបត្រ (80mm)</button>
+        <div class="text-center">
+            <h2 style="margin: 0; font-size: 16px;">💇‍♀️ អូនឡេន SMR BEAUTY</h2>
+            <p style="margin: 2px 0; font-size: 10px;">សាខាទី ១: រាជធានីភ្នំពេញ</p>
+            <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 012 345 678</p>
+        </div>
+        <div class="dashed-line"></div>
+        <div style="font-size: 10px;">
+            <div class="flex-between"><span>លេខវិក្កយបត្រ:</span> <b>{data['inv_no']}</b></div>
+            <div class="flex-between"><span>កាលបរិច្ឆេទ:</span> <span>{data['date']}</span></div>
+            <div class="flex-between"><span>អតិថិជន:</span> <span>{data['customer']}</span></div>
+        </div>
+        <div class="dashed-line"></div>
+        <table>
+            <thead>
+                <tr style="border-bottom: 1px solid #000;">
+                    <th style="text-align: left;">សេវាកម្ម</th>
+                    <th style="text-align: center;">ចំនួន</th>
+                    <th style="text-align: right;">តម្លៃ</th>
+                    <th style="text-align: right;">សរុប</th>
+                </tr>
+            </thead>
+            <tbody>{items_html}</tbody>
+        </table>
+        <div class="dashed-line"></div>
+        <div style="font-size: 11px;">
+            <div class="flex-between"><span>សរុបរង (Subtotal):</span> <span>${data.get('subtotal', 0):.2f}</span></div>
+            <div class="flex-between"><span>បញ្ចុះតម្លៃ:</span> <span>-${data.get('discount', 0):.2f}</span></div>
+            <div class="dashed-line"></div>
+            <div class="flex-between" style="font-size: 13px; font-weight: bold;">
+                <span>ត្រូវបង់សរុប:</span> <span>${data['grand_total_usd']:.2f}</span>
+            </div>
+            <div class="flex-between" style="font-weight: bold;">
+                <span>ជាប្រាក់រៀល:</span> <span>៛ {data['grand_total_khr']:,}</span>
+            </div>
+        </div>
+        <div class="dashed-line"></div>
+        <div style="font-size: 10px;">
+            <div class="flex-between"><span>ប្រាក់ទទួលបាន ($):</span> <span>${data.get('paid_usd', 0):.2f}</span></div>
+            <div class="flex-between"><span>ប្រាក់អាប់ ($):</span> <span>${data.get('change_usd', 0):.2f}</span></div>
+            <div class="flex-between"><span>ប្រាក់អាប់ (៛):</span> <span>៛ {data.get('change_khr', 0):,}</span></div>
+        </div>
+        <div class="dashed-line"></div>
+        <div class="text-center" style="margin-top: 10px; font-size: 10px;">
+            <p>🙏🏻 សូមអរគុណ ជូនពរសំណាងល្អ! 🙏🏻</p>
+        </div>
+    </body>
+    </html>
+    """
+
+# ----------------------------------------------------------------
+# 4. Popup Dialogs
 # ----------------------------------------------------------------
 @st.dialog("🎁 បញ្ចុះតម្លៃ (Apply Discount)")
 def set_discount_dialog():
@@ -285,11 +348,11 @@ def set_customer_dialog():
         st.rerun()
 
 # ----------------------------------------------------------------
-# 4. Navigation Menu
+# 5. Navigation Menu
 # ----------------------------------------------------------------
 main_mode = st.radio(
     "📌 Navigation Menu", 
-    ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
+    ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt 80mm)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
     horizontal=True
 )
 
@@ -326,7 +389,6 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 st.toast(f"បានបន្ថែម: {matched['name']}")
                 st.rerun()
 
-        # Dynamic Tabs តាមប្រភេទសេវាកម្ម
         if st.session_state.categories:
             category_tabs = st.tabs(st.session_state.categories)
 
@@ -358,18 +420,13 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             for idx, cat_name in enumerate(st.session_state.categories):
                 with category_tabs[idx]:
                     render_circle_catalog(cat_name)
-        else:
-            st.warning("សូមបន្ថែមប្រភេទសេវាកម្មជាមុនសិន!")
 
         st.markdown("---")
-        
-        # Cart Table
         st.markdown("##### 📋 បញ្ជីសេវាកម្មដែលបានជ្រើសរើស (Cart Items)")
         if st.session_state.cart:
             cart_df = pd.DataFrame(st.session_state.cart)
-            
             for idx, row in cart_df.iterrows():
-                c_code, c_name, c_price, c_qty, c_tot = row["code"], row["name"], row["price"], row["qty"], row["total"]
+                c_code, c_name, c_price, c_qty = row["code"], row["name"], row["price"], row["qty"]
                 col_i1, col_i2, col_i3, col_i4, col_i5 = st.columns([1, 4, 1.5, 1.5, 1])
                 col_i1.write(f"**{c_code}**")
                 col_i2.write(f"{c_name}")
@@ -385,26 +442,23 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                     st.session_state.cart.pop(idx)
                     st.rerun()
         else:
-            st.info("💡 មិនទាន់មានសេវាកម្មក្នុង Cart នៅឡើយទេ! សូមចុចលើប៊ូតុងរង្វង់ខាងលើដើម្បីជ្រើសរើសសេវាកម្ម។")
+            st.info("💡 មិនទាន់មានសេវាកម្មក្នុង Cart នៅឡើយទេ!")
 
     with col_right:
-        # Customer Info
         st.markdown(f"""
         <div class="customer-info-box">
             <div>👤 <b>អតិថិជន:</b> {st.session_state.customer_name}</div>
             <div>💳 <b>កូដអតិថិជន:</b> {st.session_state.customer_code}</div>
             <hr style="margin: 6px 0; border-color: rgba(255,255,255,0.3);">
-            <div># <b>លេខវេន:</b> #001 | 🕒 <b>ម៉ោងចាប់ផ្តើម:</b> {datetime.now().strftime('%H:%M')}</div>
+            <div># <b>លេខវេន:</b> #001 | 🕒 <b>ម៉ោង:</b> {datetime.now().strftime('%H:%M')}</div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Calculations
         subtotal = sum(item["total"] for item in st.session_state.cart)
         discount_val = (subtotal * st.session_state.discount_pct) / 100
         after_discount = subtotal - discount_val
         vat_val = (after_discount * st.session_state.vat_pct) / 100
-        service_charge_val = st.session_state.service_charge
-        grand_total_usd = after_discount + vat_val + service_charge_val
+        grand_total_usd = after_discount + vat_val
         grand_total_khr = round(grand_total_usd * EXCHANGE_RATE)
 
         st.markdown("""<div class="total-summary-header">Total Summary (សរុបត្រូវបង់)</div>""", unsafe_allow_html=True)
@@ -412,8 +466,6 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         <div class="total-summary-body">
             <div class="summary-row"><span>Sub Total:</span> <span>$ {subtotal:.2f}</span></div>
             <div class="summary-row"><span>Discount ({st.session_state.discount_pct}%):</span> <span>-$ {discount_val:.2f}</span></div>
-            <div class="summary-row"><span>VAT:</span> <span>$ {vat_val:.2f}</span></div>
-            <div class="summary-row"><span>Service Charge:</span> <span>$ {service_charge_val:.2f}</span></div>
             <hr style="margin: 6px 0; border-top: 1px dashed #ccc;">
             <div class="summary-row" style="align-items: baseline;">
                 <span style="font-weight:bold;">Grand Total:</span> 
@@ -422,16 +474,11 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             <div class="summary-row" style="justify-content: flex-end;">
                 <span class="grand-total-khr">៛ {grand_total_khr:,.0f}</span>
             </div>
-            <hr style="margin: 6px 0; border-top: 1px dashed #ccc;">
-            <div class="summary-row" style="font-size: 11px; color: #666;">
-                <span>Rate:</span> <span>1 USD = {EXCHANGE_RATE} KHR</span>
-            </div>
         </div>
         """, unsafe_allow_html=True)
 
         st.write("")
 
-        # Payment Button
         st.markdown("<div class='pay-btn'>", unsafe_allow_html=True)
         if st.button("💵 PAYMENT (ទូទាត់ប្រាក់)", key="btn_pay_main", use_container_width=True):
             if not st.session_state.cart:
@@ -440,7 +487,6 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 st.session_state.show_payment_modal = True
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # Other Actions
         st.markdown("<div class='pos-btn'>", unsafe_allow_html=True)
         b_c1, b_c2 = st.columns(2)
         with b_c1:
@@ -457,10 +503,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         b_c3, b_c4 = st.columns(2)
         with b_c3:
             if st.button("% Discount", key="btn_discount"):
-                set_discount_dialog()  # ហៅ Dialog ឱ្យបង្ហាញពេលចុច
+                set_discount_dialog()
         with b_c4:
             if st.button("🔑 Customer", key="btn_customer"):
-                set_customer_dialog()  # ហៅ Dialog កំណត់អតិថិជន
+                set_customer_dialog()
 
         b_c5, b_c6 = st.columns(2)
         with b_c5:
@@ -472,10 +518,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 st.rerun()
         with b_c6:
             if st.button("🖨️ Last Receipt", key="btn_reprint"):
-                st.toast("កំពុងបើកវិក្កយបត្រចុងក្រោយ...")
+                st.toast("បើកមើលវិក្កយបត្រចុងក្រោយលើ Tab 'Receipt'")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Payment Dialog Box
+    # Payment Modal Dynamic Display
     if st.session_state.get("show_payment_modal", False):
         st.markdown("---")
         st.markdown("### 💵 បង្អួចទូទាត់ប្រាក់ (Payment Modal)")
@@ -490,7 +536,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         st.info(f"💵 ប្រាក់អាប់ (Change): **$ {change_u:.2f}** ({change_k:,.0f} ៛)")
         
         confirm_c1, confirm_c2 = st.columns(2)
-        if confirm_c1.button("✅ យល់ព្រមទូទាត់ និង បោះពុម្ពវិក្កយបត្រ", type="primary", use_container_width=True):
+        if confirm_c1.button("✅ យល់ព្រមទូទាត់ និង បង្កើតវិក្កយបត្រ", type="primary", use_container_width=True):
             inv_no = f"INV-{len(st.session_state.sales_history) + 1001}"
             receipt_data = {
                 "inv_no": inv_no,
@@ -522,7 +568,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.session_state.discount_pct = 0.0
             st.session_state.customer_name = "General"
             st.session_state.customer_code = "N/A"
-            st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ! បានបង្កើតវិក្កយបត្ររួចរាល់។")
+            st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ!")
             st.rerun()
 
         if confirm_c2.button("❌ បោះបង់", use_container_width=True):
@@ -530,30 +576,25 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.rerun()
 
 # ----------------------------------------------------------------
-# MODE 2: SERVICE MANAGEMENT (បញ្ចូល និង កែប្រែ សេវាកម្ម)
+# MODE 2: SERVICE MANAGEMENT
 # ----------------------------------------------------------------
 elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)":
     st.markdown("## 🛠️ គ្រប់គ្រងសេវាកម្ម (Manage Services)")
-    
     col_s_add, col_s_edit = st.columns(2, gap="large")
     
-    # 1. បញ្ចូលសេវាកម្មថ្មី
     with col_s_add:
         st.markdown("### ➕ បន្ថែមសេវាកម្មថ្មី")
         with st.form("add_service_form", clear_on_submit=True):
-            s_code = st.text_input("កូដសេវាកម្ម (Service Code)", placeholder="ឧទាហរណ៍: S10, L07, P04...")
+            s_code = st.text_input("កូដសេវាកម្ម (Service Code)", placeholder="ឧទាហរណ៍: S10, L07...")
             s_name = st.text_input("ឈ្មោះសេវាកម្ម (Service Name)", placeholder="ឧទាហរណ៍: ម៉ាសស្កាតមុខកូនក្រមុំ")
             s_cat = st.selectbox("ជ្រើសរើសប្រភេទសេវាកម្ម", st.session_state.categories)
             s_price = st.number_input("តម្លៃ ($)", min_value=0.0, value=10.0, step=0.5)
             s_icon = st.text_input("រូបតំណាង (Emoji Icon)", value="✨")
             
             submit_add_service = st.form_submit_button("➕ បញ្ចូលសេវាកម្មថ្មី", type="primary")
-            
             if submit_add_service:
                 if not s_code.strip() or not s_name.strip():
-                    st.error("សូមបញ្ចូលកូដ និង ឈ្មោះសេវាកម្មឱ្យបានត្រឹមត្រូវ!")
-                elif any(x["code"].lower() == s_code.strip().lower() for x in st.session_state.services_catalog):
-                    st.warning("កូដសេវាកម្មនេះមានរួចហើយ! សូមប្រើកូដផ្សេង។")
+                    st.error("សូមបញ្ចូលកូដ និង ឈ្មោះសេវាកម្ម!")
                 else:
                     new_item = {
                         "code": s_code.strip().upper(),
@@ -563,15 +604,14 @@ elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (
                         "icon": s_icon.strip() if s_icon.strip() else "✨"
                     }
                     st.session_state.services_catalog.append(new_item)
-                    st.success(f"បានបន្ថែមសេវាកម្ម '{s_name}' ដោយជោគជ័យ!")
+                    st.success(f"បានបន្ថែមសេវាកម្ម '{s_name}' រួចរាល់!")
                     st.rerun()
 
-    # 2. កែប្រែ ឬ លុបសេវាកម្ម
     with col_s_edit:
         st.markdown("### ✏️ កែប្រែ ឬ លុបសេវាកម្ម")
         if st.session_state.services_catalog:
             service_options = [f"{item['code']} - {item['name']}" for item in st.session_state.services_catalog]
-            selected_s_option = st.selectbox("ជ្រើសរើសសេវាកម្មដែលត្រូវកែប្រែ:", service_options)
+            selected_s_option = st.selectbox("ជ្រើសរើសសេវាកម្ម:", service_options)
             
             selected_code = selected_s_option.split(" - ")[0]
             target_item = next((item for item in st.session_state.services_catalog if item["code"] == selected_code), None)
@@ -579,155 +619,43 @@ elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (
             if target_item:
                 with st.form("edit_service_form"):
                     edit_name = st.text_input("ឈ្មោះសេវាកម្ម:", value=target_item["name"])
-                    edit_cat_idx = st.session_state.categories.index(target_item["category"]) if target_item["category"] in st.session_state.categories else 0
-                    edit_cat = st.selectbox("ប្រភេទសេវាកម្ម:", st.session_state.categories, index=edit_cat_idx)
                     edit_price = st.number_input("តម្លៃ ($):", min_value=0.0, value=float(target_item["price"]), step=0.5)
-                    edit_icon = st.text_input("រូបតំណាង (Icon):", value=target_item["icon"])
                     
                     e_col1, e_col2 = st.columns(2)
-                    submit_edit_s = e_col1.form_submit_button("✏️ រក្សាទុកការកែប្រែ", type="primary")
-                    submit_del_s = e_col2.form_submit_button("🗑️ លុបសេវាកម្មនេះ")
+                    submit_edit_s = e_col1.form_submit_button("✏️ រក្សាទុក", type="primary")
+                    submit_del_s = e_col2.form_submit_button("🗑️ លុបសេវាកម្ម")
                     
                     if submit_edit_s:
                         target_item["name"] = edit_name.strip()
-                        target_item["category"] = edit_cat
                         target_item["price"] = float(edit_price)
-                        target_item["icon"] = edit_icon.strip()
-                        st.success(f"បានកែប្រែសេវាកម្ម '{selected_code}' រួចរាល់!")
+                        st.success("បានកែប្រែសេវាកម្មរួចរាល់!")
                         st.rerun()
                         
                     if submit_del_s:
                         st.session_state.services_catalog = [item for item in st.session_state.services_catalog if item["code"] != selected_code]
-                        st.success(f"បានលុបសេវាកម្ម '{selected_code}' រួចរាល់!")
+                        st.success("បានលុបសេវាកម្មរួចរាល់!")
                         st.rerun()
-        else:
-            st.info("មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធទេ។")
-
-    st.markdown("---")
-    st.markdown("### 📋 បញ្ជីសេវាកម្មទាំងអស់ក្នុងប្រព័ន្ធ")
-    df_catalog = pd.DataFrame(st.session_state.services_catalog)
-    st.dataframe(df_catalog[["code", "icon", "name", "category", "price"]], use_container_width=True)
 
 # ----------------------------------------------------------------
-# MODE 3: CATEGORY MANAGEMENT (គ្រប់គ្រងប្រភេទសេវាកម្ម)
+# MODE 3: CATEGORY MANAGEMENT
 # ----------------------------------------------------------------
 elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)":
-    st.markdown("## ⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Manage Service Categories)")
-    
-    col_add, col_edit = st.columns(2, gap="large")
-    
-    with col_add:
-        st.markdown("### ➕ បន្ថែមប្រភេទសេវាកម្មថ្មី")
-        with st.form("add_cat_form", clear_on_submit=True):
-            new_cat_name = st.text_input("ឈ្មោះប្រភេទសេវាកម្មថ្មី", placeholder="ឧទាហរណ៍: 💅 សេវាកម្មធ្វើក្រចក")
-            submit_add = st.form_submit_button("➕ បញ្ចូលប្រភេទសេវាកម្ម", type="primary")
-            
-            if submit_add:
-                if new_cat_name.strip() == "":
-                    st.error("សូមបញ្ចូលឈ្មោះប្រភេទសេវាកម្ម!")
-                elif new_cat_name in st.session_state.categories:
-                    st.warning("ប្រភេទសេវាកម្មនេះមានរួចហើយ!")
-                else:
-                    st.session_state.categories.append(new_cat_name.strip())
-                    st.success(f"បានបន្ថែមប្រភេទសេវាកម្ម '{new_cat_name}' ជោគជ័យ!")
-                    st.rerun()
-
-    with col_edit:
-        st.markdown("### ✏️ កែប្រែ ឬ លុបប្រភេទសេវាកម្ម")
-        if st.session_state.categories:
-            selected_cat = st.selectbox("ជ្រើសរើសប្រភេទសេវាកម្មដែលត្រូវកែប្រែ:", st.session_state.categories)
-            
-            with st.form("edit_cat_form"):
-                updated_cat_name = st.text_input("ឈ្មោះថ្មីសម្រាប់ប្រភេទនេះ:", value=selected_cat)
-                
-                col_b1, col_b2 = st.columns(2)
-                submit_edit = col_b1.form_submit_button("✏️ រក្សាទុកការកែប្រែ", type="primary")
-                submit_delete = col_b2.form_submit_button("🗑️ លុបប្រភេទនេះ")
-                
-                if submit_edit:
-                    if updated_cat_name.strip() == "":
-                        st.error("ឈ្មោះមិនអាចទទេបានទេ!")
-                    else:
-                        idx = st.session_state.categories.index(selected_cat)
-                        st.session_state.categories[idx] = updated_cat_name.strip()
-                        
-                        for item in st.session_state.services_catalog:
-                            if item["category"] == selected_cat:
-                                item["category"] = updated_cat_name.strip()
-                                
-                        st.success("បានធ្វើបច្ចុប្បន្នភាពឈ្មោះប្រភេទសេវាកម្មរួចរាល់!")
-                        st.rerun()
-                        
-                if submit_delete:
-                    st.session_state.categories.remove(selected_cat)
-                    st.session_state.services_catalog = [item for item in st.session_state.services_catalog if item["category"] != selected_cat]
-                    st.success(f"បានលុបប្រភេទសេវាកម្ម '{selected_cat}' រួចរាល់!")
-                    st.rerun()
-        else:
-            st.info("មិនទាន់មានប្រភេទសេវាកម្មសម្រាប់កែប្រែទេ។")
-
-    st.markdown("---")
-    st.markdown("### 📋 បញ្ជីប្រភេទសេវាកម្មបច្ចុប្បន្ន")
-    cat_df = pd.DataFrame({"ល.រ": range(1, len(st.session_state.categories) + 1), "ឈ្មោះប្រភេទសេវាកម្ម": st.session_state.categories})
-    st.dataframe(cat_df, use_container_width=True)
+    st.markdown("## ⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម")
+    new_cat_name = st.text_input("ឈ្មោះប្រភេទសេវាកម្មថ្មី:")
+    if st.button("➕ បន្ថែមប្រភេទ", type="primary"):
+        if new_cat_name.strip() and new_cat_name not in st.session_state.categories:
+            st.session_state.categories.append(new_cat_name.strip())
+            st.success("បានបន្ថែមជោគជ័យ!")
+            st.rerun()
 
 # ----------------------------------------------------------------
-# MODE 4: RECEIPT VIEW
+# MODE 4: RECEIPT VIEW & 80MM PRINTING
 # ----------------------------------------------------------------
-elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
-    st.markdown("## 🧾 វិក្កយបត្រ / RECEIPT")
+elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
+    st.markdown("## 🧾 PREVIEW & PRINT RECEIPT (80mm Thermal Paper)")
     if st.session_state.last_receipt:
-        rc = st.session_state.last_receipt
-        col_rc1, _ = st.columns([2, 1])
-        with col_rc1:
-            st.markdown(f"""
-            <div class="receipt-container">
-                <h2 style="text-align: center; margin-bottom: 5px;">💇‍♀️ អូនឡេន SMR BEAUTY</h2>
-                <p style="text-align: center; font-size: 12px; margin-top: 0;">អាសយដ្ឋាន: រាជធានីភ្នំពេញ | ទូរស័ព្ទ: 012 345 678</p>
-                <hr style="border-top: 1px dashed #ec4899;">
-                <p><b>លេខវិក្កយបត្រ:</b> {rc['inv_no']}<br>
-                <b>កាលបរិច្ឆេទ:</b> {rc['date']}<br>
-                <b>អតិថិជន:</b> {rc['customer']}</p>
-                <hr style="border-top: 1px dashed #ec4899;">
-                <table style="width: 100%; font-size: 13px;">
-                    <tr style="text-align: left; border-bottom: 1px solid #ccc;">
-                        <th>បរិយាយ</th>
-                        <th>ចំនួន</th>
-                        <th>តម្លៃ</th>
-                        <th>សរុប</th>
-                    </tr>
-            """, unsafe_allow_html=True)
-            
-            for item in rc['items']:
-                st.markdown(f"""
-                <tr>
-                    <td>{item['name']}</td>
-                    <td>{item['qty']}</td>
-                    <td>${item['price']:.2f}</td>
-                    <td>${item['total']:.2f}</td>
-                </tr>
-                """, unsafe_allow_html=True)
-
-            st.markdown(f"""
-                </table>
-                <hr style="border-top: 1px dashed #ec4899;">
-                <div style="display: flex; justify-content: space-between;"><span>សរុប (Subtotal):</span> <span>${rc['subtotal']:.2f}</span></div>
-                <div style="display: flex; justify-content: space-between;"><span>បញ្ចុះតម្លៃ (Discount):</span> <span>-${rc['discount']:.2f}</span></div>
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 5px;">
-                    <span>សរុបត្រូវបង់ (Grand Total):</span> <span>${rc['grand_total_usd']:.2f}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
-                    <span>ប្រាក់រៀល (KHR):</span> <span>៛ {rc['grand_total_khr']:,}</span>
-                </div>
-                <hr style="border-top: 1px dashed #ec4899;">
-                <div style="display: flex; justify-content: space-between;"><span>ប្រាក់ទទួលបាន ($):</span> <span>${rc['paid_usd']:.2f}</span></div>
-                <div style="display: flex; justify-content: space-between;"><span>ប្រាក់អាប់ (Change $):</span> <span>${rc['change_usd']:.2f}</span></div>
-                <div style="display: flex; justify-content: space-between;"><span>ប្រាក់អាប់ (Change ៛):</span> <span>៛ {rc['change_khr']:,}</span></div>
-                <p style="text-align: center; margin-top: 20px; font-weight: bold;">🙏🏻 សូមអរគុណ ជូនពរសំណាងល្អ! 🙏🏻</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.button("🖨️ បោះពុម្ពវិក្កយបត្រ (Print)", on_click=lambda: st.toast("កំពុងបញ្ជូនទៅកាន់ Printer..."))
+        rc_html = generate_receipt_html(st.session_state.last_receipt)
+        components.html(rc_html, height=600, scrolling=True)
     else:
         st.info("មិនទាន់មានវិក្កយបត្រដែលបានចេញចុងក្រោយទេ។")
 
@@ -735,55 +663,16 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
 # MODE 5: SALES REPORT
 # ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
-    st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល (Sales Dashboard)")
-    
+    st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
     df_sales = pd.DataFrame(st.session_state.sales_history)
-    
     if not df_sales.empty:
-        total_revenue_usd = df_sales["total_usd"].sum()
-        total_revenue_khr = df_sales["total_khr"].sum()
-        total_orders = len(df_sales)
-        
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <small style="color: #666;">ចំណូលសរុប ($)</small>
-                <h2 style="color: #db2777; margin: 0;">$ {total_revenue_usd:.2f}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with m2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <small style="color: #666;">ចំណូលសរុប (៛)</small>
-                <h2 style="color: #db2777; margin: 0;">៛ {total_revenue_khr:,.0f}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with m3:
-            st.markdown(f"""
-            <div class="metric-card">
-                <small style="color: #666;">ចំនួនប្រតិបត្តិការសរុប</small>
-                <h2 style="color: #db2777; margin: 0;">{total_orders} វិក្កយបត្រ</h2>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        st.markdown("---")
-        
-        rep_tab1, rep_tab2 = st.tabs(["📅 របាយការណ៍ប្រចាំថ្ងៃ", "🗓️ របាយការណ៍ប្រចាំខែ"])
-        
-        with rep_tab1:
-            st.markdown("### 📋 បញ្ជីប្រតិបត្តិការលក់ប្រចាំថ្ងៃ")
-            st.dataframe(df_sales[["inv_no", "date", "customer", "total_usd", "total_khr"]], use_container_width=True)
-            
-        with rep_tab2:
-            st.markdown("### 📈 សរុបទិន្នន័យលក់ប្រចាំខែ")
-            st.bar_chart(df_sales.set_index("date")["total_usd"])
+        st.dataframe(df_sales, use_container_width=True)
     else:
         st.info("មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។")
 
-# Footer Bar
+# Footer
 st.markdown("""
 <div class="pos-footer-bar">
-    <span><b>Outlet:</b> OunLen SMR</span> | <span><b>Shift:</b> Active</span> | <span><b>System Status:</b> Online</span>
+    <span><b>Outlet:</b> OunLen SMR</span> | <span><b>Status:</b> Ready</span>
 </div>
 """, unsafe_allow_html=True)
