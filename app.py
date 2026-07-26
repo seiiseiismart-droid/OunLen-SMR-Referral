@@ -493,6 +493,9 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT WITH DYNAMIC HIGH-CONTRAST METRICS
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
+# MODE 5: SALES REPORT WITH FIXED TOTAL CALCULATION
+# ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
     
@@ -518,7 +521,10 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
             try:
                 item_date = datetime.strptime(item_date_str, "%Y-%m-%d %H:%M:%S").date()
             except ValueError:
-                item_date = today
+                try:
+                    item_date = datetime.strptime(item_date_str.split(" ")[0], "%Y-%m-%d").date()
+                except Exception:
+                    item_date = today
 
             if start_date <= item_date <= end_date:
                 filtered_sales.append(item)
@@ -528,12 +534,30 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
         if not filtered_sales:
             st.warning(f"⚠️ មិនមានទិន្នន័យលក់ចន្លោះពីថ្ងៃ {start_date} ដល់ {end_date} ទេ។")
         else:
-            # 1. គណនាចំណូលសរុប និងទិន្នន័យ
+            # 1. គណនាចំណូលសរុប ដោយមានការត្រួតពិនិត្យ Key យ៉ាងច្បាស់លាស់ (Robust Total Calculation)
             total_invoices = len(filtered_sales)
-            total_subtotal = sum(item.get("subtotal", 0) for item in filtered_sales)
-            total_discount = sum(item.get("discount", 0) for item in filtered_sales)
-            total_grand_usd = sum(item.get("grand_total_usd", 0) for item in filtered_sales)
-            total_grand_khr = sum(item.get("grand_total_khr", 0) for item in filtered_sales)
+            
+            total_subtotal = 0.0
+            total_discount = 0.0
+            total_grand_usd = 0.0
+            total_grand_khr = 0.0
+
+            for item in filtered_sales:
+                sub = float(item.get("subtotal", 0.0))
+                disc = float(item.get("discount", 0.0))
+                
+                # ស្វែងរកតម្លៃ Grand Total USD (ប្រសិនបើគ្មាន Key grand_total_usd វានឹងយក grand_total ឬ subtotal - discount)
+                gt_usd = item.get("grand_total_usd", item.get("grand_total", sub - disc))
+                gt_usd = float(gt_usd) if gt_usd is not None else 0.0
+                
+                # ស្វែងរកតម្លៃ Grand Total KHR
+                gt_khr = item.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE))
+                gt_khr = float(gt_khr) if gt_khr is not None else 0.0
+
+                total_subtotal += sub
+                total_discount += disc
+                total_grand_usd += gt_usd
+                total_grand_khr += gt_khr
 
             # បង្ហាញ Metric Cards ពណ៌លេចច្បាស់
             m1, m2, m3, m4 = st.columns(4)
@@ -551,15 +575,20 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                 
                 report_data = []
                 for idx, item in enumerate(reversed(filtered_sales)):
+                    sub = float(item.get("subtotal", 0.0))
+                    disc = float(item.get("discount", 0.0))
+                    gt_usd = float(item.get("grand_total_usd", item.get("grand_total", sub - disc)))
+                    gt_khr = float(item.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE)))
+
                     report_data.append({
                         "ល.រ": total_invoices - idx,
-                        "Invoice No": item.get("inv_no"),
-                        "Date": item.get("date"),
-                        "Customer": item.get("customer"),
-                        "Subtotal ($)": f"${item.get('subtotal', 0):.2f}",
-                        "Discount ($)": f"${item.get('discount', 0):.2f}",
-                        "Grand Total ($)": f"${item.get('grand_total_usd', 0):.2f}",
-                        "Grand Total (KHR)": f"៛{item.get('grand_total_khr', 0):,}"
+                        "Invoice No": item.get("inv_no", "N/A"),
+                        "Date": item.get("date", ""),
+                        "Customer": item.get("customer", "General"),
+                        "Subtotal ($)": f"${sub:.2f}",
+                        "Discount ($)": f"${disc:.2f}",
+                        "Grand Total ($)": f"${gt_usd:.2f}",
+                        "Grand Total (KHR)": f"៛{gt_khr:,.0f}"
                     })
 
                 # បន្ទាត់ចំណូលសរុប (Summary Row) នៅបាតតារាង
@@ -577,32 +606,31 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
                 st.dataframe(pd.DataFrame(report_data), use_container_width=True, hide_index=True)
 
                 st.markdown("---")
-                filtered_inv_list = [item["inv_no"] for item in reversed(filtered_sales)]
+                filtered_inv_list = [item.get("inv_no", "N/A") for item in reversed(filtered_sales)]
                 selected_rep_inv = st.selectbox("🔍 ជ្រើសរើសលេខវិក្កយបត្រដើម្បីមើលទម្រង់ 80mm / ព្រីន:", filtered_inv_list, key="select_report_inv")
-                selected_rep_data = next((item for item in filtered_sales if item["inv_no"] == selected_rep_inv), None)
+                selected_rep_data = next((item for item in filtered_sales if item.get("inv_no") == selected_rep_inv), None)
 
             with col_rep_preview:
                 st.markdown("### 🧾 វិក្កយបត្រ Preview (80mm)")
                 if selected_rep_data:
+                    sub = float(selected_rep_data.get("subtotal", 0.0))
+                    disc = float(selected_rep_data.get("discount", 0.0))
+                    gt_usd = float(selected_rep_data.get("grand_total_usd", selected_rep_data.get("grand_total", sub - disc)))
+                    gt_khr = float(selected_rep_data.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE)))
+
                     receipt_payload = {
                         "inv_no": selected_rep_data.get("inv_no", "N/A"),
                         "date": selected_rep_data.get("date", ""),
                         "customer": selected_rep_data.get("customer", "General"),
                         "items": selected_rep_data.get("items", []),
-                        "subtotal": selected_rep_data.get("subtotal", 0),
-                        "discount": selected_rep_data.get("discount", 0.0),
-                        "grand_total_usd": selected_rep_data.get("grand_total_usd", 0),
-                        "grand_total_khr": selected_rep_data.get("grand_total_khr", 0),
-                        "paid_usd": selected_rep_data.get("paid_usd", 0),
+                        "subtotal": sub,
+                        "discount": disc,
+                        "grand_total_usd": gt_usd,
+                        "grand_total_khr": gt_khr,
+                        "paid_usd": selected_rep_data.get("paid_usd", gt_usd),
                         "paid_khr": selected_rep_data.get("paid_khr", 0),
                         "change_usd": selected_rep_data.get("change_usd", 0.0),
                         "change_khr": selected_rep_data.get("change_khr", 0)
                     }
                     rc_html = generate_receipt_html(receipt_payload)
                     components.html(rc_html, height=620, scrolling=True)
-
-st.markdown("""
-<div class="pos-footer-bar">
-    <span><b>Outlet:</b> OunLen SMR</span> | <span><b>Status:</b> Ready</span>
-</div>
-""", unsafe_allow_html=True)
