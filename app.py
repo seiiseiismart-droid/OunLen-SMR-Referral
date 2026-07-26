@@ -13,178 +13,150 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS: Removed black buttons, increased text size, enhanced font-weight, bright colors
+# Custom High-Contrast CSS
 st.markdown("""
 <style>
-    /* Main Background & Base Styling */
+    /* Main Background */
     .stApp {
-        background-color: #fff1f2 !important; /* Soft Rose tint */
+        background-color: #fdf2f8 !important;
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
         color: #0f172a !important;
     }
 
-    h1, h2, h3, h4, h5, h6, p, label, div, span {
-        color: #0f172a !important;
+    /* Force button styles across Streamlit elements */
+    div.stButton > button {
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        transition: all 0.2s ease-in-out !important;
+        border: 1px solid #cbd5e1 !important;
     }
 
-    /* Top Navigation Radio Styling */
-    div[data-testid="stRadio"] > label { display: none !important; }
-    div[data-testid="stRadio"] > div {
+    /* Category Left Sidebar Buttons */
+    div[data-testid="column"]:nth-child(1) div.stButton > button[kind="secondary"] {
         background-color: #ffffff !important;
-        padding: 8px 14px !important;
-        border-radius: 12px !important;
-        border: 2px solid #f472b6 !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
-    }
-    div[data-testid="stRadio"] label[data-baseweb="radio"] span {
         color: #831843 !important;
-        font-size: 17px !important;
-        font-weight: 800 !important;
+        border: 2px solid #f472b6 !important;
+        font-size: 15px !important;
+        padding: 8px 12px !important;
     }
-
-    /* Category Buttons (Left Sidebar) - Fixed dark buttons */
-    .stButton > button {
-        border-radius: 10px !important;
+    div[data-testid="column"]:nth-child(1) div.stButton > button[kind="secondary"]:hover {
+        background-color: #fce7f3 !important;
+        color: #be185d !important;
+        border-color: #db2777 !important;
+    }
+    div[data-testid="column"]:nth-child(1) div.stButton > button[kind="primary"] {
+        background-color: #e11d48 !important;
+        color: #ffffff !important;
+        border: 2px solid #be123c !important;
         font-size: 16px !important;
         font-weight: 800 !important;
-        transition: all 0.2s ease-in-out !important;
     }
 
-    /* Primary Buttons (Selected State) */
-    button[kind="primary"] {
-        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
-        color: #ffffff !important;
-        border: none !important;
-        box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3) !important;
-    }
-
-    /* Secondary Buttons (Unselected State - No black!) */
-    button[kind="secondary"] {
-        background-color: #ffffff !important;
-        color: #9f1239 !important;
-        border: 2px solid #f472b6 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04) !important;
-    }
-    button[kind="secondary"]:hover {
-        background-color: #ffe4e6 !important;
-        color: #881337 !important;
-        border-color: #e11d48 !important;
-    }
-
-    /* Service / Product Cards Grid */
+    /* Service / Product Card Styling */
     .product-card {
         background: #ffffff;
-        border: 2px solid #fda4af;
-        border-radius: 14px;
+        border: 2px solid #f472b6;
+        border-radius: 12px;
         padding: 12px;
         text-align: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.04);
-        transition: all 0.2s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         height: 100%;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
     }
-    .product-card:hover {
-        border-color: #e11d48;
-        box-shadow: 0 8px 16px rgba(225,29,72,0.15);
-    }
-    .product-icon { font-size: 42px; margin: 4px 0; }
-    .product-title { font-size: 15px; font-weight: 800; color: #0f172a !important; height: 42px; overflow: hidden; line-height: 1.3; }
-    .product-code { font-size: 13px; color: #be123c !important; font-weight: 800; }
-    .product-price { font-size: 18px; font-weight: 900; color: #047857 !important; margin: 4px 0; }
+    .product-icon { font-size: 38px; margin: 4px 0; }
+    .product-title { font-size: 14px; font-weight: 700; color: #0f172a !important; height: 38px; overflow: hidden; }
+    .product-code { font-size: 11px; color: #be123c !important; font-weight: 700; }
+    .product-price { font-size: 16px; font-weight: 800; color: #047857 !important; margin: 4px 0; }
 
-    /* Custom Streamlit Add-to-Cart Button under each product card */
-    .add-cart-btn button {
-        border-radius: 10px !important;
-        width: 100% !important;
-        height: 44px !important;
-        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important; /* Bright Blue */
+    /* "➕ បញ្ចូល Cart" Buttons under Services */
+    .add-cart-btn div.stButton > button {
+        background-color: #db2777 !important;
         color: #ffffff !important;
-        font-size: 16px !important;
-        font-weight: 900 !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
         border: none !important;
-        box-shadow: 0 3px 6px rgba(2, 132, 199, 0.3) !important;
+        width: 100% !important;
+        height: 38px !important;
+        box-shadow: 0 2px 4px rgba(219, 39, 119, 0.3) !important;
     }
-    .add-cart-btn button:hover {
-        background: #075985 !important;
-        color: #fef08a !important;
+    .add-cart-btn div.stButton > button:hover {
+        background-color: #be185d !important;
+        color: #ffffff !important;
     }
 
     /* Cart Right Panel Styling */
     .cart-container {
         background: #ffffff;
         border: 2px solid #f472b6;
-        border-radius: 14px;
-        padding: 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
 
-    /* POS Action Bar Buttons - Custom Vivid Colors, High Contrast & Extra Bold Large Text */
-    .btn-cancel button {
-        background-color: #dc2626 !important; /* Vivid Red */
-        color: #ffffff !important;
-        font-weight: 900 !important;
-        font-size: 17px !important;
-        border: none !important;
-        border-radius: 10px !important;
-        height: 50px !important;
-        box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3) !important;
+    /* Payment Methods Buttons (Cash, Paystack, Razorpay, etc.) */
+    div[data-testid="column"]:nth-child(3) div.stButton > button[kind="secondary"] {
+        background-color: #f1f5f9 !important;
+        color: #1e293b !important;
+        border: 2px solid #94a3b8 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
     }
-    .btn-cancel button:hover {
-        background-color: #991b1b !important;
+    div[data-testid="column"]:nth-child(3) div.stButton > button[kind="primary"] {
+        background-color: #0284c7 !important;
+        color: #ffffff !important;
+        border: 2px solid #0369a1 !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
     }
 
-    .btn-draft button {
-        background-color: #d97706 !important; /* Bright Amber / Orange */
+    /* Action Buttons (Cancel / Draft / Save & Complete) */
+    .btn-cancel div.stButton > button {
+        background-color: #f87171 !important;
         color: #ffffff !important;
-        font-weight: 900 !important;
-        font-size: 17px !important;
-        border: none !important;
-        border-radius: 10px !important;
-        height: 50px !important;
-        box-shadow: 0 4px 8px rgba(217, 119, 6, 0.3) !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        border: 2px solid #dc2626 !important;
+        height: 48px !important;
     }
-    .btn-draft button:hover {
-        background-color: #92400e !important;
+    .btn-cancel div.stButton > button:hover {
+        background-color: #dc2626 !important;
     }
 
-    .btn-pay button {
-        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important; /* Vibrant Green */
-        color: #ffffff !important;
-        font-weight: 900 !important;
-        font-size: 18px !important;
-        border: none !important;
-        border-radius: 10px !important;
-        height: 50px !important;
-        box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3) !important;
+    .btn-draft div.stButton > button {
+        background-color: #facc15 !important;
+        color: #713f12 !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        border: 2px solid #eab308 !important;
+        height: 48px !important;
     }
-    .btn-pay button:hover {
-        background: #116329 !important;
+    .btn-draft div.stButton > button:hover {
+        background-color: #eab308 !important;
     }
 
-    .btn-discount button {
-        background-color: #7c3aed !important; /* Bright Purple */
+    .btn-pay div.stButton > button {
+        background-color: #0284c7 !important;
         color: #ffffff !important;
-        font-weight: 900 !important;
         font-size: 16px !important;
-        border: none !important;
-        border-radius: 10px !important;
-        height: 46px !important;
-        box-shadow: 0 4px 8px rgba(124, 58, 237, 0.25) !important;
+        font-weight: 800 !important;
+        border: 2px solid #0369a1 !important;
+        height: 48px !important;
+    }
+    .btn-pay div.stButton > button:hover {
+        background-color: #0369a1 !important;
     }
 
-    /* Metric Card in Sales Report */
-    .metric-card {
-        background-color: #ffffff;
-        border: 2px solid #f472b6;
-        border-radius: 14px;
-        padding: 18px;
-        text-align: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    /* Discount Button Style */
+    .btn-disc div.stButton > button {
+        background-color: #8b5cf6 !important;
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        border: 2px solid #7c3aed !important;
     }
-    .metric-card h4 { margin: 0; font-size: 16px; font-weight: 800; color: #831843 !important; }
-    .metric-card h2 { margin: 8px 0 0 0; font-size: 28px; font-weight: 900; color: #be123c !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -219,12 +191,8 @@ if "sales_history" not in st.session_state:
     st.session_state.sales_history = []
 if "customer_name" not in st.session_state:
     st.session_state.customer_name = "General Customer"
-if "customer_code" not in st.session_state:
-    st.session_state.customer_code = "N/A"
 if "discount_pct" not in st.session_state:
     st.session_state.discount_pct = 0.0
-if "vat_pct" not in st.session_state:
-    st.session_state.vat_pct = 0.0
 if "hold_list" not in st.session_state:
     st.session_state.hold_list = []
 if "last_receipt" not in st.session_state:
@@ -235,138 +203,8 @@ if "payment_method" not in st.session_state:
     st.session_state.payment_method = "Cash"
 
 # ----------------------------------------------------------------
-# 3. Receipt Generator
+# 3. Helper Functions
 # ----------------------------------------------------------------
-def generate_receipt_html(data):
-    items_html = ""
-    items_list = data.get('items', [])
-    for item in items_list:
-        items_html += f"""
-        <tr>
-            <td style="text-align: left; padding: 3px 0;">{item.get('name', 'N/A')}</td>
-            <td style="text-align: center; padding: 3px 0;">{item.get('qty', 1)}</td>
-            <td style="text-align: right; padding: 3px 0;">${item.get('price', 0.0):.2f}</td>
-            <td style="text-align: right; padding: 3px 0;">${item.get('total', 0.0):.2f}</td>
-        </tr>
-        """
-
-    inv_no = data.get('inv_no', 'N/A')
-    date_str = data.get('date', '')
-    customer = data.get('customer', 'General')
-    subtotal = data.get('subtotal', 0.0)
-    discount = data.get('discount', 0.0)
-    grand_total_usd = data.get('grand_total_usd', data.get('total_usd', 0.0))
-    grand_total_khr = data.get('grand_total_khr', round(grand_total_usd * EXCHANGE_RATE))
-    paid_usd = data.get('paid_usd', 0.0)
-    change_usd = data.get('change_usd', 0.0)
-    change_khr = data.get('change_khr', 0)
-
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            @page {{ size: 80mm auto; margin: 0; }}
-            body {{
-                font-family: 'Kantumruy Pro', 'Khmer OS Battambang', monospace;
-                width: 72mm;
-                margin: 0 auto;
-                padding: 5px;
-                background-color: #ffffff;
-                color: #000000;
-                font-size: 12px;
-            }}
-            .text-center {{ text-align: center; }}
-            .dashed-line {{ border-top: 1px dashed #000; margin: 6px 0; }}
-            table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
-            .flex-between {{ display: flex; justify-content: space-between; margin: 2px 0; }}
-            @media print {{ .no-print {{ display: none !important; }} body {{ width: 100%; }} }}
-            .print-btn {{
-                background-color: #e11d48; color: white; border: none;
-                padding: 12px; font-size: 16px; font-weight: bold;
-                border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px;
-            }}
-        </style>
-    </head>
-    <body>
-        <button class="print-btn no-print" onclick="window.print()">🖨️ ព្រីនវិក្កយបត្រ (80mm)</button>
-        <div class="text-center">
-            <h2 style="margin: 0; font-size: 16px;">💇‍♀️ អូនឡែន សម្រស់</h2>
-            <p style="margin: 2px 0; font-size: 10px;">អស័យដ្ឋាន ភូមិដំណាក់ពពូល សង្កាត់កំពង់ឆ្នាំង ក្រុងកំពង់ឆ្នាំង </p>
-            <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 067 969 877</p>
-        </div>
-        <div class="dashed-line"></div>
-        <div style="font-size: 10px;">
-            <div class="flex-between"><span>លេខវិក្កយបត្រ:</span> <b>{inv_no}</b></div>
-            <div class="flex-between"><span>កាលបរិច្ឆេទ:</span> <span>{date_str}</span></div>
-            <div class="flex-between"><span>អតិថិជន:</span> <span>{customer}</span></div>
-        </div>
-        <div class="dashed-line"></div>
-        <table>
-            <thead>
-                <tr style="border-bottom: 1px solid #000;">
-                    <th style="text-align: left;">សេវាកម្ម</th>
-                    <th style="text-align: center;">ចំនួន</th>
-                    <th style="text-align: right;">តម្លៃ</th>
-                    <th style="text-align: right;">សរុប</th>
-                </tr>
-            </thead>
-            <tbody>{items_html}</tbody>
-        </table>
-        <div class="dashed-line"></div>
-        <div style="font-size: 11px;">
-            <div class="flex-between"><span>សរុបរង (Subtotal):</span> <span>${subtotal:.2f}</span></div>
-            <div class="flex-between"><span>បញ្ចុះតម្លៃ:</span> <span>-${discount:.2f}</span></div>
-            <div class="dashed-line"></div>
-            <div class="flex-between" style="font-size: 13px; font-weight: bold;">
-                <span>ត្រូវបង់សរុប:</span> <span>${grand_total_usd:.2f}</span>
-            </div>
-            <div class="flex-between" style="font-weight: bold;">
-                <span>ជាប្រាក់រៀល:</span> <span>៛ {grand_total_khr:,}</span>
-            </div>
-        </div>
-        <div class="dashed-line"></div>
-        <div style="font-size: 10px;">
-            <div class="flex-between"><span>ប្រាក់ទទួលបាន ($):</span> <span>${paid_usd:.2f}</span></div>
-            <div class="flex-between"><span>ប្រាក់អាប់ ($):</span> <span>${change_usd:.2f}</span></div>
-            <div class="flex-between"><span>ប្រាក់អាប់ (៛):</span> <span>៛ {change_khr:,}</span></div>
-        </div>
-        <div class="dashed-line"></div>
-        <div class="text-center" style="margin-top: 10px; font-size: 10px;">
-            <p>🙏🏻 សូមអរគុណ ជូនពរសំណាងល្អ! </p>
-        </div>
-    </body>
-    </html>
-    """
-
-# ----------------------------------------------------------------
-# 4. Dialog Popups
-# ----------------------------------------------------------------
-@st.dialog("🎁 បញ្ចុះតម្លៃ (Apply Discount)")
-def set_discount_dialog():
-    st.write("បញ្ចុះតម្លៃ៖")
-    new_discount = st.number_input("ភាគរយបញ្ចុះតម្លៃ (%)", min_value=0.0, max_value=100.0, value=float(st.session_state.discount_pct), step=1.0)
-    col_d1, col_d2 = st.columns(2)
-    if col_d1.button("✅ យល់ព្រម", type="primary", use_container_width=True):
-        st.session_state.discount_pct = new_discount
-        st.toast(f"បានកំណត់ការបញ្ចុះតម្លៃ: {new_discount}%")
-        st.rerun()
-    if col_d2.button("❌ បោះបង់", use_container_width=True):
-        st.rerun()
-
-# ----------------------------------------------------------------
-# 5. Main Navigation
-# ----------------------------------------------------------------
-main_mode = st.radio(
-    "📌 Navigation Menu", 
-    ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt 80mm)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
-    horizontal=True
-)
-
-st.markdown("---")
-
-# Helper to Add Item to Cart
 def add_to_cart(item):
     existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
     if existing:
@@ -381,15 +219,37 @@ def add_to_cart(item):
             "total": item["price"]
         })
 
+@st.dialog("🎁 បញ្ចុះតម្លៃ (Apply Discount)")
+def set_discount_dialog():
+    st.write("បញ្ចុះតម្លៃ៖")
+    new_discount = st.number_input("ភាគរយបញ្ចុះតម្លៃ (%)", min_value=0.0, max_value=100.0, value=float(st.session_state.discount_pct), step=1.0)
+    col_d1, col_d2 = st.columns(2)
+    if col_d1.button("✅ យល់ព្រម", type="primary", use_container_width=True):
+        st.session_state.discount_pct = new_discount
+        st.toast(f"បានកំណត់ការបញ្ចុះតម្លៃ: {new_discount}%")
+        st.rerun()
+    if col_d2.button("❌ បោះបង់", use_container_width=True):
+        st.rerun()
+
+# ----------------------------------------------------------------
+# 4. Main Navigation Menu
+# ----------------------------------------------------------------
+main_mode = st.radio(
+    "📌 Navigation Menu", 
+    ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt 80mm)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
+    horizontal=True
+)
+
+st.markdown("---")
+
 # ----------------------------------------------------------------
 # MODE 1: POS SYSTEM
 # ----------------------------------------------------------------
 if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
     
-    # 3-Column Layout: Categories Sidebar (1.2) | Products Grid (3.2) | Order Cart (2.4)
     col_cat, col_prod, col_cart = st.columns([1.2, 3.2, 2.4], gap="small")
 
-    # ================= 1. LEFT PANEL: Categories Sidebar =================
+    # ================= 1. LEFT PANEL: Categories =================
     with col_cat:
         st.markdown("##### 📂 ប្រភេទ (Categories)")
         
@@ -405,14 +265,12 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 st.session_state.selected_category = cat_name
                 st.rerun()
 
-    # ================= 2. CENTER PANEL: Products / Services Grid =================
+    # ================= 2. CENTER PANEL: Services Grid =================
     with col_prod:
         st.markdown("##### 💇‍♀️ សេវាកម្ម (Services)")
         
-        # Search & Scan Bar
         search_query = st.text_input("Search / Scan Code", placeholder="[|||] ស្វែងរកតាមកូដ ឬ ឈ្មោះសេវាកម្ម...", label_visibility="collapsed")
         
-        # Filter services list
         if st.session_state.selected_category == "ទាំងអស់ (All)":
             filtered_services = st.session_state.services_catalog
         else:
@@ -421,7 +279,6 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         if search_query:
             filtered_services = [s for s in filtered_services if search_query.lower() in s["name"].lower() or search_query.lower() in s["code"].lower()]
 
-        # Display Services Grid (4 Columns)
         if not filtered_services:
             st.info("រកមិនឃើញសេវាកម្មឡើយ!")
         else:
@@ -445,20 +302,18 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                     st.markdown('</div>', unsafe_allow_html=True)
                     st.write("")
 
-    # ================= 3. RIGHT PANEL: Cart & Checkout =================
+    # ================= 3. RIGHT PANEL: Order Cart =================
     with col_cart:
         st.markdown("<div class='cart-container'>", unsafe_allow_html=True)
         
-        # Customer Field
         c_col1, c_col2 = st.columns([4, 1])
         c_name = c_col1.text_input("Customer Name", value=st.session_state.customer_name, label_visibility="collapsed", placeholder="Enter Customer name or phone number")
         st.session_state.customer_name = c_name
-        if c_col2.button("👤+", key="btn_quick_cust", type="secondary"):
+        if c_col2.button("👤+", key="btn_quick_cust"):
             st.toast("បញ្ចូលឈ្មោះអតិថិជនរួចរាល់")
 
-        # Cart Items Header & Table
         st.markdown("""
-        <div style="background-color: #fff1f2; padding: 8px 10px; border-radius: 8px; border: 1px solid #fda4af; font-size: 13px; font-weight: 800; margin: 8px 0; color: #9f1239;">
+        <div style="background-color: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; font-weight: bold; margin: 8px 0;">
             <div style="display: flex; justify-content: space-between;">
                 <span style="width: 40%;">Product</span>
                 <span style="width: 20%; text-align: center;">Price</span>
@@ -477,29 +332,27 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 total_items_count += item["qty"]
                 
                 ic1, ic2, ic3, ic4 = st.columns([2.5, 1.2, 1.3, 1.5])
-                ic1.markdown(f"<div style='font-size:13px; font-weight:800;'>{item['name']}</div>", unsafe_allow_html=True)
-                ic2.markdown(f"<div style='font-size:13px; text-align:center;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
+                ic1.markdown(f"<div style='font-size:12px; font-weight:bold;'>{item['name']}</div>", unsafe_allow_html=True)
+                ic2.markdown(f"<div style='font-size:12px; text-align:center;'>${item['price']:.2f}</div>", unsafe_allow_html=True)
                 
-                # Qty selector
                 new_q = ic3.number_input("qty", min_value=1, value=int(item["qty"]), key=f"cart_q_{idx}", label_visibility="collapsed")
                 if new_q != item["qty"]:
                     st.session_state.cart[idx]["qty"] = new_q
                     st.session_state.cart[idx]["total"] = new_q * item["price"]
                     st.rerun()
 
-                ic4.markdown(f"<div style='font-size:13px; text-align:right; font-weight:800;'>${item['total']:.2f}</div>", unsafe_allow_html=True)
+                ic4.markdown(f"<div style='font-size:12px; text-align:right; font-weight:bold;'>${item['total']:.2f}</div>", unsafe_allow_html=True)
         else:
-            st.markdown("<div style='text-align:center; padding:20px; color:#94a3b8; font-size:14px; font-weight:700;'>No products available in the list</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center; padding:20px; color:#64748b; font-size:13px; font-weight:bold;'>No products available in the list</div>", unsafe_allow_html=True)
 
-        st.markdown("<hr style='margin: 10px 0; border-top: 1px dashed #f472b6;'>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin: 10px 0; border-top: 1px dashed #cbd5e1;'>", unsafe_allow_html=True)
 
-        # Total Calculations
         discount_val = (subtotal * st.session_state.discount_pct) / 100
         grand_total_usd = subtotal - discount_val
         grand_total_khr = round(grand_total_usd * EXCHANGE_RATE)
 
         st.markdown(f"""
-        <div style="font-size: 15px; line-height: 1.8;">
+        <div style="font-size: 13px; line-height: 1.8;">
             <div style="display:flex; justify-content:space-between;">
                 <span>Total Products:</span> <b>{len(st.session_state.cart)} ({total_items_count})</b>
             </div>
@@ -510,10 +363,10 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 <span>Discount ({st.session_state.discount_pct}%):</span> <b>-$ {discount_val:.2f}</b>
             </div>
             <hr style="margin:6px 0;">
-            <div style="display:flex; justify-content:space-between; font-size:19px; font-weight:900; color:#0284c7;">
+            <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold; color:#0284c7;">
                 <span>Grand Total:</span> <span>$ {grand_total_usd:.2f}</span>
             </div>
-            <div style="display:flex; justify-content:flex-end; font-size:15px; font-weight:800; color:#059669;">
+            <div style="display:flex; justify-content:flex-end; font-size:14px; font-weight:bold; color:#059669;">
                 <span>៛ {grand_total_khr:,.0f}</span>
             </div>
         </div>
@@ -532,7 +385,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # Action Buttons (Cancel / Draft / Pay)
+        # Action Buttons (Cancel / Draft / Save & Complete)
         ac1, ac2, ac3 = st.columns([1, 1, 1.5])
         with ac1:
             st.markdown('<div class="btn-cancel">', unsafe_allow_html=True)
@@ -561,8 +414,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                     st.session_state.show_payment_modal = True
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # Quick Discount Link
-        st.markdown('<div class="btn-discount" style="margin-top: 8px;">', unsafe_allow_html=True)
+        st.markdown('<div class="btn-disc">', unsafe_allow_html=True)
         if st.button("🎁 កំណត់ Discount (%)", key="btn_open_disc", use_container_width=True):
             set_discount_dialog()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -600,198 +452,15 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
                 "change_usd": change_u,
                 "change_khr": change_k
             }
-            
             st.session_state.last_receipt = receipt_data
             st.session_state.sales_history.append(receipt_data)
-            
             st.session_state.cart = []
             st.session_state.show_payment_modal = False
             st.session_state.discount_pct = 0.0
             st.session_state.customer_name = "General Customer"
-            st.session_state.customer_code = "N/A"
             st.success("🎉 ការទូទាត់ប្រាក់បានជោគជ័យ!")
             st.rerun()
 
-        if confirm_c2.button("❌ បោះបង់", type="secondary", use_container_width=True):
+        if confirm_c2.button("❌ បោះបង់", use_container_width=True):
             st.session_state.show_payment_modal = False
             st.rerun()
-
-# ----------------------------------------------------------------
-# MODE 2: SERVICE MANAGEMENT
-# ----------------------------------------------------------------
-elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)":
-    st.markdown("## 🛠️ គ្រប់គ្រងសេវាកម្ម (Manage Services)")
-    col_s_add, col_s_edit = st.columns(2, gap="large")
-    
-    with col_s_add:
-        st.markdown("### ➕ បន្ថែមសេវាកម្មថ្មី")
-        with st.form("add_service_form", clear_on_submit=True):
-            s_code = st.text_input("កូដសេវាកម្ម (Service Code)", placeholder="ឧទាហរណ៍: S10, L07...")
-            s_name = st.text_input("ឈ្មោះសេវាកម្ម (Service Name)", placeholder="ឧទាហរណ៍: ម៉ាសស្កាតមុខកូនក្រមុំ")
-            s_cat = st.selectbox("ជ្រើសរើសប្រភេទសេវាកម្ម", st.session_state.categories)
-            s_price = st.number_input("តម្លៃ ($)", min_value=0.0, value=10.0, step=0.5)
-            s_icon = st.text_input("រូបតំណាង (Emoji Icon)", value="✨")
-            
-            submit_add_service = st.form_submit_button("➕ បញ្ចូលសេវាកម្មថ្មី", type="primary")
-            if submit_add_service:
-                if not s_code.strip() or not s_name.strip():
-                    st.error("សូមបញ្ចូលកូដ និង ឈ្មោះសេវាកម្ម!")
-                else:
-                    new_item = {
-                        "code": s_code.strip().upper(),
-                        "category": s_cat,
-                        "name": s_name.strip(),
-                        "price": float(s_price),
-                        "icon": s_icon.strip() if s_icon.strip() else "✨"
-                    }
-                    st.session_state.services_catalog.append(new_item)
-                    st.success(f"បានបន្ថែមសេវាកម្ម '{s_name}' រួចរាល់!")
-                    st.rerun()
-
-    with col_s_edit:
-        st.markdown("### ✏️ កែប្រែ ឬ លុបសេវាកម្ម")
-        if st.session_state.services_catalog:
-            service_options = [f"{item['code']} - {item['name']}" for item in st.session_state.services_catalog]
-            selected_s_option = st.selectbox("ជ្រើសរើសសេវាកម្ម:", service_options)
-            
-            selected_code = selected_s_option.split(" - ")[0]
-            target_item = next((item for item in st.session_state.services_catalog if item["code"] == selected_code), None)
-            
-            if target_item:
-                with st.form("edit_service_form"):
-                    edit_name = st.text_input("ឈ្មោះសេវាកម្ម:", value=target_item["name"])
-                    edit_price = st.number_input("តម្លៃ ($):", min_value=0.0, value=float(target_item["price"]), step=0.5)
-                    
-                    e_col1, e_col2 = st.columns(2)
-                    submit_edit_s = e_col1.form_submit_button("✏️ រក្សាទុក", type="primary")
-                    submit_del_s = e_col2.form_submit_button("🗑️ លុបសេវាកម្ម")
-                    
-                    if submit_edit_s:
-                        target_item["name"] = edit_name.strip()
-                        target_item["price"] = float(edit_price)
-                        st.success("បានកែប្រែសេវាកម្មរួចរាល់!")
-                        st.rerun()
-                        
-                    if submit_del_s:
-                        st.session_state.services_catalog = [item for item in st.session_state.services_catalog if item["code"] != selected_code]
-                        st.success("បានលុបសេវាកម្មរួចរាល់!")
-                        st.rerun()
-
-# ----------------------------------------------------------------
-# MODE 3: CATEGORY MANAGEMENT
-# ----------------------------------------------------------------
-elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)":
-    st.markdown("## ⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម")
-    new_cat_name = st.text_input("ឈ្មោះប្រភេទសេវាកម្មថ្មី:")
-    if st.button("➕ បន្ថែមប្រភេទ", type="primary"):
-        if new_cat_name.strip() and new_cat_name not in st.session_state.categories:
-            st.session_state.categories.append(new_cat_name.strip())
-            st.success("បានបន្ថែមជោគជ័យ!")
-            st.rerun()
-
-# ----------------------------------------------------------------
-# MODE 4: RECEIPT VIEW
-# ----------------------------------------------------------------
-elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
-    st.markdown("## 🧾 ប្រវត្តិប្រតិបត្តិការ និង ការពិនិត្យវិក្កយបត្រ (80mm Thermal Paper)")
-    
-    if not st.session_state.sales_history:
-        st.info("💡 មិនទាន់មានប្រវត្តិប្រតិបត្តិការ/ការលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
-    else:
-        col_list, col_preview = st.columns([1.5, 1], gap="medium")
-
-        with col_list:
-            st.markdown("### 📋 បញ្ជីប្រតិបត្តិការទាំងអស់")
-            df_display = []
-            for idx, item in enumerate(reversed(st.session_state.sales_history)):
-                total_val = item.get('grand_total_usd', item.get('total_usd', 0.0))
-                df_display.append({
-                    "ល.រ": len(st.session_state.sales_history) - idx,
-                    "លេខវិក្កយបត្រ": item.get("inv_no", f"INV-{idx+1}"),
-                    "កាលបរិច្ឆេទ": item.get("date", ""),
-                    "អតិថិជន": item.get("customer", "General"),
-                    "សរុប ($)": f"${total_val:.2f}"
-                })
-            
-            st.dataframe(pd.DataFrame(df_display), use_container_width=True, hide_index=True)
-            st.markdown("---")
-            inv_list = [item.get("inv_no", "N/A") for item in reversed(st.session_state.sales_history)]
-            selected_inv = st.selectbox("ជ្រើសរើសលេខវិក្កយបត្រដើម្បី Preview/Print:", inv_list)
-            selected_receipt_data = next((item for item in st.session_state.sales_history if item.get("inv_no") == selected_inv), None)
-
-        with col_preview:
-            st.markdown("### 👁️ មើលគំរូវិក្កយបត្រ")
-            if selected_receipt_data:
-                html_code = generate_receipt_html(selected_receipt_data)
-                components.html(html_code, height=520, scrolling=True)
-
-# ----------------------------------------------------------------
-# MODE 5: SALES REPORT DASHBOARD
-# ----------------------------------------------------------------
-elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
-    st.markdown("## 📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Analytics)")
-
-    if not st.session_state.sales_history:
-        st.info("💡 មិនទាន់មានទិន្នន័យលក់សម្រាប់បង្ហាញរបាយការណ៍នៅឡើយទេ!")
-    else:
-        # Overview Cards
-        total_invoices = len(st.session_state.sales_history)
-        total_revenue_usd = sum(item.get("grand_total_usd", 0.0) for item in st.session_state.sales_history)
-        total_revenue_khr = round(total_revenue_usd * EXCHANGE_RATE)
-
-        m_col1, m_col2, m_col3 = st.columns(3)
-        with m_col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h4>🧾 ចំនួនវិក្កយបត្រសរុប</h4>
-                <h2>{total_invoices}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with m_col2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h4>💵 ចំណូលសរុប ($)</h4>
-                <h2>${total_revenue_usd:,.2f}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with m_col3:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h4>៛ ចំណូលសរុប (៛)</h4>
-                <h2>៛ {total_revenue_khr:,.0f}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        # Extract Item level details for deep analytics
-        item_rows = []
-        for sale in st.session_state.sales_history:
-            inv = sale.get("inv_no")
-            dt = sale.get("date")
-            cust = sale.get("customer")
-            for it in sale.get("items", []):
-                item_rows.append({
-                    "Invoice": inv,
-                    "Date": dt,
-                    "Customer": cust,
-                    "Code": it.get("code"),
-                    "Service Name": it.get("name"),
-                    "Price": it.get("price"),
-                    "Qty": it.get("qty"),
-                    "Subtotal": it.get("total")
-                })
-
-        df_items = pd.DataFrame(item_rows)
-
-        st.markdown("### 🏆 សេវាកម្មលក់ដាច់បំផុត (Popular Services)")
-        if not df_items.empty:
-            summary_df = df_items.groupby(["Code", "Service Name"]).agg(
-                Total_Qty=("Qty", "sum"),
-                Total_Revenue=("Subtotal", "sum")
-            ).reset_index().sort_values(by="Total_Qty", ascending=False)
-            
-            st.dataframe(summary_df, use_container_width=True, hide_index=True)
-
-        st.markdown("### 📑 បញ្ជីលម្អិតនៃការលក់ទាំងអស់")
-        st.dataframe(df_items, use_container_width=True, hide_index=True)
