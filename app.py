@@ -254,7 +254,7 @@ if "last_receipt" not in st.session_state:
 # Navigation Menu
 main_mode = st.radio(
     "📌 Navigation Menu", 
-    ["🖥️ ផ្ទាំងលក់ (POS System)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
+    ["🖥️ ផ្ទាំងលក់ (POS System)", "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)", "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)", "🧾 វិក្កយបត្រ (Last Receipt)", "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)"], 
     horizontal=True
 )
 
@@ -495,14 +495,93 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
             st.rerun()
 
 # ----------------------------------------------------------------
-# MODE 2: CATEGORY MANAGEMENT (បន្ថែម និង កែប្រែ ប្រភេទសេវាកម្ម)
+# MODE 2: SERVICE MANAGEMENT (បញ្ចូល និង កែប្រែ សេវាកម្ម)
+# ----------------------------------------------------------------
+elif main_mode == "🛠️ គ្រប់គ្រងសេវាកម្ម (Services)":
+    st.markdown("## 🛠️ គ្រប់គ្រងសេវាកម្ម (Manage Services)")
+    
+    col_s_add, col_s_edit = st.columns(2, gap="large")
+    
+    # 1. បញ្ចូលសេវាកម្មថ្មី (Add Service)
+    with col_s_add:
+        st.markdown("### ➕ បន្ថែមសេវាកម្មថ្មី")
+        with st.form("add_service_form", clear_on_submit=True):
+            s_code = st.text_input("កូដសេវាកម្ម (Service Code)", placeholder="ឧទាហរណ៍: S10, L07, P04...")
+            s_name = st.text_input("ឈ្មោះសេវាកម្ម (Service Name)", placeholder="ឧទាហរណ៍: ម៉ាសស្កាតមុខកូនក្រមុំ")
+            s_cat = st.selectbox("ជ្រើសរើសប្រភេទសេវាកម្ម", st.session_state.categories)
+            s_price = st.number_input("តម្លៃ ($)", min_value=0.0, value=10.0, step=0.5)
+            s_icon = st.text_input("រូបតំណាង (Emoji Icon)", value="✨")
+            
+            submit_add_service = st.form_submit_button("➕ បញ្ចូលសេវាកម្មថ្មី", type="primary")
+            
+            if submit_add_service:
+                if not s_code.strip() or not s_name.strip():
+                    st.error("សូមបញ្ចូលកូដ និង ឈ្មោះសេវាកម្មឱ្យបានត្រឹមត្រូវ!")
+                elif any(x["code"].lower() == s_code.strip().lower() for x in st.session_state.services_catalog):
+                    st.warning("កូដសេវាកម្មនេះមានរួចហើយ! សូមប្រើកូដផ្សេង។")
+                else:
+                    new_item = {
+                        "code": s_code.strip().upper(),
+                        "category": s_cat,
+                        "name": s_name.strip(),
+                        "price": float(s_price),
+                        "icon": s_icon.strip() if s_icon.strip() else "✨"
+                    }
+                    st.session_state.services_catalog.append(new_item)
+                    st.success(f"បានបន្ថែមសេវាកម្ម '{s_name}' ដោយជោគជ័យ! វាបង្ហាញលើផ្ទាំងលក់ភ្លាមៗ។")
+                    st.rerun()
+
+    # 2. កែប្រែ ឬ លុបសេវាកម្ម (Edit or Delete Service)
+    with col_s_edit:
+        st.markdown("### ✏️ កែប្រែ ឬ លុបសេវាកម្ម")
+        if st.session_state.services_catalog:
+            service_options = [f"{item['code']} - {item['name']}" for item in st.session_state.services_catalog]
+            selected_s_option = st.selectbox("ជ្រើសរើសសេវាកម្មដែលត្រូវកែប្រែ:", service_options)
+            
+            # Find selected item
+            selected_code = selected_s_option.split(" - ")[0]
+            target_item = next((item for item in st.session_state.services_catalog if item["code"] == selected_code), None)
+            
+            if target_item:
+                with st.form("edit_service_form"):
+                    edit_name = st.text_input("ឈ្មោះសេវាកម្ម:", value=target_item["name"])
+                    edit_cat_idx = st.session_state.categories.index(target_item["category"]) if target_item["category"] in st.session_state.categories else 0
+                    edit_cat = st.selectbox("ប្រភេទសេវាកម្ម:", st.session_state.categories, index=edit_cat_idx)
+                    edit_price = st.number_input("តម្លៃ ($):", min_value=0.0, value=float(target_item["price"]), step=0.5)
+                    edit_icon = st.text_input("រូបតំណាង (Icon):", value=target_item["icon"])
+                    
+                    e_col1, e_col2 = st.columns(2)
+                    submit_edit_s = e_col1.form_submit_button("✏️ រក្សាទុកការកែប្រែ", type="primary")
+                    submit_del_s = e_col2.form_submit_button("🗑️ លុបសេវាកម្មនេះ")
+                    
+                    if submit_edit_s:
+                        target_item["name"] = edit_name.strip()
+                        target_item["category"] = edit_cat
+                        target_item["price"] = float(edit_price)
+                        target_item["icon"] = edit_icon.strip()
+                        st.success(f"បានកែប្រែសេវាកម្ម '{selected_code}' រួចរាល់!")
+                        st.rerun()
+                        
+                    if submit_del_s:
+                        st.session_state.services_catalog = [item for item in st.session_state.services_catalog if item["code"] != selected_code]
+                        st.success(f"បានលុបសេវាកម្ម '{selected_code}' រួចរាល់!")
+                        st.rerun()
+        else:
+            st.info("មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធទេ។")
+
+    st.markdown("---")
+    st.markdown("### 📋 បញ្ជីសេវាកម្មទាំងអស់ក្នុងប្រព័ន្ធ")
+    df_catalog = pd.DataFrame(st.session_state.services_catalog)
+    st.dataframe(df_catalog[["code", "icon", "name", "category", "price"]], use_container_width=True)
+
+# ----------------------------------------------------------------
+# MODE 3: CATEGORY MANAGEMENT (គ្រប់គ្រងប្រភេទសេវាកម្ម)
 # ----------------------------------------------------------------
 elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Categories)":
     st.markdown("## ⚙️ គ្រប់គ្រងប្រភេទសេវាកម្ម (Manage Service Categories)")
     
     col_add, col_edit = st.columns(2, gap="large")
     
-    # 1. ប៊ូតុង/ទម្រង់ បញ្ចូលប្រភេទសេវាកម្មថ្មី (Add Category)
     with col_add:
         st.markdown("### ➕ បន្ថែមប្រភេទសេវាកម្មថ្មី")
         with st.form("add_cat_form", clear_on_submit=True):
@@ -519,7 +598,6 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
                     st.success(f"បានបន្ថែមប្រភេទសេវាកម្ម '{new_cat_name}' ជោគជ័យ!")
                     st.rerun()
 
-    # 2. ប៊ូតុង/ទម្រង់ កែប្រែប្រភេទសេវាកម្ម (Edit Category)
     with col_edit:
         st.markdown("### ✏️ កែប្រែ ឬ លុបប្រភេទសេវាកម្ម")
         if st.session_state.categories:
@@ -539,7 +617,6 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
                         idx = st.session_state.categories.index(selected_cat)
                         st.session_state.categories[idx] = updated_cat_name.strip()
                         
-                        # បច្ចុប្បន្នភាពប្រភេទសេវាកម្មនៅក្នុង Catalog
                         for item in st.session_state.services_catalog:
                             if item["category"] == selected_cat:
                                 item["category"] = updated_cat_name.strip()
@@ -549,7 +626,6 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
                         
                 if submit_delete:
                     st.session_state.categories.remove(selected_cat)
-                    # លុបសេវាកម្មដែលនៅក្នុងប្រភេទនេះចេញដែរ
                     st.session_state.services_catalog = [item for item in st.session_state.services_catalog if item["category"] != selected_cat]
                     st.success(f"បានលុបប្រភេទសេវាកម្ម '{selected_cat}' រួចរាល់!")
                     st.rerun()
@@ -562,7 +638,7 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
     st.dataframe(cat_df, use_container_width=True)
 
 # ----------------------------------------------------------------
-# MODE 3: RECEIPT VIEW
+# MODE 4: RECEIPT VIEW
 # ----------------------------------------------------------------
 elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
     st.markdown("## 🧾 វិក្កយបត្រ / RECEIPT")
@@ -622,7 +698,7 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt)":
         st.info("មិនទាន់មានវិក្កយបត្រដែលបានចេញចុងក្រោយទេ។")
 
 # ----------------------------------------------------------------
-# MODE 4: SALES REPORT
+# MODE 5: SALES REPORT
 # ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល (Sales Dashboard)")
