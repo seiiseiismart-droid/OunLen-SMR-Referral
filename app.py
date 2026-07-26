@@ -41,7 +41,7 @@ st.markdown("""
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] span {
         color: #831843 !important;
-        font-size: 15px !important;
+        font-size: 18px !important;
         font-weight: 700 !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] input:checked + div {
