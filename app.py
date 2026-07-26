@@ -269,8 +269,8 @@ def generate_receipt_html(data):
         <button class="print-btn no-print" onclick="window.print()">🖨️ ចុចទីនេះដើម្បី ព្រីនវិក្កយបត្រ (80mm)</button>
         <div class="text-center">
             <h2 style="margin: 0; font-size: 16px;">💇‍♀️ អូនឡេន SMR BEAUTY</h2>
-            <p style="margin: 2px 0; font-size: 10px;">សាខាទី ១: រាជធានីភ្នំពេញ</p>
-            <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 012 345 678</p>
+            <p style="margin: 2px 0; font-size: 10px;">អស័យដ្ឋាន ភូមិដំណាក់ពពូល សង្កាត់កំពង់ឆ្នាំង ក្រុងកំពង់ឆ្នាំង​ </p>
+            <p style="margin: 2px 0; font-size: 10px;">ទូរស័ព្ទ: 067 969​ 877</p>
         </div>
         <div class="dashed-line"></div>
         <div style="font-size: 10px;">
