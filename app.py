@@ -13,55 +13,64 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for UI Enhancement
+# Custom CSS - កែសម្រួល Background ពណ៌ទឹកផ្កាឈូក និងពណ៌អក្សរអោយលេចច្បាស់
 st.markdown("""
 <style>
+    /* 1. Main Background (ពណ៌ទឹកផ្កាឈូក) & ពណ៌អក្សរទូទៅ (ពណ៌ប្រផេះចាស់/ខ្មៅ) */
     .stApp {
-        background-color: #fdf2f8 !important;
+        background-color: #fce7f3 !important; /* Soft Pink / ទឹកផ្កាឈូក */
         font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
-        color: #0f172a;
+        color: #0f172a !important; /* Dark Slate / អក្សរខ្មៅច្បាស់ */
     }
-    
+
+    /* 2. Text elements inside Streamlit App */
+    h1, h2, h3, h4, h5, h6, p, label, div, span {
+        color: #0f172a !important;
+    }
+
+    /* 3. Navigation Radio Header Options */
     div[data-testid="stRadio"] > label {
         display: none !important;
     }
     div[data-testid="stRadio"] > div {
-        background-color: #1e293b !important;
+        background-color: #ffffff !important;
         padding: 8px 16px !important;
-        border-radius: 10px !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        border-radius: 12px !important;
+        border: 2px solid #f472b6 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] span {
-        color: #ffffff !important;
+        color: #831843 !important; /* Dark Magenta text for radio options */
         font-size: 15px !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
     }
     div[data-testid="stRadio"] label[data-baseweb="radio"] input:checked + div {
         background-color: #db2777 !important;
     }
 
+    /* 4. Tabs Styling */
     button[data-baseweb="tab"] p {
         font-size: 15px !important;
-        font-weight: 600 !important;
-        color: #475569 !important;
+        font-weight: 700 !important;
+        color: #831843 !important;
     }
     button[aria-selected="true"] p {
-        color: #db2777 !important;
+        color: #be185d !important;
         font-weight: bold !important;
     }
 
-    /* Circle Button Styling */
+    /* 5. Service Circle Buttons */
     div.stButton > button {
         border-radius: 50% !important;
-        width: 125px !important;
-        height: 125px !important;
+        width: 120px !important;
+        height: 120px !important;
         white-space: normal !important;
         word-wrap: break-word !important;
         font-size: 13px !important;
         font-weight: 700 !important;
         background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-        color: #ffffff !important;
-        text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8) !important;
+        color: #ffffff !important; /* អក្សរពណ៌សលើប៊ូតុងបៃតង */
+        text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.6) !important;
         border: 3px solid #ffffff !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
         transition: all 0.2s ease-in-out !important;
@@ -74,29 +83,28 @@ st.markdown("""
     }
     
     div.stButton > button:hover {
-        transform: scale(1.08) !important;
-        box-shadow: 0 8px 15px rgba(0,0,0,0.25) !important;
-        border-color: #f59e0b !important;
+        transform: scale(1.05) !important;
+        border-color: #f472b6 !important;
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     }
 
+    /* 6. POS Action Buttons */
     .pos-btn div.stButton > button {
         border-radius: 8px !important;
         width: 100% !important;
         height: 48px !important;
-        background: #0f172a !important;
-        color: #ffffff !important;
-        border: 1px solid #334155 !important;
-        font-size: 13px !important;
+        background: #831843 !important;
+        color: #ffffff !important; /* អក្សរពណ៌សលើប៊ូតុងស្វាយចាស់ */
+        border: none !important;
+        font-size: 14px !important;
         font-weight: 600 !important;
-        text-shadow: none !important;
     }
     
     .pos-btn div.stButton > button:hover {
-        background: #1e293b !important;
-        border-color: #ec4899 !important;
+        background: #9d174d !important;
     }
     
+    /* 7. Pay Button */
     .pay-btn div.stButton > button {
         border-radius: 8px !important;
         width: 100% !important;
@@ -106,22 +114,24 @@ st.markdown("""
         border: none !important;
         font-size: 16px !important;
         font-weight: bold !important;
-        text-shadow: none !important;
     }
 
+    /* 8. Info Boxes Styling */
     .customer-info-box {
-        background-color: #047857;
-        color: #ffffff;
+        background-color: #9d174d;
+        color: #ffffff !important;
         padding: 14px 16px;
         border-radius: 8px 8px 0px 0px;
         font-size: 14px;
         line-height: 1.6;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .customer-info-box * {
+        color: #ffffff !important;
     }
 
     .total-summary-header {
-        background-color: #047857;
-        color: #ffffff;
+        background-color: #831843;
+        color: #ffffff !important;
         padding: 10px 15px;
         font-weight: bold;
         font-size: 15px;
@@ -131,12 +141,12 @@ st.markdown("""
     
     .total-summary-body {
         background-color: #ffffff;
-        border: 1px solid #fbcfe8;
+        border: 2px solid #f472b6;
         border-top: none;
         border-radius: 0 0 8px 8px;
         padding: 15px;
-        font-size: 13px;
-        color: #0f172a;
+        font-size: 14px;
+        color: #0f172a !important;
         line-height: 1.8;
     }
 
@@ -147,24 +157,15 @@ st.markdown("""
     }
     
     .grand-total-usd {
-        color: #dc2626;
+        color: #dc2626 !important;
         font-size: 24px;
         font-weight: bold;
     }
     
     .grand-total-khr {
-        color: #dc2626;
+        color: #dc2626 !important;
         font-size: 18px;
         font-weight: bold;
-    }
-
-    .pos-footer-bar {
-        background-color: #0f172a;
-        color: #ffffff;
-        padding: 10px 18px;
-        border-radius: 6px;
-        font-size: 12px;
-        margin-top: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -209,7 +210,7 @@ if "last_receipt" not in st.session_state:
     st.session_state.last_receipt = None
 
 # ----------------------------------------------------------------
-# 3. Function Generator - 80mm HTML Receipt Component
+# 3. Receipt Generator (80mm)
 # ----------------------------------------------------------------
 def generate_receipt_html(data):
     items_html = ""
@@ -245,11 +246,10 @@ def generate_receipt_html(data):
             .flex-between {{ display: flex; justify-content: space-between; margin: 2px 0; }}
             @media print {{ .no-print {{ display: none !important; }} body {{ width: 100%; }} }}
             .print-btn {{
-                background-color: #059669; color: white; border: none;
+                background-color: #db2777; color: white; border: none;
                 padding: 10px; font-size: 14px; font-weight: bold;
                 border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px;
             }}
-            .print-btn:hover {{ background-color: #047857; }}
         </style>
     </head>
     <body>
@@ -304,18 +304,12 @@ def generate_receipt_html(data):
     """
 
 # ----------------------------------------------------------------
-# 4. Popup Dialogs
+# 4. Dialog Popups
 # ----------------------------------------------------------------
 @st.dialog("🎁 បញ្ចុះតម្លៃ (Apply Discount)")
 def set_discount_dialog():
     st.write("សូមបញ្ចូលភាគរយ % ដែលត្រូវបញ្ចុះតម្លៃ៖")
-    new_discount = st.number_input(
-        "ភាគរយបញ្ចុះតម្លៃ (%)", 
-        min_value=0.0, 
-        max_value=100.0, 
-        value=float(st.session_state.discount_pct), 
-        step=1.0
-    )
+    new_discount = st.number_input("ភាគរយបញ្ចុះតម្លៃ (%)", min_value=0.0, max_value=100.0, value=float(st.session_state.discount_pct), step=1.0)
     col_d1, col_d2 = st.columns(2)
     if col_d1.button("✅ យល់ព្រម", type="primary", use_container_width=True):
         st.session_state.discount_pct = new_discount
@@ -338,7 +332,7 @@ def set_customer_dialog():
         st.rerun()
 
 # ----------------------------------------------------------------
-# 5. Navigation Menu
+# 5. Main Navigation
 # ----------------------------------------------------------------
 main_mode = st.radio(
     "📌 Navigation Menu", 
@@ -414,21 +408,20 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         st.markdown("---")
         st.markdown("##### 📋 បញ្ជីសេវាកម្មដែលបានជ្រើសរើស (Cart Items)")
         if st.session_state.cart:
-            cart_df = pd.DataFrame(st.session_state.cart)
-            for idx, row in cart_df.iterrows():
+            for idx, row in enumerate(st.session_state.cart):
                 c_code, c_name, c_price, c_qty = row["code"], row["name"], row["price"], row["qty"]
                 col_i1, col_i2, col_i3, col_i4, col_i5 = st.columns([1, 4, 1.5, 1.5, 1])
                 col_i1.write(f"**{c_code}**")
                 col_i2.write(f"{c_name}")
                 col_i3.write(f"${c_price:.2f}")
                 
-                new_qty = col_i4.number_input("Qty", min_value=1, value=int(c_qty), key=f"qty_{c_code}_{idx}", label_visibility="collapsed")
+                new_qty = col_i4.number_input("Qty", min_value=1, value=int(c_qty), key=f"cart_qty_{idx}", label_visibility="collapsed")
                 if new_qty != c_qty:
                     st.session_state.cart[idx]["qty"] = new_qty
                     st.session_state.cart[idx]["total"] = new_qty * c_price
                     st.rerun()
                     
-                if col_i5.button("❌", key=f"del_{c_code}_{idx}"):
+                if col_i5.button("❌", key=f"cart_del_{idx}"):
                     st.session_state.cart.pop(idx)
                     st.rerun()
         else:
@@ -456,7 +449,7 @@ if main_mode == "🖥️ ផ្ទាំងលក់ (POS System)":
         <div class="total-summary-body">
             <div class="summary-row"><span>Sub Total:</span> <span>$ {subtotal:.2f}</span></div>
             <div class="summary-row"><span>Discount ({st.session_state.discount_pct}%):</span> <span>-$ {discount_val:.2f}</span></div>
-            <hr style="margin: 6px 0; border-top: 1px dashed #ccc;">
+            <hr style="margin: 6px 0; border-top: 1px dashed #f472b6;">
             <div class="summary-row" style="align-items: baseline;">
                 <span style="font-weight:bold;">Grand Total:</span> 
                 <span class="grand-total-usd">$ {grand_total_usd:.2f}</span>
@@ -632,20 +625,18 @@ elif main_mode == "⚙️ គ្រប់គ្រងប្រភេទសេវ
             st.rerun()
 
 # ----------------------------------------------------------------
-# MODE 4: RECEIPT VIEW & TRANSACTION HISTORY
+# MODE 4: RECEIPT VIEW
 # ----------------------------------------------------------------
 elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
     st.markdown("## 🧾 ប្រវត្តិប្រតិបត្តិការ និង ការពិនិត្យវិក្កយបត្រ (80mm Thermal Paper)")
     
     if not st.session_state.sales_history:
-        st.info("💡 មិនទាន់មានប្រវត្តិប្រតិបត្តិការ/ការលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន។")
+        st.info("💡 មិនទាន់មានប្រវត្តិប្រតិបត្តិការ/ការលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
     else:
         col_list, col_preview = st.columns([1.5, 1], gap="medium")
 
         with col_list:
             st.markdown("### 📋 បញ្ជីប្រតិបត្តិការទាំងអស់")
-            
-            # បង្កើត DataFrame បង្ហាញតារាង
             df_display = []
             for idx, item in enumerate(reversed(st.session_state.sales_history)):
                 df_display.append({
@@ -657,44 +648,19 @@ elif main_mode == "🧾 វិក្កយបត្រ (Last Receipt 80mm)":
                 })
             
             st.dataframe(pd.DataFrame(df_display), use_container_width=True, hide_index=True)
-
             st.markdown("---")
-            st.markdown("👉 **ជ្រើសរើសវិក្កយបត្រដើម្បីពិនិត្យ ឬ ព្រីនឡើងវិញ (Select Receipt to Preview/Print):**")
-            
-            # Selectbox សម្រាប់ជ្រើសរើសវិក្កយបត្រតាម លេខ INV-xxx
             inv_list = [item["inv_no"] for item in reversed(st.session_state.sales_history)]
-            selected_inv = st.selectbox("ជ្រើសរើសលេខវិក្កយបត្រ:", inv_list)
-
-            # ស្វែងរកទិន្នន័យនៃ Transaction ដែលបានជ្រើសរើស
+            selected_inv = st.selectbox("ជ្រើសរើសលេខវិក្កយបត្រដើម្បី Preview/Print:", inv_list)
             selected_receipt_data = next((item for item in st.session_state.sales_history if item["inv_no"] == selected_inv), None)
 
         with col_preview:
             st.markdown("### 👁️ Receipt Preview")
             if selected_receipt_data:
-                receipt_payload = {
-                    "inv_no": selected_receipt_data.get("inv_no", "N/A"),
-                    "date": selected_receipt_data.get("date", ""),
-                    "customer": selected_receipt_data.get("customer", "General"),
-                    "items": selected_receipt_data.get("items", []),
-                    "subtotal": selected_receipt_data.get("subtotal", selected_receipt_data.get("grand_total_usd", 0)),
-                    "discount": selected_receipt_data.get("discount", 0.0),
-                    "grand_total_usd": selected_receipt_data.get("grand_total_usd", 0),
-                    "grand_total_khr": selected_receipt_data.get("grand_total_khr", 0),
-                    "paid_usd": selected_receipt_data.get("paid_usd", selected_receipt_data.get("grand_total_usd", 0)),
-                    "paid_khr": selected_receipt_data.get("paid_khr", 0),
-                    "change_usd": selected_receipt_data.get("change_usd", 0.0),
-                    "change_khr": selected_receipt_data.get("change_khr", 0)
-                }
-                
-                # បង្ហាញ Receipt Preview
-                rc_html = generate_receipt_html(receipt_payload)
+                rc_html = generate_receipt_html(selected_receipt_data)
                 components.html(rc_html, height=620, scrolling=True)
 
 # ----------------------------------------------------------------
 # MODE 5: SALES REPORT
-# ----------------------------------------------------------------
-# ----------------------------------------------------------------
-# MODE 5: SALES REPORT WITH FIXED TOTAL CALCULATION
 # ----------------------------------------------------------------
 elif main_mode == "📊 របាយការណ៍លក់ប្រចាំថ្ងៃ/ខែ (Sales Report)":
     st.markdown("## 📊 របាយការណ៍លក់ និង ទិន្នន័យចំណូល")
@@ -702,135 +668,43 @@ elif main_mode == "📊 របាយការណ៍លក់ប្រចាំ�
     if not st.session_state.sales_history:
         st.info("💡 មិនទាន់មានទិន្នន័យលក់នៅឡើយទេ។ សូមធ្វើការលក់នៅលើផ្ទាំង POS ជាមុនសិន।")
     else:
-        # Date Filter
         filter_col1, _ = st.columns([1.5, 2.5])
         with filter_col1:
             today = datetime.now().date()
-            date_range = st.date_input("📅 ជ្រើសរើសចន្លោះកាលបរិច្ឆេទ (Date Range):", value=(today, today), key="sales_date_range")
+            selected_date = st.date_input("🗓️ ជ្រើសរើសកាលបរិច្ឆេទ (Filter Date):", value=today)
 
-        if isinstance(date_range, tuple) and len(date_range) == 2:
-            start_date, end_date = date_range
-        elif isinstance(date_range, tuple) and len(date_range) == 1:
-            start_date = end_date = date_range[0]
-        else:
-            start_date = end_date = today
+        sales_data = []
+        total_sales_usd = 0.0
+        total_sales_khr = 0
+        total_transactions = 0
 
-        filtered_sales = []
-        for item in st.session_state.sales_history:
-            item_date_str = item.get("date", "")
-            try:
-                item_date = datetime.strptime(item_date_str, "%Y-%m-%d %H:%M:%S").date()
-            except ValueError:
-                try:
-                    item_date = datetime.strptime(item_date_str.split(" ")[0], "%Y-%m-%d").date()
-                except Exception:
-                    item_date = today
-
-            if start_date <= item_date <= end_date:
-                filtered_sales.append(item)
-
-        st.markdown("---")
-
-        if not filtered_sales:
-            st.warning(f"⚠️ មិនមានទិន្នន័យលក់ចន្លោះពីថ្ងៃ {start_date} ដល់ {end_date} ទេ។")
-        else:
-            # 1. គណនាចំណូលសរុប ដោយមានការត្រួតពិនិត្យ Key យ៉ាងច្បាស់លាស់ (Robust Total Calculation)
-            total_invoices = len(filtered_sales)
-            
-            total_subtotal = 0.0
-            total_discount = 0.0
-            total_grand_usd = 0.0
-            total_grand_khr = 0.0
-
-            for item in filtered_sales:
-                sub = float(item.get("subtotal", 0.0))
-                disc = float(item.get("discount", 0.0))
+        for sale in st.session_state.sales_history:
+            sale_date_str = sale.get("date", "").split(" ")[0]
+            if sale_date_str == str(selected_date):
+                total_sales_usd += sale.get("grand_total_usd", 0.0)
+                total_sales_khr += sale.get("grand_total_khr", 0)
+                total_transactions += 1
                 
-                # ស្វែងរកតម្លៃ Grand Total USD (ប្រសិនបើគ្មាន Key grand_total_usd វានឹងយក grand_total ឬ subtotal - discount)
-                gt_usd = item.get("grand_total_usd", item.get("grand_total", sub - disc))
-                gt_usd = float(gt_usd) if gt_usd is not None else 0.0
-                
-                # ស្វែងរកតម្លៃ Grand Total KHR
-                gt_khr = item.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE))
-                gt_khr = float(gt_khr) if gt_khr is not None else 0.0
-
-                total_subtotal += sub
-                total_discount += disc
-                total_grand_usd += gt_usd
-                total_grand_khr += gt_khr
-
-            # បង្ហាញ Metric Cards ពណ៌លេចច្បាស់
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("🧾 វិក្កយបត្រសរុប", f"{total_invoices} វិក្កយបត្រ")
-            m2.metric("💵 ចំណូលសរុប ($)", f"${total_grand_usd:,.2f}")
-            m3.metric("🎁 បញ្ចុះតម្លៃសរុប ($)", f"${total_discount:,.2f}")
-            m4.metric("៛ ចំណូលសរុប (KHR)", f"៛ {total_grand_khr:,.0f}")
-
-            st.markdown("---")
-
-            col_rep_table, col_rep_preview = st.columns([1.5, 1], gap="medium")
-
-            with col_rep_table:
-                st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការ ({total_invoices} វិក្កយបត្រ)")
-                
-                report_data = []
-                for idx, item in enumerate(reversed(filtered_sales)):
-                    sub = float(item.get("subtotal", 0.0))
-                    disc = float(item.get("discount", 0.0))
-                    gt_usd = float(item.get("grand_total_usd", item.get("grand_total", sub - disc)))
-                    gt_khr = float(item.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE)))
-
-                    report_data.append({
-                        "ល.រ": total_invoices - idx,
-                        "Invoice No": item.get("inv_no", "N/A"),
-                        "Date": item.get("date", ""),
-                        "Customer": item.get("customer", "General"),
-                        "Subtotal ($)": f"${sub:.2f}",
-                        "Discount ($)": f"${disc:.2f}",
-                        "Grand Total ($)": f"${gt_usd:.2f}",
-                        "Grand Total (KHR)": f"៛{gt_khr:,.0f}"
-                    })
-
-                # បន្ទាត់ចំណូលសរុប (Summary Row) នៅបាតតារាង
-                report_data.append({
-                    "ល.រ": "សរុប",
-                    "Invoice No": f"សរុប {total_invoices} វិក្កយបត្រ",
-                    "Date": "-",
-                    "Customer": "-",
-                    "Subtotal ($)": f"${total_subtotal:,.2f}",
-                    "Discount ($)": f"${total_discount:,.2f}",
-                    "Grand Total ($)": f"${total_grand_usd:,.2f}",
-                    "Grand Total (KHR)": f"៛{total_grand_khr:,.0f}"
+                sales_data.append({
+                    "Invoice No": sale.get("inv_no"),
+                    "Time": sale.get("date", "").split(" ")[-1],
+                    "Customer": sale.get("customer"),
+                    "Subtotal ($)": f"${sale.get('subtotal', 0):.2f}",
+                    "Discount ($)": f"-${sale.get('discount', 0):.2f}",
+                    "Grand Total ($)": f"${sale.get('grand_total_usd', 0):.2f}",
+                    "Grand Total (៛)": f"៛ {sale.get('grand_total_khr', 0):,}"
                 })
 
-                st.dataframe(pd.DataFrame(report_data), use_container_width=True, hide_index=True)
+        st.markdown("---")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("💵 ចំណូលសរុប (Total Revenue)", f"${total_sales_usd:.2f}", f"៛ {total_sales_khr:,}")
+        m2.metric("🧾 ចំនួនប្រតិបត្តិការ (Transactions)", f"{total_transactions}")
+        avg_sale = total_sales_usd / total_transactions if total_transactions > 0 else 0.0
+        m3.metric("📊 ចំណូលមធ្យម/វិក្កយបត្រ (Average Ticket)", f"${avg_sale:.2f}")
 
-                st.markdown("---")
-                filtered_inv_list = [item.get("inv_no", "N/A") for item in reversed(filtered_sales)]
-                selected_rep_inv = st.selectbox("🔍 ជ្រើសរើសលេខវិក្កយបត្រដើម្បីមើលទម្រង់ 80mm / ព្រីន:", filtered_inv_list, key="select_report_inv")
-                selected_rep_data = next((item for item in filtered_sales if item.get("inv_no") == selected_rep_inv), None)
-
-            with col_rep_preview:
-                st.markdown("### 🧾 វិក្កយបត្រ Preview (80mm)")
-                if selected_rep_data:
-                    sub = float(selected_rep_data.get("subtotal", 0.0))
-                    disc = float(selected_rep_data.get("discount", 0.0))
-                    gt_usd = float(selected_rep_data.get("grand_total_usd", selected_rep_data.get("grand_total", sub - disc)))
-                    gt_khr = float(selected_rep_data.get("grand_total_khr", round(gt_usd * EXCHANGE_RATE)))
-
-                    receipt_payload = {
-                        "inv_no": selected_rep_data.get("inv_no", "N/A"),
-                        "date": selected_rep_data.get("date", ""),
-                        "customer": selected_rep_data.get("customer", "General"),
-                        "items": selected_rep_data.get("items", []),
-                        "subtotal": sub,
-                        "discount": disc,
-                        "grand_total_usd": gt_usd,
-                        "grand_total_khr": gt_khr,
-                        "paid_usd": selected_rep_data.get("paid_usd", gt_usd),
-                        "paid_khr": selected_rep_data.get("paid_khr", 0),
-                        "change_usd": selected_rep_data.get("change_usd", 0.0),
-                        "change_khr": selected_rep_data.get("change_khr", 0)
-                    }
-                    rc_html = generate_receipt_html(receipt_payload)
-                    components.html(rc_html, height=620, scrolling=True)
+        st.markdown("---")
+        st.markdown(f"### 📋 បញ្ជីប្រតិបត្តិការលក់សម្រាប់ថ្ងៃទី {selected_date}")
+        if sales_data:
+            st.dataframe(pd.DataFrame(sales_data), use_container_width=True, hide_index=True)
+        else:
+            st.warning(f"ពុំមានទិន្នន័យលក់សម្រាប់ថ្ងៃទី {selected_date} ទេ។")
