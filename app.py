@@ -5,433 +5,402 @@ import hashlib
 from datetime import datetime
 
 # ----------------------------------------------------------------
-# 1. ការកំណត់ទំព័រ Streamlit
+# 1. Page Configuration & Custom POS Styling ( Green Theme )
 # ----------------------------------------------------------------
-st.set_page_config(page_title="OunLen SMR - POS & Referral", page_icon="💇‍♀️", layout="wide")
+st.set_page_config(
+    page_title="OunLen SMR - Professional POS System",
+    page_icon="💇‍♀️",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# អត្រាប្ដូរប្រាក់ថេរ
-EXCHANGE_RATE = 4050
+# កំណត់ CSS ឱ្យចេញស្ទាយ៍ទម្រង់ POS ដូចរូបថត
+st.markdown("""
+<style>
+    /* background ផ្ទៃក្រោយ */
+    .stApp {
+        background-color: #f8f9fa;
+    }
+    
+    /* Customer Info Box Style ពណ៌បៃតង */
+    .customer-info-box {
+        background-color: #0d8a43;
+        color: white;
+        padding: 12px 15px;
+        border-radius: 6px 6px 0px 0px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    /* Total Summary Box */
+    .total-summary-header {
+        background-color: #0d8a43;
+        color: white;
+        padding: 10px 15px;
+        font-weight: bold;
+        font-size: 15px;
+        border-radius: 6px 6px 0px 0px;
+        margin-top: 10px;
+    }
+
+    .total-summary-body {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-top: none;
+        padding: 12px 15px;
+        font-size: 13px;
+        color: #333;
+        line-height: 1.8;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+
+    .grand-total-usd {
+        color: #d9534f;
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    .grand-total-khr {
+        color: #d9534f;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    /* POS Status Bar ខាងក្រោម */
+    .pos-footer-bar {
+        background-color: #0d8a43;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-top: 15px;
+    }
+    
+    /* កែសម្រួល Styling ប៊ូតុង */
+    .stButton>button {
+        border-radius: 4px;
+        font-weight: bold;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# អត្រាប្ដូរប្រាក់
+EXCHANGE_RATE = 4100
 
 # ----------------------------------------------------------------
-# 2. ទាញយកព័ត៌មានពី Secrets & Caching
+# 2. ទាញយកទិន្នន័យ Referral Code ពី Google Sheets
 # ----------------------------------------------------------------
 try:
     spreadsheet_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     SCRIPT_URL = st.secrets["connections"]["gsheets"]["script_url"]
-    
     if "docs.google.com/spreadsheets" in spreadsheet_url:
         spreadsheet_id = spreadsheet_url.split("/d/")[1].split("/")[0]
         csv_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet=Referral"
     else:
         csv_url = spreadsheet_url
-
-except Exception as e:
-    st.error("❌ មិនអាចភ្ជាប់ទៅកាន់ Secrets បានទេ! សូមពិនិត្យមើល `.streamlit/secrets.toml` ឡើងវិញ។")
-    st.stop()
+except Exception:
+    SCRIPT_URL = ""
+    csv_url = ""
 
 @st.cache_data(ttl=5)
 def load_data(url):
+    if not url:
+        return pd.DataFrame()
     try:
         return pd.read_csv(url)
     except Exception:
         return pd.DataFrame()
 
 raw_df = load_data(csv_url)
-
-df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "រូបភាព", "ស្ថានភាព"])
+df = pd.DataFrame(columns=["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព"])
 
 if not raw_df.empty:
     raw_df.columns = [str(col).strip() for col in raw_df.columns]
-    cols_count = len(raw_df.columns)
-    
-    if cols_count >= 6: 
-        df["កូដកាត"] = raw_df.iloc[:, 1]
-        df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 2]
-        df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 3]
-        df["រូបភាព"] = raw_df.iloc[:, 4]
-        df["ស្ថានភាព"] = raw_df.iloc[:, 5]
-    elif cols_count >= 5:
-        df["កូដកាត"] = raw_df.iloc[:, 1]
+    if len(raw_df.columns) >= 5:
+        df["កូដកាត"] = raw_df.iloc[:, 1].astype(str).str.strip().str.upper()
         df["ឈ្មោះម្ចាស់កូដ"] = raw_df.iloc[:, 2]
         df["ចំនំនួនអ្នកណែនាំ"] = raw_df.iloc[:, 3]
         df["ស្ថានភាព"] = raw_df.iloc[:, 4]
-        df["រូបភាព"] = ""
-
-if not df.empty:
-    df = df.dropna(subset=["កូដកាត"])
-    df["កូដកាត"] = df["កូដកាត"].astype(str).str.strip().str.upper()
 
 # ----------------------------------------------------------------
-# 3. ប្រព័ន្ធ Authentication
+# 3. Session State setup
 # ----------------------------------------------------------------
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.username = ""
+    st.session_state.logged_in = True  # កំណត់ True ដើម្បីងាយស្រួល Testing
+    st.session_state.username = "Cashier 01"
 
-def make_hashes(password):
-    return hashlib.sha256(str.encode(password)).hexdigest()
-
-if not st.session_state.logged_in:
-    st.title("អូនឡែន សម្រស់ - ប្រព័ន្ធគ្រប់គ្រងការលក់ និងគិតលុយ 🇰🇭")
-    st.markdown("---")
-    auth_tab1, auth_tab2 = st.tabs(["🔐 ចូលប្រើប្រាស់ (Login)", "📝 បង្កើតគណនីថ្មី (Sign Up)"])
-    
-    with auth_tab1:
-        st.subheader("សូមបំពេញព័ត៌មានដើម្បីចូលប្រើប្រាស់")
-        username = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ (Username)", key="login_user").strip()
-        password = st.text_input("លេខកូដសម្ងាត់ (Password)", type="password", key="login_pass")
-        
-        if st.button("ចូលប្រើប្រាស់", type="primary", use_container_width=True):
-            if username and password:
-                hashed_password = make_hashes(password)
-                params = {"action": "login", "username": username, "password": hashed_password}
-                try:
-                    with st.spinner("⏳ កំពុងផ្ទៀងផ្ទាត់..."):
-                        response = requests.post(SCRIPT_URL, json=params)
-                    if response.status_code == 200 and "success" in response.text.lower():
-                        st.session_state.logged_in = True
-                        st.session_state.username = username
-                        st.rerun()
-                    else:
-                        st.error("❌ ឈ្មោះអ្នកប្រើ ឬ លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ!")
-                except Exception as req_err:
-                    st.error(f"❌ មានបញ្ហាក្នុងការតភ្ជាប់! ({str(req_err)})")
-            else:
-                st.warning("⚠️ សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។")
-                
-    with auth_tab2:
-        st.subheader("បង្កើតគណនីសម្រាប់បុគ្គលិកថ្មី")
-        new_user = st.text_input("ឈ្មោះអ្នកប្រើប្រាស់ថ្មី (Username)", key="signup_user").strip()
-        new_password = st.text_input("បង្កើតលេខកូដសម្ងាត់ (Password)", type="password", key="signup_pass")
-        confirm_password = st.text_input("បញ្ជាក់លេខកូដសម្ងាត់ម្តងទៀត", type="password", key="signup_confirm")
-        
-        if st.button("ចុះឈ្មោះគណនី", use_container_width=True):
-            if new_user and new_password and confirm_password:
-                if new_password != confirm_password:
-                    st.error("❌ លេខកូដសម្ងាត់ទាំងពីរមិនដូចគ្នាទេ!")
-                else:
-                    hashed_password = make_hashes(new_password)
-                    params = {"action": "signup", "username": new_user, "password": hashed_password}
-                    try:
-                        with st.spinner("⏳ កំពុងបង្កើតគណនី..."):
-                            response = requests.post(SCRIPT_URL, json=params)
-                        if response.status_code == 200 and "success" in response.text.lower():
-                            st.success("🎉 បង្កើតគណនីជោគជ័យ! សូមចូលប្រើប្រាស់។")
-                        else:
-                            st.error("❌ មិនអាចបង្កើតគណនីបានទេ!")
-                    except:
-                        st.error("❌ មានបញ្ហាក្នុងការតភ្ជាប់!")
-            else:
-                st.warning("⚠️ សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។")
-    st.stop()
-
-# ----------------------------------------------------------------
-# 4. Sidebar & Cart Session Setup
-# ----------------------------------------------------------------
-st.sidebar.title("💇‍♀️ អូនឡែន សម្រស់")
-st.sidebar.write(f"👤 អ្នកគិតលុយ៖ **{st.session_state.username}**")
-if st.sidebar.button("🚪 ចាកចេញ (Logout)"):
-    st.session_state.logged_in = False
-    st.session_state.username = ""
-    st.session_state.cart = []
-    st.cache_data.clear()
-    st.rerun()
-
-# កូដបង្កើត Item/Cart ក្នុង session
 if "cart" not in st.session_state:
     st.session_state.cart = []
 
-if "applied_discount_code" not in st.session_state:
-    st.session_state.applied_discount_code = None
-    st.session_state.applied_discount_pct = 0
-    st.session_state.customer_name = ""
+if "customer_name" not in st.session_state:
+    st.session_state.customer_name = "General"
 
-# បញ្ជីសេវាកម្ម/ទំនិញគំរូ
-SERVICES_CATALOG = {
-    "កាត់សក់ & កក់សក់": 5.00,
-    "លាបពណ៌សក់": 15.00,
-    "អ៊ុតត្រង់ / អ៊ុតរលក": 25.00,
-    "កក់សក់បុរាណ / ម៉Massage": 8.00,
-    "ធ្វើក្រចក (Manicure/Pedicure)": 10.00,
-    "ស្ប៉ាមុខ / ថែរក្សាស្បែក": 20.00,
-    "ប្រេងបំប៉នសក់ (ទំនិញ)": 12.00,
-    "ឡេការពារកម្ដៅថ្ងៃ (ទំនិញ)": 18.00,
-}
+if "customer_code" not in st.session_state:
+    st.session_state.customer_code = "N/A"
 
-menu_option = st.sidebar.radio("👉 ជ្រើសរើសមេនូ៖", ["🛒 ប្រព័ន្ធគិតលុយ (POS)", "➕ បង្កើតកូដអតិថិជនថ្មី", "📊 តារាងតាមដានទិន្នន័យ"])
+if "discount_pct" not in st.session_state:
+    st.session_state.discount_pct = 0.0
+
+if "vat_pct" not in st.session_state:
+    st.session_state.vat_pct = 0.0
+
+if "service_charge" not in st.session_state:
+    st.session_state.service_charge = 0.0
+
+if "hold_list" not in st.session_state:
+    st.session_state.hold_list = []
+
+# បញ្ជីទំនិញ/សេវាកម្មគំរូ សម្រាប់ជ្រើសរើស ឬ Scan
+SAMPLE_ITEMS = [
+    {"code": "1001", "name": "កាត់សក់ & កក់សក់", "price": 5.00},
+    {"code": "1002", "name": "លាបពណ៌សក់", "price": 15.00},
+    {"code": "1003", "name": "អ៊ុតត្រង់ / អ៊ុតរលក", "price": 25.00},
+    {"code": "1004", "name": "កក់សក់បុរាណ", "price": 8.00},
+    {"code": "1005", "name": "ធ្វើក្រចក (Manicure)", "price": 10.00},
+    {"code": "1006", "name": "ស្ប៉ាមុខ / ថែរក្សាស្បែក", "price": 20.00},
+]
+
+# ----------------------------------------------------------------
+# 4. POS Interface Layout (ចែកជា ២ Column ធំៗដូចរូបថត)
+# ----------------------------------------------------------------
+col_left, col_right = st.columns([3.2, 1.2], gap="small")
 
 # ================================================================
-# 🛒 មេនូទី ១៖ ប្រព័ន្ធគិតលុយ (POS System)
+# ផ្នែកខាងឆ្វេង (LEFT PANEL): Header Scan Barcode, Catalog, Cart Table
 # ================================================================
-if menu_option == "🛒 ប្រព័ន្ធគិតលុយ (POS)":
-    st.title("🛒 ប្រព័ន្ធគិតលុយ & ចេញវិក្កយបត្រ (POS)")
+with col_left:
+    # Top Filter / Barcode Scan Bar (ដូចផ្នែកខាងលើរូបថត)
+    top_c1, top_c2, top_c3 = st.columns([1, 4, 1.5])
     
-    col_catalog, col_cart = st.columns([1.2, 1], gap="medium")
-    
-    # ------------------------------------------------------------
-    # ផ្នែកខាងឆ្វេង៖ ជ្រើសរើសសេវាកម្ម / ទំនិញ
-    # ------------------------------------------------------------
-    with col_catalog:
-        st.subheader("🛍️ ជ្រើសរើសសេវាកម្ម / ទំនិញ")
+    with top_c1:
+        st.checkbox("Show all UoM", value=False)
         
-        # បង្កើត Grid សម្រាប់សេវាកម្ម
-        cat_cols = st.columns(2)
-        for i, (service_name, price) in enumerate(SERVICES_CATALOG.items()):
-            with cat_cols[i % 2]:
-                with st.container(border=True):
-                    st.write(f"**{service_name}**")
-                    st.write(f"💵 ${price:.2f} ({price * EXCHANGE_RATE:,.0f} ៛)")
-                    if st.button(f"➕ បន្ថែម", key=f"add_{i}", use_container_width=True):
-                        # បន្ថែមចូល Cart
-                        found = False
-                        for item in st.session_state.cart:
-                            if item["name"] == service_name:
-                                item["qty"] += 1
-                                item["total"] = item["qty"] * item["price"]
-                                found = True
-                                break
-                        if not found:
-                            st.session_state.cart.append({
-                                "name": service_name,
-                                "price": price,
-                                "qty": 1,
-                                "total": price
-                            })
-                        st.rerun()
+    with top_c2:
+        search_query = st.text_input("Scan Barcode...", placeholder="[|||] Scan Barcode / វាយបញ្ចូលកូដទំនិញ...", label_visibility="collapsed")
+        
+    with top_c3:
+        search_mode = st.radio("Search Mode", ["Search", "Barcode"], index=1, horizontal=True, label_visibility="collapsed")
 
-        # បញ្ចូលសេវាកម្មផ្ទាល់ខ្លួន (Custom Item)
-        st.markdown("---")
-        st.subheader("✍️ បញ្ចូលតម្លៃផ្សេងៗ / សេវាកម្មក្រៅបញ្ជី")
-        c_col1, c_col2, c_col3 = st.columns([2, 1, 1])
-        custom_name = c_col1.text_input("ឈ្មោះសេវា/ទំនិញ", key="custom_name")
-        custom_price = c_col2.number_input("តម្លៃ ($)", min_value=0.0, step=0.5, key="custom_price")
-        if c_col3.button("បន្ថែមទំនិញ", type="primary", use_container_width=True):
-            if custom_name and custom_price > 0:
+    # បើមានការ Scan Barcode ឬ វាយបញ្ចូលកូដ
+    if search_query:
+        matched_item = next((item for item in SAMPLE_ITEMS if item["code"].lower() == search_query.strip().lower() or item["name"].lower() == search_query.strip().lower()), None)
+        if matched_item:
+            existing = next((i for i in st.session_state.cart if i["code"] == matched_item["code"]), None)
+            if existing:
+                existing["qty"] += 1
+                existing["total"] = existing["qty"] * existing["price"]
+            else:
                 st.session_state.cart.append({
-                    "name": custom_name,
-                    "price": custom_price,
+                    "code": matched_item["code"],
+                    "name": matched_item["name"],
+                    "price": matched_item["price"],
                     "qty": 1,
-                    "total": custom_price
+                    "total": matched_item["price"]
                 })
+            st.rerun()
+
+    # Quick Select Items Catalog
+    st.markdown("##### 📦 មុខទំនិញ / សេវាកម្ម (Quick Select Catalog)")
+    catalog_cols = st.columns(3)
+    for idx, item in enumerate(SAMPLE_ITEMS):
+        with catalog_cols[idx % 3]:
+            if st.button(f"🛒 {item['name']}\n${item['price']:.2f} [{item['code']}]", key=f"cat_{item['code']}", use_container_width=True):
+                existing = next((i for i in st.session_state.cart if i["code"] == item["code"]), None)
+                if existing:
+                    existing["qty"] += 1
+                    existing["total"] = existing["qty"] * existing["price"]
+                else:
+                    st.session_state.cart.append({
+                        "code": item["code"],
+                        "name": item["name"],
+                        "price": item["price"],
+                        "qty": 1,
+                        "total": item["price"]
+                    })
                 st.rerun()
 
-    # ------------------------------------------------------------
-    # ផ្នែកខាងស្តាំ៖ បញ្ជីទំនិញក្នុង Cart & គណនាប្រាក់
-    # ------------------------------------------------------------
-    with col_cart:
-        st.subheader("📋 បញ្ជីទិញទំនិញ (Cart)")
-        
-        if not st.session_state.cart:
-            st.info("📭 មិនទាន់មានទំនិញក្នុងកញ្ចប់នៅឡើយទេ។")
-        else:
-            # បង្ហាញតារាង Cart
-            cart_df = pd.DataFrame(st.session_state.cart)
-            cart_df.columns = ["សេវាកម្ម", "តម្លៃ ($)", "បរិមាណ", "សរុប ($)"]
-            st.dataframe(cart_df[["សេវាកម្ម", "តម្លៃ ($)", "បរិមាណ", "សរុប ($)"]], use_container_width=True, hide_index=True)
-            
-            if st.button("🗑️ សម្អាតកញ្ចប់ទំនិញ (Clear Cart)"):
+    st.markdown("---")
+    
+    # តារាង Cart Table បង្ហាញបញ្ជីទំនិញ
+    st.markdown("##### 📋 បញ្ជីទំនិញដែលបានជ្រើសរើស (Cart Table)")
+    if st.session_state.cart:
+        cart_df = pd.DataFrame(st.session_state.cart)
+        cart_df.columns = ["កូដ", "ឈ្មោះសេវាកម្ម/ទំនិញ", "តម្លៃ ($)", "បរិមាណ", "សរុប ($)"]
+        st.dataframe(cart_df[["កូដ", "ឈ្មោះសេវាកម្ម/ទំនិញ", "តម្លៃ ($)", "បរិមាណ", "សរុប ($)"]], use_container_width=True, hide_index=True)
+    else:
+        st.info("💡 មិនទាន់មានទំនិញក្នុង Cart នៅឡើយទេ! សូម Scan Barcode ឬ ចុចលើ Catalog ខាងលើ។")
+
+# ================================================================
+# ផ្នែកខាងស្តាំ (RIGHT PANEL): Customer, Shift, Total Summary, Action Buttons
+# ================================================================
+with col_right:
+    # 1. Customer & Shift Info Box (ពណ៌បៃតងខាងលើស្តាំ)
+    st.markdown(f"""
+    <div class="customer-info-box">
+        <div>👤 <b>Customer:</b> {st.session_state.customer_name}</div>
+        <div>💳 <b>Customer No.:</b> {st.session_state.customer_code}</div>
+        <hr style="margin: 8px 0; border-color: rgba(255,255,255,0.3);">
+        <div># <b>Shift No.:</b> #001</div>
+        <div>🕒 <b>Shift Start:</b> {datetime.now().strftime('%H:%M')}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 2. Total Summary Calculations
+    subtotal = sum(item["total"] for item in st.session_state.cart)
+    discount_val = (subtotal * st.session_state.discount_pct) / 100
+    after_discount = subtotal - discount_val
+    vat_val = (after_discount * st.session_state.vat_pct) / 100
+    service_charge_val = st.session_state.service_charge
+    grand_total_usd = after_discount + vat_val + service_charge_val
+    grand_total_khr = round(grand_total_usd * EXCHANGE_RATE)
+
+    # Total Summary Display Box (ដូចរូប)
+    st.markdown("""
+    <div class="total-summary-header">
+        Total Summary
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="total-summary-body">
+        <div class="summary-row"><span>Sub Total:</span> <span>$ {subtotal:.2f}</span></div>
+        <div class="summary-row"><span>Discount:</span> <span>$ {discount_val:.2f}</span></div>
+        <div class="summary-row"><span>VAT:</span> <span>$ {vat_val:.2f}</span></div>
+        <div class="summary-row"><span>S/Charge:</span> <span>$ {service_charge_val:.2f}</span></div>
+        <hr style="margin: 6px 0; border-top: 1px dashed #ccc;">
+        <div class="summary-row" style="align-items: baseline;">
+            <span style="font-weight:bold;">Grand Total:</span> 
+            <span class="grand-total-usd">$ {grand_total_usd:.2f}</span>
+        </div>
+        <div class="summary-row" style="justify-content: flex-end;">
+            <span class="grand-total-khr">៛ {grand_total_khr:,.0f}</span>
+        </div>
+        <hr style="margin: 6px 0; border-top: 1px dashed #ccc;">
+        <div class="summary-row" style="font-size: 11px; color: #666;">
+            <span>Rate:</span> <span>1 USD = {EXCHANGE_RATE} KHR</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.write("")
+
+    # 3. Action Control Grid Buttons (ប៊ូតុងខាងក្រោមស្តាំ)
+    btn_c1, btn_c2, btn_c3 = st.columns(3)
+    with btn_c1:
+        if st.button("💵\nPayment", key="btn_pay", use_container_width=True, type="primary"):
+            st.session_state.show_payment_modal = True
+
+    with btn_c2:
+        if st.button("💾\nSave / Hold", key="btn_hold", use_container_width=True):
+            if st.session_state.cart:
+                st.session_state.hold_list.append(st.session_state.cart.copy())
                 st.session_state.cart = []
-                st.session_state.applied_discount_code = None
-                st.session_state.applied_discount_pct = 0
-                st.session_state.customer_name = ""
+                st.toast("រក្សាទុកកញ្ចប់ទំនិញរួចរាល់! (Hold Saved)")
                 st.rerun()
 
-        st.markdown("---")
-        st.subheader("🎟️ បញ្ចូលកូដណែនាំ (Referral Discount)")
-        
-        ref_code_input = st.text_input("🔍 វាយបញ្ចូលកូដកាតអតិថិជន (ឧទាហរណ៍៖ 10231010):").strip().upper()
-        if st.button("ផ្ទៀងផ្ទាត់កូដ"):
-            if ref_code_input and not df.empty:
-                valid_rows = df[df["កូដកាត"] == ref_code_input]
-                if not valid_rows.empty:
-                    idx = valid_rows.index[-1]
-                    owner_name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
+    with btn_c3:
+        if st.button("📋\nHold List", key="btn_hold_list", use_container_width=True):
+            st.info(f"ចំនួន Order ដែលបាន Hold: {len(st.session_state.hold_list)}")
+
+    btn_c4, btn_c5, btn_c6 = st.columns(3)
+    with btn_c4:
+        if st.button("%\nDiscount", key="btn_discount", use_container_width=True):
+            st.session_state.show_discount_dialog = True
+
+    with btn_c5:
+        if st.button("🔑\nCustomer", key="btn_customer", use_container_width=True):
+            st.session_state.show_customer_dialog = True
+
+    with btn_c6:
+        if st.button("🔍\nCheck Price", key="btn_check_price", use_container_width=True):
+            st.toast("មុខងារពិនិត្យតម្លៃ...")
+
+    btn_c7, btn_c8, btn_c9 = st.columns(3)
+    with btn_c7:
+        if st.button("🖨️\nRe-Print", key="btn_reprint", use_container_width=True):
+            st.toast("កំពុងបោះពុម្ពវិក្កយបត្រឡើងវិញ...")
+
+    with btn_c8:
+        if st.button("🗑️\nClear Cart", key="btn_clear", use_container_width=True):
+            st.session_state.cart = []
+            st.session_state.discount_pct = 0.0
+            st.session_state.customer_name = "General"
+            st.session_state.customer_code = "N/A"
+            st.rerun()
+
+    with btn_c9:
+        if st.button("⚙️\nMore", key="btn_more", use_container_width=True):
+            st.toast("មុខងារបន្ថែម...")
+
+# ----------------------------------------------------------------
+# Dialogs & Modal Popups
+# ----------------------------------------------------------------
+# Customer Search Modal
+if st.session_state.get("show_customer_dialog", False):
+    with st.expander("🔑 ភ្ជាប់កូដអតិថិជន (Customer Referral Code)", expanded=True):
+        c_code = st.text_input("បញ្ចូលកូដអតិថិជន ( Referral Code ):").strip().upper()
+        if st.button("ស្វែងរក និង ភ្ជាប់កូដ"):
+            if c_code and not df.empty:
+                v_rows = df[df["កូដកាត"] == c_code]
+                if not v_rows.empty:
+                    idx = v_rows.index[-1]
+                    name = df.loc[idx, "ឈ្មោះម្ចាស់កូដ"]
                     try:
                         pts = int(float(df.loc[idx, "ចំនំនួនអ្នកណែនាំ"]))
                     except:
                         pts = 0
-                    
                     pct = pts * 10 if pts < 10 else 100
-                    st.session_state.applied_discount_code = ref_code_input
-                    st.session_state.applied_discount_pct = pct
-                    st.session_state.customer_name = owner_name
-                    st.success(f"✅ កូដរបស់ **{owner_name}** ទទួលបានការបញ្ចុះតម្លៃ **{pct}%** ({pts} នាក់)!")
+                    st.session_state.customer_name = name
+                    st.session_state.customer_code = c_code
+                    st.session_state.discount_pct = float(pct)
+                    st.session_state.show_customer_dialog = False
+                    st.success(f"ភ្ជាប់កូដជោគជ័យ! ទទួលបាន Discount {pct}%")
+                    st.rerun()
                 else:
-                    st.error("❌ មិនមានលេខកូដនេះក្នុងប្រព័ន្ធទេ!")
+                    st.error("មិនមានកូដនេះក្នុងប្រព័ន្ធទេ!")
             else:
-                st.warning("⚠️ សូមបញ្ចូលលេខកូដ!")
+                st.session_state.customer_name = "General"
+                st.session_state.customer_code = c_code if c_code else "N/A"
+                st.session_state.show_customer_dialog = False
+                st.rerun()
 
-        # ------------------------------------------------------------
-        # 📊 ការគណនាប្រាក់សរុប (Total Calculation)
-        # ------------------------------------------------------------
-        subtotal_usd = sum(item["total"] for item in st.session_state.cart)
-        discount_pct = st.session_state.applied_discount_pct
-        discount_usd = (subtotal_usd * discount_pct) / 100
-        total_usd = subtotal_usd - discount_usd
-        total_khr = round(total_usd * EXCHANGE_RATE)
-
-        st.markdown("---")
-        st.markdown("### 💰 សរុបទឹកប្រាក់ត្រូវបង់")
-        st.write(f"តម្លៃដើមសរុប (Subtotal): **${subtotal_usd:.2f}**")
-        if discount_pct > 0:
-            st.write(f"បញ្ចុះតម្លៃ ({discount_pct}%): <span style='color:red;'>-${discount_usd:.2f}</span>", unsafe_allow_html=True)
+# Payment Checkout Modal
+if st.session_state.get("show_payment_modal", False):
+    with st.expander("💵 ការទូទាត់ប្រាក់ (Payment Modal)", expanded=True):
+        st.write(f"### ត្រូវបង់សរុប៖ **$ {grand_total_usd:.2f}** ({grand_total_khr:,.0f} ៛)")
+        p_col1, p_col2 = st.columns(2)
+        paid_usd = p_col1.number_input("ប្រាក់ទទួលបាន ($)", min_value=0.0, value=grand_total_usd)
+        paid_khr = p_col2.number_input("ប្រាក់ទទួលបាន (៛)", min_value=0, step=1000)
         
-        st.markdown(f"### <span style='color:green;'>សរុបចុងក្រោយ៖ ${total_usd:.2f} / {total_khr:,.0f} ៛</span>", unsafe_allow_html=True)
-
-        # ------------------------------------------------------------
-        # 💵 ការទទួលប្រាក់ និង គណនាប្រាក់អាប់
-        # ------------------------------------------------------------
-        st.markdown("---")
-        st.subheader("💵 ការទូទាត់ប្រាក់")
-        pay_col1, pay_col2 = st.columns(2)
-        paid_usd = pay_col1.number_input("ប្រាក់ទទួលបាន ($)", min_value=0.0, step=1.0)
-        paid_khr = pay_col2.number_input("ប្រាក់ទទួលបាន (៛)", min_value=0, step=1000)
-
-        total_paid_usd = paid_usd + (paid_khr / EXCHANGE_RATE)
-        change_usd = total_paid_usd - total_usd
-        change_khr = round(change_usd * EXCHANGE_RATE)
-
-        if total_paid_usd >= total_usd and total_usd > 0:
-            st.success(f"💵 ប្រាក់អាប់៖ **${change_usd:.2f}** ({change_khr:,.0f} ៛)")
-        elif total_paid_usd < total_usd and total_paid_usd > 0:
-            st.warning(f"⚠️ ប្រាក់នៅខ្វះ៖ **${abs(change_usd):.2f}** ({abs(change_khr):,.0f} ៛)")
-
-        # ------------------------------------------------------------
-        # 🏁 ប៊ូតុងបញ្ចប់ការទូទាត់ និងបោះពុម្ពវិក្កយបត្រ
-        # ------------------------------------------------------------
-        if st.button("✅ បញ្ចប់ការទូទាត់ & ចេញវិក្កយបត្រ", type="primary", use_container_width=True):
-            if not st.session_state.cart:
-                st.error("❌ មិនទាន់មានទំនិញក្នុងកញ្ចប់ទិញនៅឡើយ!")
-            elif total_paid_usd < total_usd:
-                st.error("❌ ប្រាក់ទូទាត់មិនទាន់គ្រប់គ្រាន់ទេ!")
-            else:
-                # ប្រសិនបើមានប្រើ Discount Code ត្រូវ reset ពិន្ទុ ឬ បូកពិន្ទុបន្ថែម
-                if st.session_state.applied_discount_code:
-                    code = st.session_state.applied_discount_code
-                    owner = st.session_state.customer_name
-                    # បន្ទាប់ពីប្រើការបញ្ចុះតម្លៃរួច Reset ពិន្ទុមក 0 វិញ
-                    params = {
-                        "action": "update",
-                        "code": code,
-                        "name": owner,
-                        "count": 0,
-                        "status": "សកម្ម",
-                        "image": ""
-                    }
-                    try:
-                        requests.post(SCRIPT_URL, json=params)
-                        st.cache_data.clear()
-                    except:
-                        pass
-
-                st.balloons()
-                st.success("🎉 ការទូទាត់ជោគជ័យ!")
-                
-                # បង្កើតវិក្កយបត្រ HTML សម្រាប់បោះពុម្ព
-                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                receipt_items_html = ""
-                for item in st.session_state.cart:
-                    receipt_items_html += f"""
-                    <tr>
-                        <td style='padding:4px;'>{item['name']}</td>
-                        <td style='text-align:center;'>{item['qty']}</td>
-                        <td style='text-align:right;'>${item['price']:.2f}</td>
-                        <td style='text-align:right;'>${item['total']:.2f}</td>
-                    </tr>
-                    """
-
-                receipt_html = f"""
-                <div id="receipt" style="font-family: Arial, sans-serif; width: 300px; padding: 15px; border: 1px solid #ccc; background: #fff; color: #000; margin: auto;">
-                    <h3 style="text-align:center; margin:0;">អូនឡែន សម្រស់</h3>
-                    <p style="text-align:center; font-size:12px; margin:2px;">ទូរស័ព្ទ៖ 012 345 678 / 098 765 432</p>
-                    <p style="text-align:center; font-size:11px; margin:2px;">កាលបរិច្ឆេទ៖ {now_str}</p>
-                    <p style="text-align:center; font-size:11px; margin:2px;">អ្នកគិតលុយ៖ {st.session_state.username}</p>
-                    <hr style="border-top: 1px dashed #000;">
-                    <table style="width:100%; font-size:12px; border-collapse:collapse;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid #000;">
-                                <th style="text-align:left;">មុខទំនិញ</th>
-                                <th style="text-align:center;">ចំនួន</th>
-                                <th style="text-align:right;">តម្លៃ</th>
-                                <th style="text-align:right;">សរុប</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {receipt_items_html}
-                        </tbody>
-                    </table>
-                    <hr style="border-top: 1px dashed #000;">
-                    <table style="width:100%; font-size:12px;">
-                        <tr><td>សរុបដើម៖</td><td style="text-align:right;">${subtotal_usd:.2f}</td></tr>
-                        <tr><td>បញ្ចុះតម្លៃ ({discount_pct}%):</td><td style="text-align:right;">-${discount_usd:.2f}</td></tr>
-                        <tr style="font-weight:bold;"><td>ត្រូវបង់សរុប៖</td><td style="text-align:right;">${total_usd:.2f}</td></tr>
-                        <tr style="font-weight:bold;"><td>ត្រូវបង់ជាប្រាក់រៀល៖</td><td style="text-align:right;">{total_khr:,.0f} ៛</td></tr>
-                        <tr><td>ប្រាក់ទទួលបាន៖</td><td style="text-align:right;">${total_paid_usd:.2f}</td></tr>
-                        <tr><td>ប្រាក់អាប់៖</td><td style="text-align:right;">${change_usd:.2f} ({change_khr:,.0f} ៛)</td></tr>
-                    </table>
-                    <hr style="border-top: 1px dashed #000;">
-                    <p style="text-align:center; font-size:11px;">សូមអរគុណ ៖ សូមអញ្ជើញមកសារជាថ្មី! 🙏</p>
-                </div>
-                """
-                
-                st.markdown("### 🧾 វិក្កយបត្រទូទាត់ប្រាក់")
-                st.components.v1.html(receipt_html, height=450, scrolling=True)
-
-                # Reset Cart ក្រោយពេលគិតលុយរួច
-                st.session_state.cart = []
-                st.session_state.applied_discount_code = None
-                st.session_state.applied_discount_pct = 0
-                st.session_state.customer_name = ""
-
-# ================================================================
-# ➕ មេនូទី ២៖ បង្កើតកូដអតិថិជនថ្មី
-# ================================================================
-elif menu_option == "➕ បង្កើតកូដអតិថិជនថ្មី":
-    st.title("➕ បង្កើតកូដអតិថិជនថ្មី")
-    col1, col2 = st.columns(2)
-    with col1:
-        new_code = st.text_input("លេខកូដថ្មី (ឧទាហរណ៍៖ 10231010):").strip().upper()
-    with col2:
-        new_name = st.text_input("ឈ្មោះអតិថិជន:")
-
-    if st.button("ចុះឈ្មោះកូដថ្មី", type="primary", use_container_width=True):
-        if new_code and new_name:
-            if not df.empty and new_code in df["កូដកាត"].values:
-                st.error("❌ លេខកូដនេះមានរួចហើយ!")
-            else:
-                params = {
-                    "action": "create",
-                    "code": new_code,
-                    "name": new_name,
-                    "image": ""
-                }
-                response = requests.post(SCRIPT_URL, json=params)
-                if response.status_code == 200:
-                    st.cache_data.clear()
-                    st.success(f"🎉 បង្កើតកូដ {new_code} ជូនលោក/លោកស្រី {new_name} ជោគជ័យ!")
-                else:
-                    st.error("❌ មិនអាចចុះឈ្មោះបានទេ!")
-        else:
-            st.warning("⚠️ សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។")
-
-# ================================================================
-# 📊 មេនូទី ៣៖ តារាងតាមដានទិន្នន័យ
-# ================================================================
-else:
-    st.title("📊 តារាងតាមដានទិន្នន័យអតិថិជន & កូដណែនាំ")
-    if not df.empty:
-        display_df = df.drop_duplicates(subset=["កូដកាត"], keep="last").copy()
+        tot_paid = paid_usd + (paid_khr / EXCHANGE_RATE)
+        change_u = tot_paid - grand_total_usd
+        change_k = round(change_u * EXCHANGE_RATE)
         
-        def calculate_discount(x):
-            try:
-                val = int(float(x))
-                return f"{val * 10}%" if val < 10 else "FREE 1 ដង"
-            except:
-                return "0%"
-                
-        display_df["ភាគរយបញ្ចុះតម្លៃសន្សំបាន"] = display_df["ចំនំនួនអ្នកណែនាំ"].apply(calculate_discount)
-        final_cols = ["កូដកាត", "ឈ្មោះម្ចាស់កូដ", "ចំនំនួនអ្នកណែនាំ", "ស្ថានភាព", "ភាគរយបញ្ចុះតម្លៃសន្សំបាន"]
+        st.info(f"💵 ប្រាក់អាប់៖ $ {change_u:.2f} ({change_k:,.0f} ៛)")
         
-        st.dataframe(display_df[final_cols].reset_index(drop=True), use_container_width=True)
-    else:
-        st.info("📭 មិនទាន់មានទិន្នន័យនៅក្នុងប្រព័ន្ធឡើយ។")
+        if st.button("Confirm Payment & Reset Cart", type="primary"):
+            st.balloons()
+            st.session_state.cart = []
+            st.session_state.show_payment_modal = False
+            st.session_state.discount_pct = 0.0
+            st.session_state.customer_name = "General"
+            st.session_state.customer_code = "N/A"
+            st.success("🎉 ទូទាត់ប្រាក់ជោគជ័យ!")
+            st.rerun()
+
+# ----------------------------------------------------------------
+# 5. Bottom Shortcut Status Bar (បាតខាងក្រោមដូចរូបថត)
+# ----------------------------------------------------------------
+st.markdown("""
+<div class="pos-footer-bar">
+    <span style="margin-right: 20px;"><b>Shift + F1</b> => Switch Filter Type</span>
+    <span style="margin-right: 20px;"><b>Shift + F2</b> => Focus Filter Box</span>
+    <span style="margin-right: 20px;"><b>Shift + F3</b> => Switch Show all UoM</span>
+    <span style="float: right;"><b>Warehouse:</b> Main Store | <b>Outlet:</b> OunLen SMR</span>
+</div>
+""", unsafe_allow_html=True)
