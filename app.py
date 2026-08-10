@@ -7,21 +7,26 @@ from datetime import datetime
 # ----------------------------------------------------------------
 st.set_page_config(
     page_title="OunLen SMR - System Booking",
-    page_icon="📅",
+    page_icon="💇‍♀️",
     layout="wide"
 )
 
-# 🔗 ដាក់ Link Google Apps Script Web App របស់អ្នកនៅទីនេះ
+# ----------------------------------------------------------------
+# 2. Google Apps Script Web App URL
+# ⚠️ សូមជំនួស URL ខាងក្រោមដោយ Web App URL ពិតប្រាកដរបស់អ្នក
+# ----------------------------------------------------------------
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_APPS_SCRIPT_ID_HERE/exec"
 
 # ----------------------------------------------------------------
-# 2. Check URL Parameters (Mode Selection)
+# 3. Check URL Parameters (Mode Selection)
 # ----------------------------------------------------------------
 is_client_view = st.query_params.get("mode") == "client"
 
 if is_client_view:
+    # សម្រាប់ Link អតិថិជន (?mode=client) -> មិនបង្ហាញ Menu
     selected_menu = "📅 កក់ម៉ោងថ្មី (New Booking)"
 else:
+    # សម្រាប់ Admin/Staff -> បង្ហាញ Menu គ្រប់គ្រង
     selected_menu = st.radio(
         "📌 Navigation Menu",
         [
@@ -33,7 +38,7 @@ else:
     st.markdown("---")
 
 # ----------------------------------------------------------------
-# 3. BOOKING FORM
+# 4. BOOKING FORM (ទម្រង់កក់ម៉ោង)
 # ----------------------------------------------------------------
 if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
     
@@ -72,10 +77,11 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
 
         submit_btn = st.form_submit_button("✅ បញ្ជាក់ការកក់ម៉ោង (Confirm Booking)", type="primary", use_container_width=True)
 
-       if submit_btn:
+        if submit_btn:
             if not cust_name.strip() or not cust_phone.strip():
                 st.error("❌ សូមបញ្ចូលឈ្មោះ និង លេខទូរស័ព្ទឲ្យបានត្រឹមត្រូវ!")
             else:
+                # រៀបចំ JSON Payload ផ្ញើទៅ Apps Script
                 payload = {
                     "customer_name": cust_name.strip(),
                     "phone": cust_phone.strip(),
@@ -87,18 +93,21 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
                 }
 
                 try:
-                    # បន្ថែម allow_redirects=True ដើម្បឱ្យវាទទួលយកការ Redirect ពី Google Apps Script
+                    # ផ្ញើ POST Request ដោយអនុញ្ញាត Redirect (allow_redirects=True)
                     response = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
                     
-                    # ពិនិត្យ Status Code 200 ឬ 302
+                    # ទទួលយក Status 200 (Success) ឬ 302 (Redirect)
                     if response.status_code in [200, 302]:
                         st.balloons()
                         st.success(f"🎉 អរគុណ {cust_name}! ការកក់ម៉ោងរបស់អ្នកនៅថ្ងៃទី {book_date} វេលាម៉ោង {book_time} ទទួលបានជោគជ័យ។")
                     else:
-                        st.error(f"មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ (Code: {response.status_code}) សូមព្យាយាមម្តងទៀត!")
+                        st.error(f"មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ (Status Code: {response.status_code}) សូមព្យាយាមម្តងទៀត!")
                 except Exception as e:
                     st.error(f"Error: {e}")
 
+# ----------------------------------------------------------------
+# 5. ADMIN MANAGE BOOKINGS
+# ----------------------------------------------------------------
 elif selected_menu == "📋 បញ្ជីកក់ម៉ោង (Manage Bookings)":
-    st.title("📋 បញ្ជីកក់ម៉ោង (Admin)")
-    st.info("ដើម្បីមើលទិន្នន័យកក់ សូមបើកមើលក្នុង Google Sheet របស់អ្នកដោយផ្ទាល់។")
+    st.title("📋 បញ្ជីកក់ម៉ោង (Admin Dashboard)")
+    st.info("💡 ទិន្នន័យកក់ម៉ោងទាំងអស់ត្រូវបានរក្សាទុកក្នុង Google Sheet របស់អ្នកដោយស្វ័យប្រវត្តិ។")
