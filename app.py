@@ -18,7 +18,7 @@ st.set_page_config(
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
 
 # ----------------------------------------------------------------
-# 3. Custom CSS (ពង្រីកអក្សរក្នុងតារាង និងរៀបចំ UI)
+# 3. Custom CSS
 # ----------------------------------------------------------------
 st.markdown("""
 <style>
@@ -53,12 +53,37 @@ st.markdown("""
         font-weight: bold; 
     }
 
-    /* 🔥 ពង្រីកអក្សរក្នុងតារាង DataFrame ឲ្យធំ និងច្បាស់ងាយមើល */
+    /* ពង្រីកអក្សរក្នុងតារាង DataFrame */
     div[data-testid="stDataFrame"] * {
         font-size: 16px !important;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# ----------------------------------------------------------------
+# Helper Functions សម្រាប់ Format កាលបរិច្ឆេទ & ម៉ោង ឲ្យស្អាត
+# ----------------------------------------------------------------
+def format_clean_date(date_str):
+    if not date_str:
+        return "-"
+    d_str = str(date_str)
+    if "T" in d_str:
+        d_str = d_str.split("T")[0]
+    return d_str
+
+def format_clean_time(time_str):
+    if not time_str:
+        return "-"
+    t_str = str(time_str)
+    # ប្រសិនបើទិន្នន័យជាប់ ISO Format ដូចជា 1899-12-30T01:17:56.000Z
+    if "T" in t_str:
+        try:
+            time_part = t_str.split("T")[1].split(".")[0]
+            dt = datetime.strptime(time_part, "%H:%M:%S")
+            return dt.strftime("%I:%M %p")
+        except Exception:
+            return t_str.split("T")[0]
+    return t_str
 
 # ----------------------------------------------------------------
 # 4. Data Loading
@@ -135,8 +160,8 @@ if mode == "client" or mode is None:
         booked_slots = []
         if len(data.get("bookings", [])) > 1:
             for b in data["bookings"][1:]:
-                if len(b) >= 7 and str(b[5]) == str(book_date):
-                    booked_slots.append(str(b[6]))
+                if len(b) >= 7 and format_clean_date(b[5]) == str(book_date):
+                    booked_slots.append(format_clean_time(b[6]))
 
         available_slots = [slot for slot in all_slots if slot not in booked_slots]
 
@@ -195,7 +220,7 @@ elif mode == "admin":
     
     tab1, tab2 = st.tabs(["📋 បញ្ជីកក់ម៉ោងអតិថិជន", "⚙️ គ្រប់គ្រងសេវាកម្ម & តម្លៃ"])
 
-    # Tab 1: បញ្ជីកក់ម៉ោង (បានកែប្រែឲ្យច្បាស់ស្អាត)
+    # Tab 1: បញ្ជីកក់ម៉ោង
     with tab1:
         st.subheader("📋 បញ្ជីការកក់ទាំងអស់")
         if st.button("🔄 Refresh Data"):
@@ -207,7 +232,12 @@ elif mode == "admin":
             headers = bookings_raw[0]
             df_b = pd.DataFrame(bookings_raw[1:], columns=headers)
             
-            # 1. កែសម្រួលការបង្ហាញតារាង (ពង្រីក និងលាក់ Index)
+            # Format កាលបរិច្ឆេទ និងម៉ោង ឲ្យស្អាត
+            if len(headers) >= 7:
+                df_b[headers[5]] = df_b[headers[5]].apply(format_clean_date)
+                df_b[headers[6]] = df_b[headers[6]].apply(format_clean_time)
+
+            # 1. បង្ហាញក្នុង Table
             st.dataframe(
                 df_b,
                 use_container_width=True,
@@ -225,10 +255,15 @@ elif mode == "admin":
                 }
             )
 
-            # 2. បន្ថែម Card View ងាយស្រួលមើលលើទូរស័ព្ទ
+            # 2. បង្ហាញជា Card ស្អាតច្បាស់ៗ
             st.markdown("---")
             st.subheader("📱 មើលជាទម្រង់ Card (ងាយស្រួលមើលលើទូរស័ព្ទ)")
             for idx, row in df_b.iterrows():
+                clean_date = format_clean_date(row.get(headers[5], ''))
+                clean_time = format_clean_time(row.get(headers[6], ''))
+                note_text = row.get(headers[7], '')
+                note_display = note_text if note_text and str(note_text).strip() != "" else "-"
+
                 st.markdown(f"""
                 <div style="background-color:#1e293b; padding:16px; border-radius:12px; margin-bottom:12px; border-left:6px solid #2563eb; color:white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -236,8 +271,12 @@ elif mode == "admin":
                         <span style="background-color:#059669; color:white; padding:3px 10px; border-radius:12px; font-weight:bold; font-size:14px;">📞 {row.get(headers[2], '')}</span>
                     </div>
                     <p style="margin:8px 0 4px 0; font-size:16px; color:#f1f5f9;"><b>💆‍♀️ សេវាកម្ម:</b> {row.get(headers[3], '')}</p>
-                    <p style="margin:4px 0; font-size:15px; color:#cbd5e1;"><b>📅 ថ្ងៃណាត់:</b> {row.get(headers[5], '')} | <b>🕒 ម៉ោង:</b> <span style="color:#f59e0b; font-weight:bold;">{row.get(headers[6], '')}</span> | <b>👩‍ស្ប៉ា ជាង:</b> {row.get(headers[4], '')}</p>
-                    <p style="margin:4px 0 0 0; font-size:14px; color:#94a3b8;"><b>📝 ចំណាំ:</b> {row.get(headers[7], '-')}</p>
+                    <p style="margin:4px 0; font-size:15px; color:#cbd5e1;">
+                        <b>📅 ថ្ងៃណាត់:</b> <span style="color:#38bdf8; font-weight:bold;">{clean_date}</span> | 
+                        <b>🕒 ម៉ោង:</b> <span style="color:#f59e0b; font-weight:bold;">{clean_time}</span> | 
+                        <b>👩‍ស្ប៉ា ជាង:</b> {row.get(headers[4], '')}
+                    </p>
+                    <p style="margin:4px 0 0 0; font-size:14px; color:#94a3b8;"><b>📝 ចំណាំ:</b> {note_display}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
