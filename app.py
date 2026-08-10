@@ -13,9 +13,9 @@ st.set_page_config(
 
 # ----------------------------------------------------------------
 # 2. Google Apps Script Web App URL
-# ⚠️ សូមជំនួស URL ខាងក្រោមដោយ Web App URL ពិតប្រាកដរបស់អ្នក
 # ----------------------------------------------------------------
-APPS_SCRIPT_URL = https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec
+APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
+
 # ----------------------------------------------------------------
 # 3. Check URL Parameters (Mode Selection)
 # ----------------------------------------------------------------
