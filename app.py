@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import pandas as pd
 from datetime import datetime
 
 # ----------------------------------------------------------------
@@ -22,10 +23,8 @@ APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad
 is_client_view = st.query_params.get("mode") == "client"
 
 if is_client_view:
-    # សម្រាប់ Link អតិថិជន (?mode=client) -> មិនបង្ហាញ Menu
     selected_menu = "📅 កក់ម៉ោងថ្មី (New Booking)"
 else:
-    # សម្រាប់ Admin/Staff -> បង្ហាញ Menu គ្រប់គ្រង
     selected_menu = st.radio(
         "📌 Navigation Menu",
         [
@@ -80,7 +79,6 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
             if not cust_name.strip() or not cust_phone.strip():
                 st.error("❌ សូមបញ្ចូលឈ្មោះ និង លេខទូរស័ព្ទឲ្យបានត្រឹមត្រូវ!")
             else:
-                # រៀបចំ JSON Payload ផ្ញើទៅ Apps Script
                 payload = {
                     "customer_name": cust_name.strip(),
                     "phone": cust_phone.strip(),
@@ -92,10 +90,7 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
                 }
 
                 try:
-                    # ផ្ញើ POST Request ដោយអនុញ្ញាត Redirect (allow_redirects=True)
                     response = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
-                    
-                    # ទទួលយក Status 200 (Success) ឬ 302 (Redirect)
                     if response.status_code in [200, 302]:
                         st.balloons()
                         st.success(f"🎉 អរគុណ {cust_name}! ការកក់ម៉ោងរបស់អ្នកនៅថ្ងៃទី {book_date} វេលាម៉ោង {book_time} ទទួលបានជោគជ័យ។")
@@ -105,8 +100,28 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
                     st.error(f"Error: {e}")
 
 # ----------------------------------------------------------------
-# 5. ADMIN MANAGE BOOKINGS
+# 5. ADMIN MANAGE BOOKINGS (បង្ហាញបញ្ជីកក់ម៉ោង)
 # ----------------------------------------------------------------
 elif selected_menu == "📋 បញ្ជីកក់ម៉ោង (Manage Bookings)":
     st.title("📋 បញ្ជីកក់ម៉ោង (Admin Dashboard)")
-    st.info("💡 ទិន្នន័យកក់ម៉ោងទាំងអស់ត្រូវបានរក្សាទុកក្នុង Google Sheet របស់អ្នកដោយស្វ័យប្រវត្តិ។")
+    
+    col_t, col_b = st.columns([4, 1])
+    with col_b:
+        if st.button("🔄 Refresh Data", use_container_width=True):
+            st.rerun()
+
+    try:
+        # ទាញយកទិន្នន័យពី Google Apps Script
+        res = requests.get(APPS_SCRIPT_URL, allow_redirects=True)
+        if res.status_code == 200:
+            data = res.json()
+            if len(data) > 1:
+                # បំលែងទិន្នន័យជា DataFrame
+                df = pd.DataFrame(data[1:], columns=data[0])
+                st.dataframe(df, use_container_width=True)
+            else:
+                st.info("មិនទាន់មានទិន្នន័យកក់នៅក្នុង Google Sheet នៅឡើយទេ។")
+        else:
+            st.error("មិនអាចទាញយកទិន្នន័យបានទេ!")
+    except Exception as e:
+        st.error(f"Error: {e}")
