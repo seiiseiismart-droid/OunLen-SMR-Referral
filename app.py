@@ -1,187 +1,119 @@
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, time
 
-# ----------------------------------------------------------------
-# 1. Page Configuration
-# ----------------------------------------------------------------
-st.set_page_config(
-    page_title="OunLen SMR - Booking App",
-    page_icon="💇‍♀️",
-    layout="centered"
-)
+# 1. Page Config
+st.set_page_config(page_title="OunLen SMR - System", page_icon="💇‍♀️", layout="centered")
 
-# ----------------------------------------------------------------
-# 2. Google Apps Script Web App URL
-# ----------------------------------------------------------------
+# 2. Apps Script URL
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
 
-# ----------------------------------------------------------------
-# 3. Custom CSS សម្រាប់ធ្វើអោយ UI ដូច Mobile App ក្នុងរូប
-# ----------------------------------------------------------------
+# 3. Custom CSS Style
 st.markdown("""
 <style>
-    /* កំណត់ Background សរុប */
-    .main {
-        background-color: #f4f6f9;
-    }
-    
-    /* Header Container ពណ៌ក្រមៅរចនាបថ App */
+    .main { background-color: #f8fafc; }
     .app-header {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        color: white;
-        padding: 24px 20px;
-        border-radius: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px;
     }
-    .app-header h2 {
-        color: #ffffff !important;
-        margin-bottom: 5px;
-        font-weight: 700;
-    }
-    .app-header p {
-        color: #94a3b8;
-        font-size: 14px;
-        margin: 0;
-    }
-
-    /* Card Styling សម្រាប់ទម្រង់កក់ */
-    .card-box {
-        background-color: white;
-        padding: 20px;
-        border-radius: 16px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        margin-bottom: 16px;
-        border: 1px solid #e2e8f0;
-    }
-    
-    .card-title {
-        font-weight: 600;
-        font-size: 16px;
-        color: #1e293b;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    /* Styling សម្រាប់ Service Option Cards */
     .service-card {
-        background: #f8fafc;
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        padding: 12px 16px;
-        margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
     }
-    .service-price {
-        background-color: #2563eb;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 13px;
-    }
-
-    /* កែសម្រួលប៊ូតុង Submit */
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
-        color: white;
-        font-weight: bold;
-        border-radius: 12px;
-        padding: 12px;
-        font-size: 16px;
-        border: none;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:first-child:hover {
-        background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%);
-        transform: translateY(-2px);
-    }
+    .service-price { background-color: #2563eb; color: white; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------------
-# 4. Navigation (Mode Selection)
-# ----------------------------------------------------------------
-is_client_view = st.query_params.get("mode") == "client"
+# 4. Fetch Data Function
+@st.cache_data(ttl=5)
+def load_data():
+    try:
+        res = requests.get(APPS_SCRIPT_URL, allow_redirects=True)
+        if res.status_code == 200:
+            return res.json()
+    except Exception:
+        pass
+    return {"bookings": [], "services": []}
 
-if not is_client_view:
-    selected_menu = st.radio(
-        "📌 Menu",
-        ["📅 កក់ម៉ោងថ្មី (Booking)", "📋 បញ្ជីកក់ម៉ោង (Manage)"],
-        horizontal=True
-    )
-    st.markdown("<br>", unsafe_allow_html=True)
-else:
-    selected_menu = "📅 កក់ម៉ោងថ្មី (Booking)"
+data = load_data()
 
-# ----------------------------------------------------------------
-# 5. CLIENT BOOKING FORM (ទម្រង់ UI App)
-# ----------------------------------------------------------------
-if selected_menu == "📅 កក់ម៉ោងថ្មី (Booking)":
-    
-    # 📱 Top Header (ដូចស្ទីល App ក្នុងរូប)
+# Process Services List
+services_list = []
+services_dict = {}
+if len(data.get("services", [])) > 1:
+    for row in data["services"][1:]:
+        s_name, s_price = str(row[0]), row[1]
+        s_text = f"{s_name} (${float(s_price):.2f})"
+        services_list.append(s_text)
+        services_dict[s_name] = float(s_price)
+
+# Mode Detection
+mode = st.query_params.get("mode")
+
+# =================================================================
+# 📱 DASHBOARD 1: អតិថិជន (Client View) - URL: ?mode=client
+# =================================================================
+if mode == "client" or mode is None:
     st.markdown("""
         <div class="app-header">
-            <h2>💇‍♀️ អូនឡែន សម្រស់</h2>
-            <p>ប្រព័ន្ធកក់ម៉ោងសេវាកម្មរហ័ស & ងាយស្រួល</p>
+            <h2 style="color:white; margin:0;">💇‍♀️ អូនឡែន សម្រស់</h2>
+            <p style="color:#94a3b8; margin:0;">ប្រព័ន្ធកក់ម៉ោងសេវាកម្មអនឡាញ</p>
         </div>
     """, unsafe_allow_html=True)
 
     with st.form("booking_form", clear_on_submit=True):
-        
-        # 👤 1. ព័ត៌មានអតិថិជន
-        st.markdown('<div class="card-title">👤 ព័ត៌មានអតិថិជន (Customer Info)</div>', unsafe_allow_html=True)
+        st.subheader("👤 1. ព័ត៌មានអតិថិជន")
         c1, c2 = st.columns(2)
-        cust_name = c1.text_input("ឈ្មោះអតិថិជន*", placeholder="ឧ. អ្នកស្រី គឹម")
-        cust_phone = c2.text_input("លេខទូរស័ព្ទ*", placeholder="ឧ. 012 345 678")
+        cust_name = c1.text_input("ឈ្មោះអតិថិជន*")
+        cust_phone = c2.text_input("លេខទូរស័ព្ទ*")
 
-        st.markdown("<hr style='margin: 15px 0; border-color: #f1f5f9;'>", unsafe_allow_html=True)
-
-        # 💅 2. ជ្រើសរើសសេវាកម្ម & ជាង
-        st.markdown('<div class="card-title">✨ ជ្រើសរើសសេវាកម្ម & ជាង</div>', unsafe_allow_html=True)
+        st.subheader("✨ 2. ជ្រើសរើសសេវាកម្ម & ជាង")
         s_col1, s_col2 = st.columns(2)
-        service = s_col1.selectbox("សេវាកម្ម*", [
-            "ម៉ាសស្កាតបញ្ចូលវីតាមីនសារាយ ($15.00)",
-            "ម៉ាសស្កាតបញ្ចូលវីតាមីន Baby Glow ($15.00)",
-            "ញេចសម្អាតគ្រាប់មុន ជម្រុះកោសិកា ($7.50)",
-            "បាញ់ Laser ក្លៀក ($5.00)"
-        ])
-        staff = s_col2.selectbox("ជាង/បុគ្គលិក*", [
-            "អ្នកគ្រូ ឡែន (Senior Specialist)",
-            "កញ្ញា ម៉ារី",
-            "ចៃដន្យ (Any Available)"
-        ])
+        service = s_col1.selectbox("សេវាកម្ម*", services_list if services_list else ["គ្មានសេវាកម្ម"])
+        staff = s_col2.selectbox("ជាង/បុគ្គលិក*", ["អ្នកគ្រូ ឡែន", "កញ្ញា ម៉ារី", "ចៃដន្យ (Any)"])
 
-        st.markdown("<hr style='margin: 15px 0; border-color: #f1f5f9;'>", unsafe_allow_html=True)
-
-        # 📅 3. កាលបរិច្ឆេទ & ម៉ោងណាត់
-        st.markdown('<div class="card-title">⏰ កាលបរិច្ឆេទ & ម៉ោងណាត់</div>', unsafe_allow_html=True)
+        st.subheader("⏰ 3. កាលបរិច្ឆេទ & ម៉ោងណាត់")
         d_col1, d_col2 = st.columns(2)
         book_date = d_col1.date_input("ថ្ងៃណាត់ជួប", datetime.now())
-        book_time = d_col2.selectbox("ម៉ោងណាត់ជួប", [
-            "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
-            "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
-        ])
 
-        note = st.text_area("ចំណាំបន្ថែម (Optional)", placeholder="បញ្ជាក់បន្ថែម...")
+        # GENERATE TIME SLOTS (08:00 AM - 09:30 PM)
+        all_slots = []
+        for h in range(8, 22):
+            for m in (0, 30):
+                if h == 21 and m == 30:
+                    all_slots.append("09:30 PM")
+                    break
+                elif h < 22:
+                    t_obj = time(h, m)
+                    all_slots.append(t_obj.strftime("%I:%M %p"))
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # 🔴 ប៊ូតុង Confirm
-        submit_btn = st.form_submit_button("✅ បញ្ជាក់ការកក់ម៉ោង (Confirm Booking)", use_container_width=True)
+        # FILTER OUT BOOKED SLOTS
+        booked_slots = []
+        if len(data.get("bookings", [])) > 1:
+            for b in data["bookings"][1:]:
+                if len(b) >= 7 and str(b[5]) == str(book_date):
+                    booked_slots.append(str(b[6]))
+
+        available_slots = [slot for slot in all_slots if slot not in booked_slots]
+
+        if available_slots:
+            book_time = d_col2.selectbox("ម៉ោងណាត់ជួប (បង្ហាញតែម៉ោងទំនេរ)", available_slots)
+        else:
+            d_col2.warning("❌ ថ្ងៃនេះពេញម៉ោងអស់ហើយ!")
+            book_time = None
+
+        note = st.text_area("ចំណាំបន្ថែម (Optional)")
+        submit_btn = st.form_submit_button("✅ បញ្ជាក់ការកក់ម៉ោង (Confirm)", type="primary", use_container_width=True)
 
         if submit_btn:
             if not cust_name.strip() or not cust_phone.strip():
-                st.error("❌ សូមបញ្ចូលឈ្មោះ និង លេខទូរស័ព្ទឲ្យបានត្រឹមត្រូវ!")
+                st.error("❌ សូមបញ្ចូលឈ្មោះ និង លេខទូរស័ព្ទ!")
+            elif not book_time:
+                st.error("❌ សូមជ្រើសរើសថ្ងៃផ្សេង ព្រោះថ្ងៃនេះអស់ម៉ោងទំនេរហើយ!")
             else:
                 payload = {
+                    "action": "add_booking",
                     "customer_name": cust_name.strip(),
                     "phone": cust_phone.strip(),
                     "service": service,
@@ -190,65 +122,79 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (Booking)":
                     "time": book_time,
                     "note": note.strip()
                 }
+                res = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
+                if res.status_code in [200, 302]:
+                    st.balloons()
+                    st.success(f"🎉 អរគុណ {cust_name}! បានកក់ម៉ោង {book_time} នៅថ្ងៃ {book_date} ជោគជ័យ។")
+                    st.cache_data.clear()
+                else:
+                    st.error("មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ!")
 
-                try:
-                    response = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
-                    if response.status_code in [200, 302]:
-                        st.balloons()
-                        st.success(f"🎉 អរគុណ {cust_name}! ការកក់ម៉ោងនៅថ្ងៃទី {book_date} វេលាម៉ោង {book_time} ទទួលបានជោគជ័យ។")
-                    else:
-                        st.error(f"មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ (Code: {response.status_code})")
-                except Exception as e:
-                    st.error(f"Error: {e}")
+    # Display Services List
+    st.markdown("<br><h4>🔥 បញ្ជីសេវាកម្ម និងតម្លៃ</h4>", unsafe_allow_html=True)
+    if len(data.get("services", [])) > 1:
+        for s in data["services"][1:]:
+            st.markdown(f"""
+                <div class="service-card">
+                    <div><strong>{s[0]}</strong><br><small style="color:#64748b;">{s[2] if len(s)>2 else ''}</small></div>
+                    <div class="service-price">${float(s[1]):.2f}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-    # 🏷️ បង្ហាញបញ្ជីសេវាកម្មពេញនិយម (Style ដូច Card បង្ហាញជើងហោះហើរក្នុងរូប)
-    st.markdown("<br><h4>🔥 សេវាកម្មពេញនិយម</h4>", unsafe_allow_html=True)
+# =================================================================
+# 👑 DASHBOARD 2: ម្ចាស់ហាង (Admin View) - URL: ?mode=admin
+# =================================================================
+elif mode == "admin":
+    st.title("👑 Admin Dashboard (ម្ចាស់ហាង)")
     
-    st.markdown("""
-        <div class="service-card">
-            <div>
-                <strong>💆‍♀️ ម៉ាសស្កាតបញ្ចូលវីតាមីនសារាយ</strong><br>
-                <small style="color: #64748b;">ថែទាំស្បែកមុខអោយភ្លឺថ្លា</small>
-            </div>
-            <div class="service-price">$15.00</div>
-        </div>
-        <div class="service-card">
-            <div>
-                <strong>✨ ម៉ាសស្កាត Baby Glow</strong><br>
-                <small style="color: #64748b;">ផ្ដល់សំណើម និងជម្រុះកោសិកា</small>
-            </div>
-            <div class="service-price">$15.00</div>
-        </div>
-        <div class="service-card">
-            <div>
-                <strong>🎯 ញេចសម្អាតគ្រាប់មុន</strong><br>
-                <small style="color: #64748b;">សម្អាតស្បែកមុខជម្រៅជ្រៅ</small>
-            </div>
-            <div class="service-price">$7.50</div>
-        </div>
-    """, unsafe_allow_html=True)
+    tab1, tab2 = st.tabs(["📋 បញ្ជីកក់ម៉ោងអតិថិជន", "⚙️ គ្រប់គ្រងសេវាកម្ម & តម្លៃ"])
 
-# ----------------------------------------------------------------
-# 6. ADMIN MANAGE BOOKINGS
-# ----------------------------------------------------------------
-elif selected_menu == "📋 បញ្ជីកក់ម៉ោង (Manage)":
-    st.title("📋 បញ្ជីកក់ម៉ោង (Admin Dashboard)")
-    
-    col_t, col_b = st.columns([4, 1])
-    with col_b:
-        if st.button("🔄 Refresh", use_container_width=True):
+    # Tab 1: Bookings List
+    with tab1:
+        st.subheader("📋 បញ្ជីការកក់ទាំងអស់")
+        if st.button("🔄 Refresh Data"):
+            st.cache_data.clear()
             st.rerun()
 
-    try:
-        res = requests.get(APPS_SCRIPT_URL, allow_redirects=True)
-        if res.status_code == 200:
-            data = res.json()
-            if len(data) > 1:
-                df = pd.DataFrame(data[1:], columns=data[0])
-                st.dataframe(df, use_container_width=True)
-            else:
-                st.info("មិនទាន់មានទិន្នន័យកក់នៅឡើយទេ។")
+        if len(data.get("bookings", [])) > 1:
+            df_b = pd.DataFrame(data["bookings"][1:], columns=data["bookings"][0])
+            st.dataframe(df_b, use_container_width=True)
         else:
-            st.error("មិនអាចទាញយកទិន្នន័យបានទេ!")
-    except Exception as e:
-        st.error(f"Error: {e}")
+            st.info("មិនទាន់មានទិន្នន័យកក់នៅឡើយទេ។")
+
+    # Tab 2: Service & Price Management
+    with tab2:
+        st.subheader("➕ បន្ថែមសេវាកម្មថ្មី")
+        with st.form("add_service_form", clear_on_submit=True):
+            new_s_name = st.text_input("ឈ្មោះសេវាកម្ម*")
+            new_s_price = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
+            new_s_desc = st.text_input("ការពិពណ៌នា (Optional)")
+            btn_add_s = st.form_submit_button("➕ បន្ថែមសេវាកម្ម")
+
+            if btn_add_s and new_s_name.strip():
+                payload = {
+                    "action": "add_service",
+                    "service_name": new_s_name.strip(),
+                    "price": new_s_price,
+                    "description": new_s_desc.strip()
+                }
+                requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
+                st.success("✅ បានបន្ថែមសេវាកម្មថ្មីជោគជ័យ!")
+                st.cache_data.clear()
+
+        st.markdown("---")
+        st.subheader("✏️ កែប្រែតម្លៃសេវាកម្មដែលមានស្រាប់")
+        if services_dict:
+            selected_s_edit = st.selectbox("ជ្រើសរើសសេវាកម្មត្រូវកែតម្លៃ", list(services_dict.keys()))
+            current_price = services_dict[selected_s_edit]
+            updated_price = st.number_input("តម្លៃថ្មី ($)", value=current_price, min_value=0.0, step=0.5)
+
+            if st.button("💾 រក្សាទុកតម្លៃថ្មី"):
+                payload = {
+                    "action": "update_service",
+                    "service_name": selected_s_edit,
+                    "price": updated_price
+                }
+                requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
+                st.success(f"✅ បានកែប្រែតម្លៃសេវាកម្ម '{selected_s_edit}' ទៅជា ${updated_price:.2f} ជោគជ័យ!")
+                st.cache_data.clear()
