@@ -3,30 +3,57 @@ import requests
 import pandas as pd
 from datetime import datetime, time
 
-# 1. Page Config
-st.set_page_config(page_title="OunLen SMR - System", page_icon="💇‍♀️", layout="centered")
+# ----------------------------------------------------------------
+# 1. Page Configuration
+# ----------------------------------------------------------------
+st.set_page_config(
+    page_title="OunLen SMR - System",
+    page_icon="💇‍♀️",
+    layout="centered"
+)
 
-# 2. Apps Script URL
+# ----------------------------------------------------------------
+# 2. Google Apps Script Web App URL
+# ----------------------------------------------------------------
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
 
-# 3. Custom CSS Style
+# ----------------------------------------------------------------
+# 3. Custom CSS
+# ----------------------------------------------------------------
 st.markdown("""
 <style>
     .main { background-color: #f8fafc; }
     .app-header {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px;
+        color: white; 
+        padding: 20px; 
+        border-radius: 16px; 
+        margin-bottom: 20px;
     }
     .service-card {
-        background: white; border: 1px solid #e2e8f0; border-radius: 12px;
-        padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+        background: white; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 12px;
+        padding: 12px 16px; 
+        margin-bottom: 8px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
     }
-    .service-price { background-color: #2563eb; color: white; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+    .service-price { 
+        background-color: #2563eb; 
+        color: white; 
+        padding: 4px 10px; 
+        border-radius: 20px; 
+        font-weight: bold; 
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# 4. Fetch Data Function
-@st.cache_data(ttl=5)
+# ----------------------------------------------------------------
+# 4. Data Loading
+# ----------------------------------------------------------------
+@st.cache_data(ttl=3)
 def load_data():
     try:
         res = requests.get(APPS_SCRIPT_URL, allow_redirects=True)
@@ -43,16 +70,23 @@ services_list = []
 services_dict = {}
 if len(data.get("services", [])) > 1:
     for row in data["services"][1:]:
-        s_name, s_price = str(row[0]), row[1]
-        s_text = f"{s_name} (${float(s_price):.2f})"
+        s_name = str(row[0])
+        try:
+            s_price = float(row[1])
+        except (ValueError, TypeError):
+            s_price = 0.0
+        
+        s_text = f"{s_name} (${s_price:.2f})"
         services_list.append(s_text)
-        services_dict[s_name] = float(s_price)
+        services_dict[s_name] = s_price
 
-# Mode Detection
+# ----------------------------------------------------------------
+# 5. Route Mode Detection
+# ----------------------------------------------------------------
 mode = st.query_params.get("mode")
 
 # =================================================================
-# 📱 DASHBOARD 1: អតិថិជន (Client View) - URL: ?mode=client
+# 📱 1. CLIENT DASHBOARD (?mode=client)
 # =================================================================
 if mode == "client" or mode is None:
     st.markdown("""
@@ -77,7 +111,7 @@ if mode == "client" or mode is None:
         d_col1, d_col2 = st.columns(2)
         book_date = d_col1.date_input("ថ្ងៃណាត់ជួប", datetime.now())
 
-        # GENERATE TIME SLOTS (08:00 AM - 09:30 PM)
+        # បង្កើត Slot ម៉ោង (08:00 AM ដល់ 09:30 PM)
         all_slots = []
         for h in range(8, 22):
             for m in (0, 30):
@@ -88,13 +122,14 @@ if mode == "client" or mode is None:
                     t_obj = time(h, m)
                     all_slots.append(t_obj.strftime("%I:%M %p"))
 
-        # FILTER OUT BOOKED SLOTS
+        # ឆែកម៉ោងដែលគេកក់រួច
         booked_slots = []
         if len(data.get("bookings", [])) > 1:
             for b in data["bookings"][1:]:
                 if len(b) >= 7 and str(b[5]) == str(book_date):
                     booked_slots.append(str(b[6]))
 
+        # បង្ហាញតែម៉ោងទំនេរ
         available_slots = [slot for slot in all_slots if slot not in booked_slots]
 
         if available_slots:
@@ -130,39 +165,46 @@ if mode == "client" or mode is None:
                 else:
                     st.error("មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ!")
 
-    # Display Services List
+    # បង្ហាញបញ្ជីសេវាកម្ម
     st.markdown("<br><h4>🔥 បញ្ជីសេវាកម្ម និងតម្លៃ</h4>", unsafe_allow_html=True)
     if len(data.get("services", [])) > 1:
         for s in data["services"][1:]:
+            try:
+                p = float(s[1])
+            except (ValueError, TypeError):
+                p = 0.0
             st.markdown(f"""
                 <div class="service-card">
                     <div><strong>{s[0]}</strong><br><small style="color:#64748b;">{s[2] if len(s)>2 else ''}</small></div>
-                    <div class="service-price">${float(s[1]):.2f}</div>
+                    <div class="service-price">${p:.2f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
 # =================================================================
-# 👑 DASHBOARD 2: ម្ចាស់ហាង (Admin View) - URL: ?mode=admin
+# 👑 2. ADMIN DASHBOARD (?mode=admin)
 # =================================================================
 elif mode == "admin":
     st.title("👑 Admin Dashboard (ម្ចាស់ហាង)")
     
     tab1, tab2 = st.tabs(["📋 បញ្ជីកក់ម៉ោងអតិថិជន", "⚙️ គ្រប់គ្រងសេវាកម្ម & តម្លៃ"])
 
-    # Tab 1: Bookings List
+    # Tab 1: បញ្ជីកក់ម៉ោង
     with tab1:
         st.subheader("📋 បញ្ជីការកក់ទាំងអស់")
         if st.button("🔄 Refresh Data"):
             st.cache_data.clear()
             st.rerun()
 
-        if len(data.get("bookings", [])) > 1:
-            df_b = pd.DataFrame(data["bookings"][1:], columns=data["bookings"][0])
+        bookings_raw = data.get("bookings", [])
+        if len(bookings_raw) > 1:
+            df_b = pd.DataFrame(bookings_raw[1:], columns=bookings_raw[0])
             st.dataframe(df_b, use_container_width=True)
+        elif len(bookings_raw) == 1:
+            st.info("មានតែ Header ប៉ុន្តែមិនទាន់មានទិន្នន័យកក់ពីអតិថិជននៅឡើយទេ។")
         else:
             st.info("មិនទាន់មានទិន្នន័យកក់នៅឡើយទេ។")
 
-    # Tab 2: Service & Price Management
+    # Tab 2: គ្រប់គ្រងសេវាកម្ម
     with tab2:
         st.subheader("➕ បន្ថែមសេវាកម្មថ្មី")
         with st.form("add_service_form", clear_on_submit=True):
@@ -187,7 +229,7 @@ elif mode == "admin":
         if services_dict:
             selected_s_edit = st.selectbox("ជ្រើសរើសសេវាកម្មត្រូវកែតម្លៃ", list(services_dict.keys()))
             current_price = services_dict[selected_s_edit]
-            updated_price = st.number_input("តម្លៃថ្មី ($)", value=current_price, min_value=0.0, step=0.5)
+            updated_price = st.number_input("តម្លៃថ្មី ($)", value=float(current_price), min_value=0.0, step=0.5)
 
             if st.button("💾 រក្សាទុកតម្លៃថ្មី"):
                 payload = {
