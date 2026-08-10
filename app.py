@@ -1,6 +1,5 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
-import pandas as pd
+import requests
 from datetime import datetime
 
 # ----------------------------------------------------------------
@@ -12,44 +11,29 @@ st.set_page_config(
     layout="wide"
 )
 
-# ----------------------------------------------------------------
-# 2. Connect to Google Sheets
-# ----------------------------------------------------------------
-conn = st.connection("gsheets", type=GSheetsConnection)
-
-def get_booking_data():
-    """ទាញយកទិន្នន័យពី Google Sheets"""
-    try:
-        data = conn.read(ttl="0") # ttl="0" ដើម្បីឲ្យវាទាញទិន្នន័យថ្មីជានិច្ច
-        return data
-    except Exception:
-        return pd.DataFrame(columns=[
-            "Timestamp", "Customer_Name", "Phone", "Service", "Staff", "Date", "Time", "Note", "Status"
-        ])
+# 🔗 ដាក់ Link Google Apps Script Web App របស់អ្នកនៅទីនេះ
+APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_APPS_SCRIPT_ID_HERE/exec"
 
 # ----------------------------------------------------------------
-# 3. Mode Switching (Admin vs Client View)
+# 2. Check URL Parameters (Mode Selection)
 # ----------------------------------------------------------------
 is_client_view = st.query_params.get("mode") == "client"
 
 if is_client_view:
-    # សម្រាប់អតិថិជន៖ មិនបង្ហាញ Menu អ្វីទាំងអស់
     selected_menu = "📅 កក់ម៉ោងថ្មី (New Booking)"
 else:
-    # សម្រាប់ Admin/Staff៖ មាន Menu គ្រប់គ្រង
     selected_menu = st.radio(
         "📌 Navigation Menu",
         [
             "📅 កក់ម៉ោងថ្មី (New Booking)",
-            "📋 បញ្ជីកក់ម៉ោងទាំងអស់ (Manage Bookings)",
-            "📊 របាយការណ៍ (Report)"
+            "📋 បញ្ជីកក់ម៉ោង (Manage Bookings)"
         ],
         horizontal=True
     )
     st.markdown("---")
 
 # ----------------------------------------------------------------
-# 4. CUSTOMER BOOKING FORM
+# 3. BOOKING FORM
 # ----------------------------------------------------------------
 if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
     
@@ -92,48 +76,29 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
             if not cust_name.strip() or not cust_phone.strip():
                 st.error("❌ សូមបញ្ចូលឈ្មោះ និង លេខទូរស័ព្ទឲ្យបានត្រឹមត្រូវ!")
             else:
-                # ទាញយកទិន្នន័យចាស់
-                existing_df = get_booking_data()
+                # រៀបចំទិន្នន័យផ្ញើទៅ Apps Script
+                payload = {
+                    "customer_name": cust_name.strip(),
+                    "phone": cust_phone.strip(),
+                    "service": service,
+                    "staff": staff,
+                    "date": str(book_date),
+                    "time": book_time,
+                    "note": note.strip()
+                }
 
-                # បង្កើត Row ថ្មី
-                new_data = pd.DataFrame([{
-                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "Customer_Name": cust_name.strip(),
-                    "Phone": cust_phone.strip(),
-                    "Service": service,
-                    "Staff": staff,
-                    "Date": str(book_date),
-                    "Time": book_time,
-                    "Note": note.strip(),
-                    "Status": "Pending"
-                }])
+                try:
+                    # ផ្ញើ Request ទៅ Google Apps Script
+                    response = requests.post(APPS_SCRIPT_URL, json=payload)
+                    
+                    if response.status_code == 200:
+                        st.balloons()
+                        st.success(f"🎉 អរគុណ {cust_name}! ការកក់ម៉ោងរបស់អ្នកនៅថ្ងៃទី {book_date} វេលាម៉ោង {book_time} ទទួលបានជោគជ័យ។")
+                    else:
+                        st.error("មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ សូមព្យាយាមម្តងទៀត!")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
-                # បញ្ចូល Row ថ្មីទៅក្នុង DataFrame
-                updated_df = pd.concat([existing_df, new_data], ignore_index=True)
-
-                # រក្សាទុកចូល Google Sheets វិញ
-                conn.update(data=updated_df)
-
-                st.balloons()
-                st.success(f"🎉 អរគុណ {cust_name}! ការកក់ម៉ោងរបស់អ្នកនៅថ្ងៃទី {book_date} វេលាម៉ោង {book_time} ទទួលបានជោគជ័យ។")
-
-# ----------------------------------------------------------------
-# 5. ADMIN MANAGE BOOKINGS
-# ----------------------------------------------------------------
-elif selected_menu == "📋 បញ្ជីកក់ម៉ោងទាំងអស់ (Manage Bookings)":
-    st.title("📋 បញ្ជីការកក់ម៉ោងរបស់អតិថិជន (Admin Dashboard)")
-    
-    if st.button("🔄 ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ (Refresh)"):
-        st.rerun()
-
-    df = get_booking_data()
-
-    if not df.empty:
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.info("មិនទាន់មានទិន្នន័យកក់នៅឡើយទេ។")
-
-elif selected_menu == "📊 របាយការណ៍ (Report)":
-    st.title("📊 របាយការណ៍សង្ខេប")
-    df = get_booking_data()
-    st.metric("ចំនួនអតិថិជនកក់សរុប", f"{len(df)} នាក់")
+elif selected_menu == "📋 បញ្ជីកក់ម៉ោង (Manage Bookings)":
+    st.title("📋 បញ្ជីកក់ម៉ោង (Admin)")
+    st.info("ដើម្បីមើលទិន្នន័យកក់ សូមបើកមើលក្នុង Google Sheet របស់អ្នកដោយផ្ទាល់។")
