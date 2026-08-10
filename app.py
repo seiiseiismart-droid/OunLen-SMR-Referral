@@ -72,11 +72,10 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
 
         submit_btn = st.form_submit_button("✅ បញ្ជាក់ការកក់ម៉ោង (Confirm Booking)", type="primary", use_container_width=True)
 
-        if submit_btn:
+       if submit_btn:
             if not cust_name.strip() or not cust_phone.strip():
                 st.error("❌ សូមបញ្ចូលឈ្មោះ និង លេខទូរស័ព្ទឲ្យបានត្រឹមត្រូវ!")
             else:
-                # រៀបចំទិន្នន័យផ្ញើទៅ Apps Script
                 payload = {
                     "customer_name": cust_name.strip(),
                     "phone": cust_phone.strip(),
@@ -88,14 +87,15 @@ if selected_menu == "📅 កក់ម៉ោងថ្មី (New Booking)":
                 }
 
                 try:
-                    # ផ្ញើ Request ទៅ Google Apps Script
-                    response = requests.post(APPS_SCRIPT_URL, json=payload)
+                    # បន្ថែម allow_redirects=True ដើម្បឱ្យវាទទួលយកការ Redirect ពី Google Apps Script
+                    response = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
                     
-                    if response.status_code == 200:
+                    # ពិនិត្យ Status Code 200 ឬ 302
+                    if response.status_code in [200, 302]:
                         st.balloons()
                         st.success(f"🎉 អរគុណ {cust_name}! ការកក់ម៉ោងរបស់អ្នកនៅថ្ងៃទី {book_date} វេលាម៉ោង {book_time} ទទួលបានជោគជ័យ។")
                     else:
-                        st.error("មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ សូមព្យាយាមម្តងទៀត!")
+                        st.error(f"មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ (Code: {response.status_code}) សូមព្យាយាមម្តងទៀត!")
                 except Exception as e:
                     st.error(f"Error: {e}")
 
