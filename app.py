@@ -9,7 +9,7 @@ from datetime import datetime, time
 st.set_page_config(
     page_title="OunLen SMR - System",
     page_icon="💇‍♀️",
-    layout="centered"
+    layout="wide"
 )
 
 # ----------------------------------------------------------------
@@ -18,34 +18,44 @@ st.set_page_config(
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
 
 # ----------------------------------------------------------------
-# 3. Custom CSS
+# 3. Custom CSS (ពង្រីកអក្សរក្នុងតារាង និងរៀបចំ UI)
 # ----------------------------------------------------------------
 st.markdown("""
 <style>
-    .main { background-color: #f8fafc; }
+    .main { background-color: #0f172a; }
+    
+    /* Header Container */
     .app-header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         color: white; 
         padding: 20px; 
         border-radius: 16px; 
         margin-bottom: 20px;
     }
+    
+    /* Service Card Design */
     .service-card {
-        background: white; 
-        border: 1px solid #e2e8f0; 
+        background: #1e293b; 
+        border: 1px solid #334155; 
         border-radius: 12px;
         padding: 12px 16px; 
         margin-bottom: 8px; 
         display: flex; 
         justify-content: space-between; 
         align-items: center;
+        color: white;
     }
     .service-price { 
         background-color: #2563eb; 
         color: white; 
-        padding: 4px 10px; 
+        padding: 4px 12px; 
         border-radius: 20px; 
         font-weight: bold; 
+    }
+
+    /* 🔥 ពង្រីកអក្សរក្នុងតារាង DataFrame ឲ្យធំ និងច្បាស់ងាយមើល */
+    div[data-testid="stDataFrame"] * {
+        font-size: 16px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -111,7 +121,7 @@ if mode == "client" or mode is None:
         d_col1, d_col2 = st.columns(2)
         book_date = d_col1.date_input("ថ្ងៃណាត់ជួប", datetime.now())
 
-        # បង្កើត Slot ម៉ោង (08:00 AM ដល់ 09:30 PM)
+        # slots 08:00 AM - 09:30 PM
         all_slots = []
         for h in range(8, 22):
             for m in (0, 30):
@@ -122,14 +132,12 @@ if mode == "client" or mode is None:
                     t_obj = time(h, m)
                     all_slots.append(t_obj.strftime("%I:%M %p"))
 
-        # ឆែកម៉ោងដែលគេកក់រួច
         booked_slots = []
         if len(data.get("bookings", [])) > 1:
             for b in data["bookings"][1:]:
                 if len(b) >= 7 and str(b[5]) == str(book_date):
                     booked_slots.append(str(b[6]))
 
-        # បង្ហាញតែម៉ោងទំនេរ
         available_slots = [slot for slot in all_slots if slot not in booked_slots]
 
         if available_slots:
@@ -165,7 +173,6 @@ if mode == "client" or mode is None:
                 else:
                     st.error("មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ!")
 
-    # បង្ហាញបញ្ជីសេវាកម្ម
     st.markdown("<br><h4>🔥 បញ្ជីសេវាកម្ម និងតម្លៃ</h4>", unsafe_allow_html=True)
     if len(data.get("services", [])) > 1:
         for s in data["services"][1:]:
@@ -175,7 +182,7 @@ if mode == "client" or mode is None:
                 p = 0.0
             st.markdown(f"""
                 <div class="service-card">
-                    <div><strong>{s[0]}</strong><br><small style="color:#64748b;">{s[2] if len(s)>2 else ''}</small></div>
+                    <div><strong>{s[0]}</strong><br><small style="color:#94a3b8;">{s[2] if len(s)>2 else ''}</small></div>
                     <div class="service-price">${p:.2f}</div>
                 </div>
             """, unsafe_allow_html=True)
@@ -188,7 +195,7 @@ elif mode == "admin":
     
     tab1, tab2 = st.tabs(["📋 បញ្ជីកក់ម៉ោងអតិថិជន", "⚙️ គ្រប់គ្រងសេវាកម្ម & តម្លៃ"])
 
-    # Tab 1: បញ្ជីកក់ម៉ោង
+    # Tab 1: បញ្ជីកក់ម៉ោង (បានកែប្រែឲ្យច្បាស់ស្អាត)
     with tab1:
         st.subheader("📋 បញ្ជីការកក់ទាំងអស់")
         if st.button("🔄 Refresh Data"):
@@ -197,10 +204,43 @@ elif mode == "admin":
 
         bookings_raw = data.get("bookings", [])
         if len(bookings_raw) > 1:
-            df_b = pd.DataFrame(bookings_raw[1:], columns=bookings_raw[0])
-            st.dataframe(df_b, use_container_width=True)
-        elif len(bookings_raw) == 1:
-            st.info("មានតែ Header ប៉ុន្តែមិនទាន់មានទិន្នន័យកក់ពីអតិថិជននៅឡើយទេ។")
+            headers = bookings_raw[0]
+            df_b = pd.DataFrame(bookings_raw[1:], columns=headers)
+            
+            # 1. កែសម្រួលការបង្ហាញតារាង (ពង្រីក និងលាក់ Index)
+            st.dataframe(
+                df_b,
+                use_container_width=True,
+                hide_index=True,
+                height=350,
+                column_config={
+                    headers[0]: st.column_config.TextColumn("⏰ ពេលវេលាកក់", width="medium"),
+                    headers[1]: st.column_config.TextColumn("👤 ឈ្មោះអតិថិជន", width="medium"),
+                    headers[2]: st.column_config.TextColumn("📞 លេខទូរស័ព្ទ", width="small"),
+                    headers[3]: st.column_config.TextColumn("💆‍♀️ សេវាកម្ម", width="large"),
+                    headers[4]: st.column_config.TextColumn("👩‍ស្ប៉ា ជាង/បុគ្គលិក", width="medium"),
+                    headers[5]: st.column_config.TextColumn("📅 ថ្ងៃណាត់", width="small"),
+                    headers[6]: st.column_config.TextColumn("🕒 ម៉ោងណាត់", width="small"),
+                    headers[7]: st.column_config.TextColumn("📝 ចំណាំ", width="medium"),
+                }
+            )
+
+            # 2. បន្ថែម Card View ងាយស្រួលមើលលើទូរស័ព្ទ
+            st.markdown("---")
+            st.subheader("📱 មើលជាទម្រង់ Card (ងាយស្រួលមើលលើទូរស័ព្ទ)")
+            for idx, row in df_b.iterrows():
+                st.markdown(f"""
+                <div style="background-color:#1e293b; padding:16px; border-radius:12px; margin-bottom:12px; border-left:6px solid #2563eb; color:white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0; color:#60a5fa;">👤 {row.get(headers[1], '')}</h3>
+                        <span style="background-color:#059669; color:white; padding:3px 10px; border-radius:12px; font-weight:bold; font-size:14px;">📞 {row.get(headers[2], '')}</span>
+                    </div>
+                    <p style="margin:8px 0 4px 0; font-size:16px; color:#f1f5f9;"><b>💆‍♀️ សេវាកម្ម:</b> {row.get(headers[3], '')}</p>
+                    <p style="margin:4px 0; font-size:15px; color:#cbd5e1;"><b>📅 ថ្ងៃណាត់:</b> {row.get(headers[5], '')} | <b>🕒 ម៉ោង:</b> <span style="color:#f59e0b; font-weight:bold;">{row.get(headers[6], '')}</span> | <b>👩‍ស្ប៉ា ជាង:</b> {row.get(headers[4], '')}</p>
+                    <p style="margin:4px 0 0 0; font-size:14px; color:#94a3b8;"><b>📝 ចំណាំ:</b> {row.get(headers[7], '-')}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
         else:
             st.info("មិនទាន់មានទិន្នន័យកក់នៅឡើយទេ។")
 
