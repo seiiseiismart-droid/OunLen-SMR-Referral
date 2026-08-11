@@ -61,7 +61,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------
-# Helper Functions សម្រាប់ Format កាលបរិច្ឆេទ & ម៉ោង ឲ្យស្អាត
+# 4. Helper Functions (Formatting & Telegram Alert)
 # ----------------------------------------------------------------
 def format_clean_date(date_str):
     if not date_str:
@@ -75,7 +75,6 @@ def format_clean_time(time_str):
     if not time_str:
         return "-"
     t_str = str(time_str)
-    # ប្រសិនបើទិន្នន័យជាប់ ISO Format ដូចជា 1899-12-30T01:17:56.000Z
     if "T" in t_str:
         try:
             time_part = t_str.split("T")[1].split(".")[0]
@@ -85,13 +84,47 @@ def format_clean_time(time_str):
             return t_str.split("T")[0]
     return t_str
 
+def send_telegram_notification(cust_name, cust_phone, service, staff, book_date, book_time, note):
+    """ទាញយក Token និង Chat ID ពី st.secrets រួចផ្ញើសារ Alert ទៅកាន់ Telegram"""
+    bot_token = st.secrets.get("TELEGRAM_BOT_TOKEN")
+    chat_id = st.secrets.get("TELEGRAM_CHAT_ID")
+    
+    if not bot_token or not chat_id:
+        return False
+
+    message = f"""
+🎉 **មានការកក់ម៉ោងថ្មី! (OunLen SMR)**
+━━━━━━━━━━━━━━━━━━
+👤 **ឈ្មោះអតិថិជន:** {cust_name}
+📞 **លេខទូរស័ព្ទ:** `{cust_phone}`
+💆‍♀️ **សេវាកម្ម:** {service}
+👩‍ស្ប៉ា **ជាង/បុគ្គលិក:** {staff}
+📅 **ថ្ងៃណាត់:** {book_date}
+🕒 **ម៉ោងណាត់:** {book_time}
+📝 **ចំណាំ:** {note if note else '-'}
+━━━━━━━━━━━━━━━━━━
+⏰ *កក់នៅវេលាម៉ោង:* {datetime.now().strftime('%d/%m/%Y %I:%M %p')}
+"""
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    try:
+        requests.post(url, json=payload, timeout=5)
+        return True
+    except Exception as e:
+        print(f"Telegram Notification Error: {e}")
+        return False
+
 # ----------------------------------------------------------------
-# 4. Data Loading
+# 5. Data Loading
 # ----------------------------------------------------------------
 @st.cache_data(ttl=3)
 def load_data():
     try:
-        res = requests.get(APPS_SCRIPT_URL, allow_redirects=True)
+        res = requests.get(APPS_SCRIPT_URL, allow_redirects=True, timeout=10)
         if res.status_code == 200:
             return res.json()
     except Exception:
@@ -116,12 +149,12 @@ if len(data.get("services", [])) > 1:
         services_dict[s_name] = s_price
 
 # ----------------------------------------------------------------
-# 5. Route Mode Detection
+# 6. Route Mode Detection
 # ----------------------------------------------------------------
 mode = st.query_params.get("mode")
 
 # =================================================================
-# 📱 1. CLIENT DASHBOARD (?mode=client)
+# 📱 1. CLIENT DASHBOARD (?mode=client or default)
 # =================================================================
 if mode == "client" or mode is None:
     st.markdown("""
@@ -190,8 +223,19 @@ if mode == "client" or mode is None:
                     "time": book_time,
                     "note": note.strip()
                 }
-                res = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
+                res = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True, timeout=10)
                 if res.status_code in [200, 302]:
+                    # 🔔 ផ្ញើសារ Alert ទៅ Telegram
+                    send_telegram_notification(
+                        cust_name=cust_name.strip(),
+                        cust_phone=cust_phone.strip(),
+                        service=service,
+                        staff=staff,
+                        book_date=str(book_date),
+                        book_time=book_time,
+                        note=note.strip()
+                    )
+
                     st.balloons()
                     st.success(f"🎉 អរគុណ {cust_name}! បានកក់ម៉ោង {book_time} នៅថ្ងៃ {book_date} ជោគជ័យ។")
                     st.cache_data.clear()
@@ -218,6 +262,14 @@ if mode == "client" or mode is None:
 elif mode == "admin":
     st.title("👑 Admin Dashboard (ម្ចាស់ហាង)")
     
+    # ពិនិត្យលេខសម្ងាត់ Admin តាម st.secrets (Optional)
+    admin_pass = st.secrets.get("ADMIN_PASSWORD")
+    if admin_pass:
+        pwd_input = st.sidebar.text_input("🔑 លេខសម្ងាត់ Admin", type="password")
+        if pwd_input != admin_pass:
+            st.warning("🔒 សូមបញ្ចូលលេខសម្ងាត់ដើម្បីចូលប្រើប្រាស់ Admin Dashboard")
+            st.stop()
+
     tab1, tab2 = st.tabs(["📋 បញ្ជីកក់ម៉ោងអតិថិជន", "⚙️ គ្រប់គ្រងសេវាកម្ម & តម្លៃ"])
 
     # Tab 1: បញ្ជីកក់ម៉ោង
@@ -299,7 +351,7 @@ elif mode == "admin":
                     "price": new_s_price,
                     "description": new_s_desc.strip()
                 }
-                requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
+                requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True, timeout=10)
                 st.success("✅ បានបន្ថែមសេវាកម្មថ្មីជោគជ័យ!")
                 st.cache_data.clear()
 
@@ -316,6 +368,6 @@ elif mode == "admin":
                     "service_name": selected_s_edit,
                     "price": updated_price
                 }
-                requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True)
+                requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True, timeout=10)
                 st.success(f"✅ បានកែប្រែតម្លៃសេវាកម្ម '{selected_s_edit}' ទៅជា ${updated_price:.2f} ជោគជ័យ!")
                 st.cache_data.clear()
