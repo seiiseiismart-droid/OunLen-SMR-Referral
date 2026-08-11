@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime, date, time
+from datetime import datetime, time, timedelta
 
 # ----------------------------------------------------------------
 # 1. Page Configuration & Custom CSS
@@ -29,26 +29,24 @@ st.markdown("""
         border: 2px dashed #94a3b8;
         font-family: 'Courier New', Courier, monospace;
     }
-    .vip-badge {
-        background-color: #f59e0b;
-        color: black;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-weight: bold;
-        font-size: 12px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
-
-TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "8802043451:AAEAp35949z9IQLa5kj6Ecl75Q5uzIv-F_4")
-TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "-1004491712284")
+# ----------------------------------------------------------------
+# 2. Config & Secrets Management
+# ----------------------------------------------------------------
+APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec")
+TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "")
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
 DEFAULT_PRODUCT_IMG = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500"
 
+def get_cambodia_now():
+    """គណនាម៉ោងបច្ចុប្បន្ននៅប្រទេសកម្ពុជា (UTC+7)"""
+    return datetime.utcnow() + timedelta(hours=7)
+
 # ----------------------------------------------------------------
-# 2. Helper Functions
+# 3. Helper Functions
 # ----------------------------------------------------------------
 def send_telegram_alert(msg_text):
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
@@ -76,7 +74,7 @@ def calculate_vip_tier(phone, df_bookings):
         return {"tier": "Standard", "discount": 0.0, "total_spent": total_spent, "total_bookings": total_bookings}
 
 # ----------------------------------------------------------------
-# 3. Load Data & Settings
+# 4. Load Data & Settings
 # ----------------------------------------------------------------
 @st.cache_data(ttl=5)
 def load_all_data():
@@ -90,7 +88,7 @@ def load_all_data():
 
 data = load_all_data()
 
-# Parse Settings
+# Settings
 settings_dict = {"low_stock_threshold": 5}
 if len(data.get("settings", [])) > 1:
     for r in data["settings"][1:]:
@@ -197,11 +195,10 @@ if len(data.get("blocked_dates", [])) > 1:
             blocked_dates_dict[d] = r[1] if len(r) > 1 else "ថ្ងៃសម្រាក"
 
 # ----------------------------------------------------------------
-# 4. Navigation & Layout
+# 5. Application Navigation
 # ----------------------------------------------------------------
 mode = st.query_params.get("mode", "client")
-
-st.title("💇‍♀️អូនឡែន សម្រស់")
+st.title("💇‍♀️ អូនឡែន សម្រស់")
 
 # =================================================================
 # 📱 1. CLIENT VIEW (?mode=client)
@@ -230,12 +227,8 @@ if mode == "client":
             </div>
             """, unsafe_allow_html=True)
 
-        # ----------------------------------------------------
-        # 2. ជ្រើសរើសសេវាកម្ម (ទម្រង់បូតុងជ្រើសរើស)
-        # ----------------------------------------------------
         st.markdown("---")
         st.subheader("💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Services)")
-
         sel_services = []
         if services_dict:
             service_display_options = [f"{name} (${price:.2f})" for name, price in services_dict.items()]
@@ -243,22 +236,18 @@ if mode == "client":
 
             try:
                 selected_pills = st.pills(
-                    "👇 ចុចលើបូតុងសេវាកម្មខាងក្រោមដើម្បីជ្រើសរើស (អាចជ្រើសរើសបានច្រើន)៖",
+                    "👇 ចុចលើបូតុងសេវាកម្មខាងក្រោមដើម្បីជ្រើសរើស៖",
                     options=service_display_options,
-                    selection_mode="multi",
-                    default=[service_display_options[0]] if service_display_options else []
+                    selection_mode="multi"
                 )
                 sel_services = [service_map[item] for item in selected_pills] if selected_pills else []
             except AttributeError:
-                st.write("👇 សូមគ្រីសជ្រើសរើសសេវាកម្មខាងក្រោម៖")
                 cols = st.columns(2)
                 for i, (s_name, s_price) in enumerate(services_dict.items()):
                     col = cols[i % 2]
                     is_selected = col.checkbox(f"✨ {s_name} — **${s_price:.2f}**", key=f"srv_{i}")
                     if is_selected:
                         sel_services.append(s_name)
-        else:
-            st.info("មិនទាន់មានទិន្នន័យសេវាកម្មនៅឡើយទេ។")
 
         services_total = sum(services_dict.get(s, 0.0) for s in sel_services)
 
@@ -280,14 +269,15 @@ if mode == "client":
                         selected_products[prod['name']] = {"price": prod['price'], "qty": qty}
                         ordered_items_list.append({"name": prod['name'], "qty": qty})
                         products_total += prod['price'] * qty
-        else:
-            st.info("មិនទាន់មានទិន្នន័យផលិតផលនៅឡើយទេ។")
 
         st.markdown("---")
         st.subheader("⏰ 4. កាលបរិច្ឆេទ & ជាង (Date & Staff)")
         d1, d2, d3 = st.columns(3)
         staff = d1.selectbox("ជ្រើសរើសជាង / Staff:", ["អ្នកគ្រូ ឡែន"])
-        book_date = d2.date_input("ថ្ងៃណាត់ជួប / Date:", datetime.now())
+        
+        # ប្រើប្រាស់ Timezone ប្រទេសកម្ពុជា
+        cambodia_today = get_cambodia_now().date()
+        book_date = d2.date_input("ថ្ងៃណាត់ជួប / Date:", cambodia_today)
         book_date_str = str(book_date)
 
         is_blocked = book_date_str in blocked_dates_dict
@@ -374,15 +364,13 @@ if mode == "client":
                         st.balloons()
                         st.success("🎉 ការកក់ជោគជ័យ! លោកអ្នកអាចពិនិត្យវិក្កយបត្រក្នុង Tab ទី ២។")
                         st.cache_data.clear()
+                        st.rerun()
                     else:
-                        st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ! សូមព្យាយាមម្តងទៀត។")
-
-                except requests.exceptions.Timeout:
-                    st.error("⏰ ការតភ្ជាប់ទៅ Google Sheet ចំណាយពេលយូរពេក (Timeout)! ទិន្នន័យអាចនឹងបានបញ្ចូលរួច ឬសូមចុចព្យាយាមម្តងទៀត។")
+                        st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!")
                 except Exception as e:
                     st.error(f"❌ កើតមានកំហុស៖ {e}")
 
-    # Tab 2: Receipt Card
+    # Tab 2: Digital Receipt
     with tab_c2:
         st.subheader("🔍 ស្វែងរកការកក់ & បោះពុម្ពវិក្កយបត្រ (Digital Receipt)")
         s_phone = st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីមើលវិក្កយបត្រ:")
@@ -413,17 +401,15 @@ if mode == "client":
     # Tab 3: Reviews System
     with tab_c3:
         st.subheader("⭐️ ស្ទង់មតិ & ការវាយតម្លៃពីអតិថិជន")
-        
         if reviews_list:
             avg_rating = sum(r['rating'] for r in reviews_list) / len(reviews_list)
-            st.metric("ពិន្ទុវាយតម្លៃមធ្យម (Average Rating)", f"⭐️ {avg_rating:.1f} / 5.0", f"ពីការវាយតម្លៃ {len(reviews_list)} មតិ")
-        
+            st.metric("ពិន្ទុវាយតម្លៃមធ្យម", f"⭐️ {avg_rating:.1f} / 5.0", f"ពីការវាយតម្លៃ {len(reviews_list)} មតិ")
+
         st.markdown("---")
-        st.write("✍️ **ចែករំលែកបទពិសោធន៍របស់អ្នក:**")
-        rev_name = st.text_input("ឈ្មោះរបស់អ្នក (Reviewer Name):")
+        rev_name = st.text_input("ឈ្មោះរបស់អ្នក:")
         rev_phone = st.text_input("លេខទូរស័ព្ទ:")
         rev_star = st.slider("ផ្តល់ពិន្ទុ (Stars):", 1, 5, 5)
-        rev_comment = st.text_area("មតិរិះគន់ ឬការសរសើរ (Comment):")
+        rev_comment = st.text_area("មតិរិះគន់ ឬការសរសើរ:")
 
         if st.button("📤 ផ្ញើការវាយតម្លៃ", type="primary"):
             if rev_name.strip() and rev_comment.strip():
@@ -440,13 +426,6 @@ if mode == "client":
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ កើតមានកំហុស៖ {e}")
-
-        st.markdown("---")
-        st.subheader("💬 មតិពីអតិថិជនមុនៗ")
-        for rev in reversed(reviews_list):
-            st.markdown(f"**{rev['name']}** - {'⭐' * rev['rating']} ({rev['date']})")
-            st.caption(f'"{rev["comment"]}"')
-            st.markdown("---")
 
 # =================================================================
 # 👑 2. ADMIN DASHBOARD (?mode=admin)
@@ -468,24 +447,22 @@ elif mode == "admin":
         st.stop()
 
     if low_stock_items:
-        st.warning(f"⚠️ **មានផលិតផលចំនួន {len(low_stock_items)} ជិតអស់ពីស្តុក (សល់ ≤ {LOW_STOCK_THRESHOLD}):** " + 
+        st.warning(f"⚠️ **ផលិតផលជិតអស់ពីស្តុក (សល់ ≤ {LOW_STOCK_THRESHOLD}):** " + 
                    ", ".join([f"{item['name']} (សល់ {item['stock']})" for item in low_stock_items]))
 
     ad_tab1, ad_tab2, ad_tab3, ad_tab4, ad_tab5, ad_tab6 = st.tabs([
         "📋 ការកក់ (Bookings)",
         "🛍️ ផលិតផល & ស្តុក",
         "📊 វិភាគទិន្នន័យ (Analytics)",
-        "👑 គ្រប់គ្រង VIP & Promo",
-        "⭐️ មតិរិះគន់ (Reviews)",
-        "⚙️ កំណត់ប្រព័ន្ធ (Settings)"
+        "👑 VIP & Promo",
+        "⭐️ មតិរិះគន់",
+        "⚙️ កំណត់ប្រព័ន្ធ"
     ])
 
-    # Tab 1: Bookings Management
     with ad_tab1:
         st.subheader("📋 គ្រប់គ្រងការកក់")
         if not df_bookings.empty:
             st.dataframe(df_bookings[["sheet_row", "Customer Name", "Phone", "Services", "Products", "Date", "Time", "Total Price", "Status", "VIP_Tier"]], use_container_width=True)
-            
             sel_row = st.selectbox("ជ្រើសរើស Row ID ដើម្បីប្តូរ Status:", df_bookings["sheet_row"].tolist())
             c_s1, c_s2, c_s3 = st.columns(3)
             if c_s1.button("🟢 Confirm"):
@@ -501,13 +478,12 @@ elif mode == "admin":
                 st.cache_data.clear()
                 st.rerun()
 
-    # Tab 2: Product & Stock Management
     with ad_tab2:
         st.subheader("➕ បន្ថែមផលិតផលថ្មី")
         with st.form("add_prod_form", clear_on_submit=True):
             pn = st.text_input("ឈ្មោះផលិតផល*")
             pp = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
-            pi = st.text_input("Link រូបភាព (Image URL)", value=DEFAULT_PRODUCT_IMG)
+            pi = st.text_input("Link រូបភាព", value=DEFAULT_PRODUCT_IMG)
             ps = st.number_input("ចំនួនក្នុងស្តុក*", min_value=0, value=10)
             pd_desc = st.text_input("ការពិពណ៌នា")
             if st.form_submit_button("➕ រក្សាទុក"):
@@ -517,73 +493,51 @@ elif mode == "admin":
                 st.rerun()
 
         st.markdown("---")
-        st.subheader("📦 ស្តុកផលិតផលបច្ចុប្បន្ន")
         for p in products_list:
             col1, col2, col3 = st.columns([1, 4, 1])
             col1.image(p["image_url"], width=60)
-            col2.write(f"**{p['name']}** | តម្លៃ: `${p['price']:.2f}` | ស្តុក: `{p['stock']}` {'⚠️' if p['stock'] <= LOW_STOCK_THRESHOLD else ''}")
+            col2.write(f"**{p['name']}** | តម្លៃ: `${p['price']:.2f}` | ស្តុក: `{p['stock']}`")
             if col3.button("🗑️ លុប", key=f"del_{p['row_index']}"):
                 requests.post(APPS_SCRIPT_URL, json={"action": "delete_product", "row_index": p['row_index']}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
 
-    # Tab 3: Sales Analytics
     with ad_tab3:
-        st.subheader("📊 ផ្ទាំងវិភាគចំណូល និងការលក់")
+        st.subheader("📊 ផ្ទាំងវិភាគចំណូល")
         if not df_bookings.empty:
             completed_df = df_bookings[df_bookings["Status"] == "Completed"]
-            
             m1, m2, m3 = st.columns(3)
-            m1.metric("ចំណូលសរុប (Completed Revenue)", f"${completed_df['Total Price'].sum():.2f}")
+            m1.metric("ចំណូលសរុប (Completed)", f"${completed_df['Total Price'].sum():.2f}")
             m2.metric("ការកក់ជោគជ័យសរុប", f"{len(completed_df)} ដង")
             m3.metric("ការកក់ Pending", f"{len(df_bookings[df_bookings['Status'] == 'Pending'])} ដង")
 
-            st.markdown("---")
-            st.subheader("📈 ចំណូលតាមកាលបរិច្ឆេទ (Revenue Chart)")
-            rev_by_date = completed_df.groupby("Date")["Total Price"].sum().reset_index()
-            st.line_chart(rev_by_date.set_index("Date"))
-
-            st.markdown("---")
-            st.subheader("🔥 ម៉ោងដែលមានការកក់ច្រើនជាងគេ (Peak Booking Hours)")
-            peak_hours = df_bookings["Time"].value_counts().reset_index()
-            st.bar_chart(peak_hours.set_index("Time"))
-
-    # Tab 4: VIP & Promo Management
     with ad_tab4:
         st.subheader("🎟️ បង្កើត Promo Code")
         with st.form("add_promo_form", clear_on_submit=True):
-            code = st.text_input("កូដបញ្ចុះតម្លៃ (ឧ. PROMO10)*").strip().upper()
+            code = st.text_input("កូដបញ្ចុះតម្លៃ*").strip().upper()
             disc = st.number_input("ភាគរយចុះ (%)*", min_value=1.0, max_value=100.0, value=10.0)
             if st.form_submit_button("➕ បន្ថែម Promo"):
                 requests.post(APPS_SCRIPT_URL, json={"action": "add_promo", "code": code, "discount": disc}, timeout=20)
                 st.success("បានបន្ថែម!")
                 st.cache_data.clear()
 
-    # Tab 5: Reviews Management
     with ad_tab5:
-        st.subheader("⭐️ គ្រប់គ្រងការវាយតម្លៃពីអតិថិជន")
+        st.subheader("⭐️ គ្រប់គ្រងការវាយតម្លៃ")
         for rev in reviews_list:
             r_col1, r_col2 = st.columns([5, 1])
-            r_col1.write(f"**{rev['name']}** ({rev['phone']}) - {'⭐' * rev['rating']} - *{rev['comment']}*")
+            r_col1.write(f"**{rev['name']}** - {'⭐' * rev['rating']} - *{rev['comment']}*")
             if r_col2.button("🗑️ លុប", key=f"del_rev_{rev['row_index']}"):
                 requests.post(APPS_SCRIPT_URL, json={"action": "delete_review", "row_index": rev['row_index']}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
 
-    # Tab 6: System Settings
     with ad_tab6:
-        st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ (System Settings)")
+        st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ")
         with st.form("settings_form"):
-            set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់ (Low Stock Alert Threshold):", value=LOW_STOCK_THRESHOLD)
-            
-            if st.form_submit_button("💾 រក្សាទុកការកំណត់"):
-                payload = {
-                    "action": "update_settings",
-                    "settings": {
-                        "low_stock_threshold": str(set_threshold)
-                    }
-                }
+            set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់:", value=LOW_STOCK_THRESHOLD)
+            if st.form_submit_button("💾 រក្សាទុក"):
+                payload = {"action": "update_settings", "settings": {"low_stock_threshold": str(set_threshold)}}
                 requests.post(APPS_SCRIPT_URL, json=payload, timeout=20)
-                st.success("✅ បានរក្សាទុកការកំណត់!")
+                st.success("✅ បានរក្សាទុក!")
                 st.cache_data.clear()
                 st.rerun()
