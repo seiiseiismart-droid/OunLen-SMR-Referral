@@ -95,8 +95,12 @@ def load_all_data():
 
 data = load_all_data()
 
-# Parse Settings
-settings_dict = {"low_stock_threshold": 5, "khqr_merchant_id": "000123456", "khqr_merchant_name": "OunLen Salon"}
+# Parse Settings (មានប្រព័ន្ធទាញយកលេខគណនី ABA KHQR ស្វ័យប្រវត្តិ)
+settings_dict = {
+    "low_stock_threshold": 5, 
+    "khqr_merchant_id": "012345678", 
+    "khqr_merchant_name": "OunLen Salon"
+}
 if len(data.get("settings", [])) > 1:
     for r in data["settings"][1:]:
         if len(r) >= 2:
@@ -235,13 +239,36 @@ if mode == "client":
             </div>
             """, unsafe_allow_html=True)
 
+        # ----------------------------------------------------
+        # 2. ជ្រើសរើសសេវាកម្ម (ទម្រង់បូតុងជ្រើសរើស - Pills / Buttons)
+        # ----------------------------------------------------
         st.markdown("---")
         st.subheader("💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Services)")
-        sel_services = st.multiselect(
-            "សេវាកម្ម (អាចជ្រើសរើសបានច្រើន):",
-            options=list(services_dict.keys()),
-            default=[list(services_dict.keys())[0]] if services_dict else []
-        )
+
+        sel_services = []
+        if services_dict:
+            service_display_options = [f"{name} (${price:.2f})" for name, price in services_dict.items()]
+            service_map = {f"{name} (${price:.2f})": name for name, price in services_dict.items()}
+
+            try:
+                selected_pills = st.pills(
+                    "👇 ចុចលើបូតុងសេវាកម្មខាងក្រោមដើម្បីជ្រើសរើស (អាចជ្រើសរើសបានច្រើន)៖",
+                    options=service_display_options,
+                    selection_mode="multi",
+                    default=[service_display_options[0]] if service_display_options else []
+                )
+                sel_services = [service_map[item] for item in selected_pills] if selected_pills else []
+            except AttributeError:
+                st.write("👇 សូមគ្រីសជ្រើសរើសសេវាកម្មខាងក្រោម៖")
+                cols = st.columns(2)
+                for i, (s_name, s_price) in enumerate(services_dict.items()):
+                    col = cols[i % 2]
+                    is_selected = col.checkbox(f"✨ {s_name} — **${s_price:.2f}**", key=f"srv_{i}")
+                    if is_selected:
+                        sel_services.append(s_name)
+        else:
+            st.info("មិនទាន់មានទិន្នន័យសេវាកម្មនៅឡើយទេ។")
+
         services_total = sum(services_dict.get(s, 0.0) for s in sel_services)
 
         st.markdown("---")
@@ -560,11 +587,13 @@ elif mode == "admin":
                 st.cache_data.clear()
                 st.rerun()
 
-    # Tab 6: System Settings
+    # Tab 6: System Settings (បញ្ចូល & កែសម្រួលលេខគណនីធនាគារ)
     with ad_tab6:
         st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ (System Settings)")
         with st.form("settings_form"):
             set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់ (Low Stock Alert Threshold):", value=LOW_STOCK_THRESHOLD)
+            
+            # ប្រអប់បញ្ចូលលេខគណនីធនាគារ ABA
             set_merchant_id = st.text_input("ABA KHQR Merchant ID / Account Number:", value=settings_dict.get("khqr_merchant_id", ""))
             set_merchant_name = st.text_input("ABA KHQR Merchant Name:", value=settings_dict.get("khqr_merchant_name", ""))
             
