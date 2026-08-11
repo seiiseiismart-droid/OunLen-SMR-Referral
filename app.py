@@ -13,56 +13,35 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------------
-# 2. Google Apps Script Web App URL
+# 2. Configuration & Secrets
 # ----------------------------------------------------------------
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
 
 # ----------------------------------------------------------------
-# 3. Custom CSS
+# 3. Helper Functions
 # ----------------------------------------------------------------
-st.markdown("""
-<style>
-    .main { background-color: #0f172a; }
+def send_telegram_message(name, phone, service, staff, date_str, time_str, note):
+    """ផ្ញើសារជូនដំណឹងភ្លាមៗចូល Telegram Group"""
+    token = st.secrets.get("TELEGRAM_BOT_TOKEN", "8802043451:AAEAp35949z9IQLa5kj6Ecl75Q5uzIv-F_4")
+    chat_id = st.secrets.get("TELEGRAM_CHAT_ID", "-5296443862")
     
-    /* Header Container */
-    .app-header {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: white; 
-        padding: 20px; 
-        border-radius: 16px; 
-        margin-bottom: 20px;
-    }
-    
-    /* Service Card Design */
-    .service-card {
-        background: #1e293b; 
-        border: 1px solid #334155; 
-        border-radius: 12px;
-        padding: 12px 16px; 
-        margin-bottom: 8px; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center;
-        color: white;
-    }
-    .service-price { 
-        background-color: #2563eb; 
-        color: white; 
-        padding: 4px 12px; 
-        border-radius: 20px; 
-        font-weight: bold; 
-    }
+    if token and chat_id:
+        message = (
+            f"🔔 *មានការកក់ម៉ោងថ្មី! (New Booking)*\n\n"
+            f"👤 *អតិថិជន:* {name}\n"
+            f"📞 *លេខទូរស័ព្ទ:* `{phone}`\n"
+            f"💆‍♀️ *សេវាកម្ម:* {service}\n"
+            f"👩‍ស្ប៉ា *ជាង/បុគ្គលិក:* {staff}\n"
+            f"📅 *ថ្ងៃណាត់:* {date_str}\n"
+            f"🕒 *ម៉ោងណាត់:* {time_str}\n"
+            f"📝 *ចំណាំ:* {note if note else '-'}"
+        )
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        try:
+            requests.post(url, json={"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}, timeout=5)
+        except Exception:
+            pass
 
-    /* ពង្រីកអក្សរក្នុងតារាង DataFrame */
-    div[data-testid="stDataFrame"] * {
-        font-size: 16px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# ----------------------------------------------------------------
-# 4. Helper Functions (Formatting & Telegram Alert)
-# ----------------------------------------------------------------
 def format_clean_date(date_str):
     if not date_str:
         return "-"
@@ -84,39 +63,45 @@ def format_clean_time(time_str):
             return t_str.split("T")[0]
     return t_str
 
-def send_telegram_notification(cust_name, cust_phone, service, staff, book_date, book_time, note):
-    """ទាញយក Token និង Chat ID ពី st.secrets រួចផ្ញើសារ Alert ទៅកាន់ Telegram"""
-    bot_token = st.secrets.get("TELEGRAM_BOT_TOKEN")
-    chat_id = st.secrets.get("TELEGRAM_CHAT_ID")
+# ----------------------------------------------------------------
+# 4. Custom CSS
+# ----------------------------------------------------------------
+st.markdown("""
+<style>
+    .main { background-color: #0f172a; }
     
-    if not bot_token or not chat_id:
-        return False
-
-    message = f"""
-🎉 **មានការកក់ម៉ោងថ្មី! (OunLen SMR)**
-━━━━━━━━━━━━━━━━━━
-👤 **ឈ្មោះអតិថិជន:** {cust_name}
-📞 **លេខទូរស័ព្ទ:** `{cust_phone}`
-💆‍♀️ **សេវាកម្ម:** {service}
-👩‍ស្ប៉ា **ជាង/បុគ្គលិក:** {staff}
-📅 **ថ្ងៃណាត់:** {book_date}
-🕒 **ម៉ោងណាត់:** {book_time}
-📝 **ចំណាំ:** {note if note else '-'}
-━━━━━━━━━━━━━━━━━━
-⏰ *កក់នៅវេលាម៉ោង:* {datetime.now().strftime('%d/%m/%Y %I:%M %p')}
-"""
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "Markdown"
+    .app-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: white; 
+        padding: 20px; 
+        border-radius: 16px; 
+        margin-bottom: 20px;
     }
-    try:
-        requests.post(url, json=payload, timeout=5)
-        return True
-    except Exception as e:
-        print(f"Telegram Notification Error: {e}")
-        return False
+    
+    .service-card {
+        background: #1e293b; 
+        border: 1px solid #334155; 
+        border-radius: 12px;
+        padding: 12px 16px; 
+        margin-bottom: 8px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
+        color: white;
+    }
+    .service-price { 
+        background-color: #2563eb; 
+        color: white; 
+        padding: 4px 12px; 
+        border-radius: 20px; 
+        font-weight: bold; 
+    }
+
+    div[data-testid="stDataFrame"] * {
+        font-size: 16px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ----------------------------------------------------------------
 # 5. Data Loading
@@ -124,7 +109,7 @@ def send_telegram_notification(cust_name, cust_phone, service, staff, book_date,
 @st.cache_data(ttl=3)
 def load_data():
     try:
-        res = requests.get(APPS_SCRIPT_URL, allow_redirects=True, timeout=10)
+        res = requests.get(APPS_SCRIPT_URL, allow_redirects=True, timeout=8)
         if res.status_code == 200:
             return res.json()
     except Exception:
@@ -154,7 +139,7 @@ if len(data.get("services", [])) > 1:
 mode = st.query_params.get("mode")
 
 # =================================================================
-# 📱 1. CLIENT DASHBOARD (?mode=client or default)
+# 📱 1. CLIENT DASHBOARD (?mode=client)
 # =================================================================
 if mode == "client" or mode is None:
     st.markdown("""
@@ -223,24 +208,27 @@ if mode == "client" or mode is None:
                     "time": book_time,
                     "note": note.strip()
                 }
+                
+                # 1. ផ្ញើទៅ Google Sheet
                 res = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True, timeout=10)
+                
+                # 2. ផ្ញើសារចូល Telegram Group
+                send_telegram_message(
+                    cust_name.strip(),
+                    cust_phone.strip(),
+                    service,
+                    staff,
+                    str(book_date),
+                    book_time,
+                    note.strip()
+                )
+                
                 if res.status_code in [200, 302]:
-                    # 🔔 ផ្ញើសារ Alert ទៅ Telegram
-                    send_telegram_notification(
-                        cust_name=cust_name.strip(),
-                        cust_phone=cust_phone.strip(),
-                        service=service,
-                        staff=staff,
-                        book_date=str(book_date),
-                        book_time=book_time,
-                        note=note.strip()
-                    )
-
                     st.balloons()
                     st.success(f"🎉 អរគុណ {cust_name}! បានកក់ម៉ោង {book_time} នៅថ្ងៃ {book_date} ជោគជ័យ។")
                     st.cache_data.clear()
                 else:
-                    st.error("មានបញ្ហាក្នុងការផ្ញើតិន្នន័យ!")
+                    st.error("មានបញ្ហាក្នុងការផ្ញើទិន្នន័យ!")
 
     st.markdown("<br><h4>🔥 បញ្ជីសេវាកម្ម និងតម្លៃ</h4>", unsafe_allow_html=True)
     if len(data.get("services", [])) > 1:
@@ -262,14 +250,6 @@ if mode == "client" or mode is None:
 elif mode == "admin":
     st.title("👑 Admin Dashboard (ម្ចាស់ហាង)")
     
-    # ពិនិត្យលេខសម្ងាត់ Admin តាម st.secrets (Optional)
-    admin_pass = st.secrets.get("ADMIN_PASSWORD")
-    if admin_pass:
-        pwd_input = st.sidebar.text_input("🔑 លេខសម្ងាត់ Admin", type="password")
-        if pwd_input != admin_pass:
-            st.warning("🔒 សូមបញ្ចូលលេខសម្ងាត់ដើម្បីចូលប្រើប្រាស់ Admin Dashboard")
-            st.stop()
-
     tab1, tab2 = st.tabs(["📋 បញ្ជីកក់ម៉ោងអតិថិជន", "⚙️ គ្រប់គ្រងសេវាកម្ម & តម្លៃ"])
 
     # Tab 1: បញ្ជីកក់ម៉ោង
@@ -284,12 +264,10 @@ elif mode == "admin":
             headers = bookings_raw[0]
             df_b = pd.DataFrame(bookings_raw[1:], columns=headers)
             
-            # Format កាលបរិច្ឆេទ និងម៉ោង ឲ្យស្អាត
             if len(headers) >= 7:
                 df_b[headers[5]] = df_b[headers[5]].apply(format_clean_date)
                 df_b[headers[6]] = df_b[headers[6]].apply(format_clean_time)
 
-            # 1. បង្ហាញក្នុង Table
             st.dataframe(
                 df_b,
                 use_container_width=True,
@@ -307,7 +285,6 @@ elif mode == "admin":
                 }
             )
 
-            # 2. បង្ហាញជា Card ស្អាតច្បាស់ៗ
             st.markdown("---")
             st.subheader("📱 មើលជាទម្រង់ Card (ងាយស្រួលមើលលើទូរស័ព្ទ)")
             for idx, row in df_b.iterrows():
