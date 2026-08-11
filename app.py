@@ -210,7 +210,7 @@ if len(data.get("blocked_dates", [])) > 1:
 # ----------------------------------------------------------------
 mode = st.query_params.get("mode", "client")
 
-st.title("💇‍♀️ OunLen Beauty & Smart Retail Hub")
+st.title("💇‍♀️អូនឡែន សម្រស់  & ផលិតផសថែសម្រស់")
 
 # =================================================================
 # 📱 1. CLIENT VIEW (?mode=client)
@@ -314,7 +314,7 @@ if mode == "client":
             book_time = None
 
         st.markdown("---")
-        st.subheader("💳 5. គណនាប្រាក់ & ABA Dynamic KHQR")
+        st.subheader("💳 ABA Dynamic KHQR")
         p_col1, p_col2 = st.columns(2)
         input_promo = p_col1.text_input("បញ្ចូល Promo Code (ប្រសិនបើមាន):").strip().upper()
 
