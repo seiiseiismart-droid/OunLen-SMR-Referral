@@ -17,15 +17,17 @@ st.set_page_config(
 # ----------------------------------------------------------------
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
 
+# ទាញយកតម្លៃសម្ងាត់ចេញពី st.secrets
+TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "8802043451:AAEAp35949z9IQLa5kj6Ecl75Q5uzIv-F_4")
+TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "-1004491712284")
+ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
+
 # ----------------------------------------------------------------
 # 3. Helper Functions
 # ----------------------------------------------------------------
 def send_telegram_message(name, phone, service, staff, date_str, time_str, note):
     """ផ្ញើសារជូនដំណឹងភ្លាមៗចូល Telegram Group"""
-    token = st.secrets.get("TELEGRAM_BOT_TOKEN", "8802043451:AAEAp35949z9IQLa5kj6Ecl75Q5uzIv-F_4")
-    chat_id = st.secrets.get("TELEGRAM_CHAT_ID", "-5296443862")
-    
-    if token and chat_id:
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         message = (
             f"🔔 *មានការកក់ម៉ោងថ្មី! (New Booking)*\n\n"
             f"👤 *អតិថិជន:* {name}\n"
@@ -36,9 +38,9 @@ def send_telegram_message(name, phone, service, staff, date_str, time_str, note)
             f"🕒 *ម៉ោងណាត់:* {time_str}\n"
             f"📝 *ចំណាំ:* {note if note else '-'}"
         )
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         try:
-            requests.post(url, json={"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}, timeout=5)
+            requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}, timeout=5)
         except Exception:
             pass
 
@@ -249,10 +251,33 @@ if mode == "client" or mode is None:
 # =================================================================
 elif mode == "admin":
     st.title("👑 Admin Dashboard (ម្ចាស់ហាង)")
+
+    # ១. ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់ Admin (Password Protection)
+    if "admin_authenticated" not in st.session_state:
+        st.session_state.admin_authenticated = False
+
+    if not st.session_state.admin_authenticated:
+        st.subheader("🔒 សូមបញ្ចូលពាក្យសម្ងាត់ដើម្បីចូលប្រព័ន្ធ Admin")
+        input_pass = st.text_input("ពាក្យសម្ងាត់ Admin", type="password")
+        if st.button("🔑 ចូលប្រព័ន្ធ", type="primary"):
+            if input_pass == ADMIN_PASSWORD:
+                st.session_state.admin_authenticated = True
+                st.success("✅ ពាក្យសម្ងាត់ត្រឹមត្រូវ!")
+                st.rerun()
+            else:
+                st.error("❌ ពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ!")
+        st.stop()
+
+    # ប៊ូតុង Logout
+    col_adm1, col_adm2 = st.columns([6, 1])
+    with col_adm2:
+        if st.button("🚪 ចាកចេញ"):
+            st.session_state.admin_authenticated = False
+            st.rerun()
     
     tab1, tab2 = st.tabs(["📋 បញ្ជីកក់ម៉ោងអតិថិជន", "⚙️ គ្រប់គ្រងសេវាកម្ម & តម្លៃ"])
 
-    # Tab 1: បញ្ជីកក់ម៉ោង
+    # Tab 1: បញ្ជីកក់ម៉ោង & លុបការកក់
     with tab1:
         st.subheader("📋 បញ្ជីការកក់ទាំងអស់")
         if st.button("🔄 Refresh Data"):
@@ -272,7 +297,7 @@ elif mode == "admin":
                 df_b,
                 use_container_width=True,
                 hide_index=True,
-                height=350,
+                height=300,
                 column_config={
                     headers[0]: st.column_config.TextColumn("⏰ ពេលវេលាកក់", width="medium"),
                     headers[1]: st.column_config.TextColumn("👤 ឈ្មោះអតិថិជន", width="medium"),
@@ -284,6 +309,38 @@ elif mode == "admin":
                     headers[7]: st.column_config.TextColumn("📝 ចំណាំ", width="medium"),
                 }
             )
+
+            # ផ្នែកលុបការកក់ម៉ោង (Delete/Cancel Booking)
+            st.markdown("---")
+            st.subheader("🗑️ លុប ឬលុបចោលការកក់ម៉ោង (Cancel Booking)")
+            
+            booking_options = {}
+            for idx, row in df_b.iterrows():
+                sheet_row_num = idx + 2  # Row 1 គឺជា Header ក្នុង Google Sheet
+                c_name = row.get(headers[1], '')
+                c_phone = row.get(headers[2], '')
+                c_date = format_clean_date(row.get(headers[5], ''))
+                c_time = format_clean_time(row.get(headers[6], ''))
+                
+                label = f"ជួរទី {sheet_row_num} | {c_name} ({c_phone}) - ថ្ងៃ {c_date} ម៉ោង {c_time}"
+                booking_options[label] = sheet_row_num
+
+            if booking_options:
+                selected_label = st.selectbox("ជ្រើសរើសអតិថិជនដែលត្រូវលុបការកក់:", list(booking_options.keys()))
+                row_to_delete = booking_options[selected_label]
+                
+                if st.button("❌ អះអាងការលុប", type="primary"):
+                    payload = {
+                        "action": "delete_booking",
+                        "row_index": row_to_delete
+                    }
+                    res = requests.post(APPS_SCRIPT_URL, json=payload, allow_redirects=True, timeout=10)
+                    if res.status_code in [200, 302]:
+                        st.success("✅ បានលុបការកក់ម៉ោងដោយជោគជ័យ!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("មានបញ្ហាក្នុងការលុបទិន្នន័យ!")
 
             st.markdown("---")
             st.subheader("📱 មើលជាទម្រង់ Card (ងាយស្រួលមើលលើទូរស័ព្ទ)")
