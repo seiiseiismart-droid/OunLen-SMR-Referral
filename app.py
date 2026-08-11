@@ -2,13 +2,12 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime, date, time
-import urllib.parse
 
 # ----------------------------------------------------------------
 # 1. Page Configuration & Custom CSS
 # ----------------------------------------------------------------
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់  & ផលិតផសថែសម្រស់ ",
+    page_title="OunLen Salon & Smart Retail Hub",
     page_icon="💇‍♀️",
     layout="wide"
 )
@@ -59,10 +58,6 @@ def send_telegram_alert(msg_text):
         except Exception:
             pass
 
-def generate_aba_khqr_url(merchant_id, merchant_name, amount):
-    qr_data = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=KHQR://{merchant_id}?amount={amount:.2f}&currency=USD&name={urllib.parse.quote(merchant_name)}"
-    return qr_data
-
 def calculate_vip_tier(phone, df_bookings):
     if df_bookings.empty or not phone.strip():
         return {"tier": "Standard", "discount": 0.0, "total_spent": 0.0, "total_bookings": 0}
@@ -95,12 +90,8 @@ def load_all_data():
 
 data = load_all_data()
 
-# Parse Settings (មានប្រព័ន្ធទាញយកលេខគណនី ABA KHQR ស្វ័យប្រវត្តិ)
-settings_dict = {
-    "low_stock_threshold": 5, 
-    "khqr_merchant_id": "002242850", 
-    "khqr_merchant_name": "អូនឡែន សម្រស់"
-}
+# Parse Settings
+settings_dict = {"low_stock_threshold": 5}
 if len(data.get("settings", [])) > 1:
     for r in data["settings"][1:]:
         if len(r) >= 2:
@@ -210,20 +201,20 @@ if len(data.get("blocked_dates", [])) > 1:
 # ----------------------------------------------------------------
 mode = st.query_params.get("mode", "client")
 
-st.title("💇‍♀️អូនឡែន សម្រស់  & ផលិតផសថែសម្រស់")
+st.title("💇‍♀️ OunLen Beauty & Smart Retail Hub")
 
 # =================================================================
 # 📱 1. CLIENT VIEW (?mode=client)
 # =================================================================
 if mode == "client":
     tab_c1, tab_c2, tab_c3 = st.tabs([
-        "📝 កក់ម៉ោង & ទិញទំនិញ",
-        "🔍 កាកក់ & វិក្កយបត្រ (Receipt)",
-        "⭐️ មតិរិះគន់ & ការវាយតម្លៃ"
+        "📝 កក់ម៉ោង & ទិញទំនិញ (Book & Shop)",
+        "🔍 ពិនិត្យមើលការកក់ & វិក្កយបត្រ (Receipt)",
+        "⭐️ មតិរិះគន់ & ការវាយតម្លៃ (Reviews)"
     ])
 
     with tab_c1:
-        st.subheader("👤 1. អតិថិជន & កម្រិតសមាជិក (Customer & VIP)")
+        st.subheader("👤 1. ព័ត៌មានអតិថិជន & កម្រិតសមាជិក (Customer & VIP)")
         c1, c2 = st.columns(2)
         cust_name = c1.text_input("ឈ្មោះអតិថិជន / Name*")
         cust_phone = c2.text_input("លេខទូរស័ព្ទ / Phone*")
@@ -240,7 +231,7 @@ if mode == "client":
             """, unsafe_allow_html=True)
 
         # ----------------------------------------------------
-        # 2. ជ្រើសរើសសេវាកម្ម (ទម្រង់បូតុងជ្រើសរើស - Pills / Buttons)
+        # 2. ជ្រើសរើសសេវាកម្ម (ទម្រង់បូតុងជ្រើសរើស)
         # ----------------------------------------------------
         st.markdown("---")
         st.subheader("💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Services)")
@@ -314,7 +305,7 @@ if mode == "client":
             book_time = None
 
         st.markdown("---")
-        st.subheader("💳 ABA Dynamic KHQR")
+        st.subheader("💳 5. គណនាប្រាក់សរុប (Payment Calculation)")
         p_col1, p_col2 = st.columns(2)
         input_promo = p_col1.text_input("បញ្ចូល Promo Code (ប្រសិនបើមាន):").strip().upper()
 
@@ -336,13 +327,6 @@ if mode == "client":
             ### 💰 ចំនួនត្រូវទូទាត់សរុប: <span style="color:#2563eb;">${final_total:.2f}</span>
         """, unsafe_allow_html=True)
 
-        if final_total > 0:
-            st.markdown("#### 📱 ស្កែនទូទាត់តាម ABA KHQR ស្វ័យប្រវត្តិ")
-            qr_url = generate_aba_khqr_url(settings_dict["khqr_merchant_id"], settings_dict["khqr_merchant_name"], final_total)
-            st.image(qr_url, caption=f"ស្កែនទូទាត់ត្រឹមត្រូវចំនួន ${final_total:.2f}", width=200)
-
-        dep_ref = st.text_input("លេខកូដប្រាក់កក់/ទូទាត់ ABA Reference Number:")
-
         if st.button("✅ បញ្ជាក់ការកក់ & ចេញវិក្កយបត្រ", type="primary", use_container_width=True):
             if not cust_name.strip() or not cust_phone.strip():
                 st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!")
@@ -363,7 +347,7 @@ if mode == "client":
                     "note": "",
                     "status": "Pending",
                     "total_price": final_total,
-                    "deposit": dep_ref.strip(),
+                    "deposit": "None",
                     "products_ordered": prod_str,
                     "promo_code": input_promo if input_promo else "None",
                     "discount_amount": discount_val,
@@ -371,7 +355,6 @@ if mode == "client":
                     "ordered_items_list": ordered_items_list
                 }
                 
-                # បន្ថែម Timeout 30s និង try-except ដើម្បីដោះស្រាយ ReadTimeout Error
                 try:
                     with st.spinner("⏳ កំពុងរក្សាទុកទិន្នន័យការកក់..."):
                         response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=30)
@@ -384,7 +367,7 @@ if mode == "client":
                             f"💆‍♀️ *សេវាកម្ម:* {', '.join(sel_services)}\n"
                             f"🛍️ *ទំនិញ:* {prod_str}\n"
                             f"📅 *ថ្ងៃណាត់:* {book_date_str} | 🕒 *ម៉ោង:* {book_time}\n"
-                            f"💰 *សរុបទូទាត់:* ${final_total:.2f} (Ref: `{dep_ref}`)"
+                            f"💰 *សរុបទូទាត់:* ${final_total:.2f}"
                         )
                         send_telegram_alert(alert_msg)
 
@@ -399,7 +382,7 @@ if mode == "client":
                 except Exception as e:
                     st.error(f"❌ កើតមានកំហុស៖ {e}")
 
-    # Tab 2: Check Booking & Digital Receipt Card
+    # Tab 2: Receipt Card
     with tab_c2:
         st.subheader("🔍 ស្វែងរកការកក់ & បោះពុម្ពវិក្កយបត្រ (Digital Receipt)")
         s_phone = st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីមើលវិក្កយបត្រ:")
@@ -427,7 +410,7 @@ if mode == "client":
                     """, unsafe_allow_html=True)
                     st.write("")
 
-    # Tab 3: Reviews & Rating System
+    # Tab 3: Reviews System
     with tab_c3:
         st.subheader("⭐️ ស្ទង់មតិ & ការវាយតម្លៃពីអតិថិជន")
         
@@ -544,7 +527,7 @@ elif mode == "admin":
                 st.cache_data.clear()
                 st.rerun()
 
-    # Tab 3: Sales Analytics & Charts
+    # Tab 3: Sales Analytics
     with ad_tab3:
         st.subheader("📊 ផ្ទាំងវិភាគចំណូល និងការលក់")
         if not df_bookings.empty:
@@ -587,23 +570,17 @@ elif mode == "admin":
                 st.cache_data.clear()
                 st.rerun()
 
-    # Tab 6: System Settings (បញ្ចូល & កែសម្រួលលេខគណនីធនាគារ)
+    # Tab 6: System Settings
     with ad_tab6:
         st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ (System Settings)")
         with st.form("settings_form"):
             set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់ (Low Stock Alert Threshold):", value=LOW_STOCK_THRESHOLD)
             
-            # ប្រអប់បញ្ចូលលេខគណនីធនាគារ ABA
-            set_merchant_id = st.text_input("ABA KHQR Merchant ID / Account Number:", value=settings_dict.get("khqr_merchant_id", ""))
-            set_merchant_name = st.text_input("ABA KHQR Merchant Name:", value=settings_dict.get("khqr_merchant_name", ""))
-            
             if st.form_submit_button("💾 រក្សាទុកការកំណត់"):
                 payload = {
                     "action": "update_settings",
                     "settings": {
-                        "low_stock_threshold": str(set_threshold),
-                        "khqr_merchant_id": set_merchant_id.strip(),
-                        "khqr_merchant_name": set_merchant_name.strip()
+                        "low_stock_threshold": str(set_threshold)
                     }
                 }
                 requests.post(APPS_SCRIPT_URL, json=payload, timeout=20)
