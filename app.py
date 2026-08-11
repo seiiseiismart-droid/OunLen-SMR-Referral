@@ -55,11 +55,11 @@ def send_telegram_alert(msg_text):
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         try:
-            requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": msg_text, "parse_mode": "Markdown"}, timeout=5)
+            requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": msg_text, "parse_mode": "Markdown"}, timeout=10)
         except Exception:
             pass
 
-def generate_aba_khqr_url(merchant_id, merchant_name, amount, store_name="OunLen Salon"):
+def generate_aba_khqr_url(merchant_id, merchant_name, amount):
     qr_data = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=KHQR://{merchant_id}?amount={amount:.2f}&currency=USD&name={urllib.parse.quote(merchant_name)}"
     return qr_data
 
@@ -83,10 +83,10 @@ def calculate_vip_tier(phone, df_bookings):
 # ----------------------------------------------------------------
 # 3. Load Data & Settings
 # ----------------------------------------------------------------
-@st.cache_data(ttl=3)
+@st.cache_data(ttl=5)
 def load_all_data():
     try:
-        res = requests.get(APPS_SCRIPT_URL, timeout=8)
+        res = requests.get(APPS_SCRIPT_URL, timeout=15)
         if res.status_code == 200:
             return res.json()
     except Exception:
@@ -309,7 +309,6 @@ if mode == "client":
             ### 💰 ចំនួនត្រូវទូទាត់សរុប: <span style="color:#2563eb;">${final_total:.2f}</span>
         """, unsafe_allow_html=True)
 
-        # Dynamic ABA KHQR Generation
         if final_total > 0:
             st.markdown("#### 📱 ស្កែនទូទាត់តាម ABA KHQR ស្វ័យប្រវត្តិ")
             qr_url = generate_aba_khqr_url(settings_dict["khqr_merchant_id"], settings_dict["khqr_merchant_name"], final_total)
@@ -344,23 +343,34 @@ if mode == "client":
                     "vip_tier": vip_info['tier'],
                     "ordered_items_list": ordered_items_list
                 }
-                requests.post(APPS_SCRIPT_URL, json=payload, timeout=10)
+                
+                # បន្ថែម Timeout 30s និង try-except ដើម្បីដោះស្រាយ ReadTimeout Error
+                try:
+                    with st.spinner("⏳ កំពុងរក្សាទុកទិន្នន័យការកក់..."):
+                        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=30)
+                    
+                    if response.status_code == 200:
+                        alert_msg = (
+                            f"🔔 *ការកក់ម៉ោង & កម្ម៉ង់ទំនិញថ្មី!*\n\n"
+                            f"👤 *អតិថិជន:* {cust_name.strip()} ({vip_info['tier']})\n"
+                            f"📞 *ទូរស័ព្ទ:* `{cust_phone.strip()}`\n"
+                            f"💆‍♀️ *សេវាកម្ម:* {', '.join(sel_services)}\n"
+                            f"🛍️ *ទំនិញ:* {prod_str}\n"
+                            f"📅 *ថ្ងៃណាត់:* {book_date_str} | 🕒 *ម៉ោង:* {book_time}\n"
+                            f"💰 *សរុបទូទាត់:* ${final_total:.2f} (Ref: `{dep_ref}`)"
+                        )
+                        send_telegram_alert(alert_msg)
 
-                # Send Telegram Notification
-                alert_msg = (
-                    f"🔔 *ការកក់ម៉ោង & កម្ម៉ង់ទំនិញថ្មី!*\n\n"
-                    f"👤 *អតិថិជន:* {cust_name.strip()} ({vip_info['tier']})\n"
-                    f"📞 *ទូរស័ព្ទ:* `{cust_phone.strip()}`\n"
-                    f"💆‍♀️ *សេវាកម្ម:* {', '.join(sel_services)}\n"
-                    f"🛍️ *ទំនិញ:* {prod_str}\n"
-                    f"📅 *ថ្ងៃណាត់:* {book_date_str} | 🕒 *ម៉ោង:* {book_time}\n"
-                    f"💰 *សរុបទូទាត់:* ${final_total:.2f} (Ref: `{dep_ref}`)"
-                )
-                send_telegram_alert(alert_msg)
+                        st.balloons()
+                        st.success("🎉 ការកក់ជោគជ័យ! លោកអ្នកអាចពិនិត្យវិក្កយបត្រក្នុង Tab ទី ២។")
+                        st.cache_data.clear()
+                    else:
+                        st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ! សូមព្យាយាមម្តងទៀត។")
 
-                st.balloons()
-                st.success("🎉 ការកក់ជោគជ័យ! លោកអ្នកអាចពិនិត្យវិក្កយបត្រក្នុង Tab ទី ២។")
-                st.cache_data.clear()
+                except requests.exceptions.Timeout:
+                    st.error("⏰ ការតភ្ជាប់ទៅ Google Sheet ចំណាយពេលយូរពេក (Timeout)! ទិន្នន័យអាចនឹងបានបញ្ចូលរួច ឬសូមចុចព្យាយាមម្តងទៀត។")
+                except Exception as e:
+                    st.error(f"❌ កើតមានកំហុស៖ {e}")
 
     # Tab 2: Check Booking & Digital Receipt Card
     with tab_c2:
@@ -394,7 +404,6 @@ if mode == "client":
     with tab_c3:
         st.subheader("⭐️ ស្ទង់មតិ & ការវាយតម្លៃពីអតិថិជន")
         
-        # Calculate Average Rating
         if reviews_list:
             avg_rating = sum(r['rating'] for r in reviews_list) / len(reviews_list)
             st.metric("ពិន្ទុវាយតម្លៃមធ្យម (Average Rating)", f"⭐️ {avg_rating:.1f} / 5.0", f"ពីការវាយតម្លៃ {len(reviews_list)} មតិ")
@@ -408,16 +417,19 @@ if mode == "client":
 
         if st.button("📤 ផ្ញើការវាយតម្លៃ", type="primary"):
             if rev_name.strip() and rev_comment.strip():
-                requests.post(APPS_SCRIPT_URL, json={
-                    "action": "add_review",
-                    "customer_name": rev_name.strip(),
-                    "phone": rev_phone.strip(),
-                    "rating": rev_star,
-                    "comment": rev_comment.strip()
-                })
-                st.success("✅ អរគុណសម្រាប់ការផ្តល់មតិវាយតម្លៃ!")
-                st.cache_data.clear()
-                st.rerun()
+                try:
+                    requests.post(APPS_SCRIPT_URL, json={
+                        "action": "add_review",
+                        "customer_name": rev_name.strip(),
+                        "phone": rev_phone.strip(),
+                        "rating": rev_star,
+                        "comment": rev_comment.strip()
+                    }, timeout=20)
+                    st.success("✅ អរគុណសម្រាប់ការផ្តល់មតិវាយតម្លៃ!")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ កើតមានកំហុស៖ {e}")
 
         st.markdown("---")
         st.subheader("💬 មតិពីអតិថិជនមុនៗ")
@@ -445,7 +457,6 @@ elif mode == "admin":
                 st.error("❌ ពាក្យសម្ងាត់មិនត្រឹមត្រូវ!")
         st.stop()
 
-    # Low Stock Alert Banner
     if low_stock_items:
         st.warning(f"⚠️ **មានផលិតផលចំនួន {len(low_stock_items)} ជិតអស់ពីស្តុក (សល់ ≤ {LOW_STOCK_THRESHOLD}):** " + 
                    ", ".join([f"{item['name']} (សល់ {item['stock']})" for item in low_stock_items]))
@@ -468,15 +479,15 @@ elif mode == "admin":
             sel_row = st.selectbox("ជ្រើសរើស Row ID ដើម្បីប្តូរ Status:", df_bookings["sheet_row"].tolist())
             c_s1, c_s2, c_s3 = st.columns(3)
             if c_s1.button("🟢 Confirm"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Confirmed"})
+                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Confirmed"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
             if c_s2.button("🔵 Complete"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Completed"})
+                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Completed"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
             if c_s3.button("🔴 Cancel"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Cancelled"})
+                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Cancelled"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
 
@@ -490,7 +501,7 @@ elif mode == "admin":
             ps = st.number_input("ចំនួនក្នុងស្តុក*", min_value=0, value=10)
             pd_desc = st.text_input("ការពិពណ៌នា")
             if st.form_submit_button("➕ រក្សាទុក"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "add_product", "name": pn, "price": pp, "image_url": pi, "stock": ps, "desc": pd_desc})
+                requests.post(APPS_SCRIPT_URL, json={"action": "add_product", "name": pn, "price": pp, "image_url": pi, "stock": ps, "desc": pd_desc}, timeout=20)
                 st.success("បានបន្ថែម!")
                 st.cache_data.clear()
                 st.rerun()
@@ -502,7 +513,7 @@ elif mode == "admin":
             col1.image(p["image_url"], width=60)
             col2.write(f"**{p['name']}** | តម្លៃ: `${p['price']:.2f}` | ស្តុក: `{p['stock']}` {'⚠️' if p['stock'] <= LOW_STOCK_THRESHOLD else ''}")
             if col3.button("🗑️ លុប", key=f"del_{p['row_index']}"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "delete_product", "row_index": p['row_index']})
+                requests.post(APPS_SCRIPT_URL, json={"action": "delete_product", "row_index": p['row_index']}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
 
@@ -534,7 +545,7 @@ elif mode == "admin":
             code = st.text_input("កូដបញ្ចុះតម្លៃ (ឧ. PROMO10)*").strip().upper()
             disc = st.number_input("ភាគរយចុះ (%)*", min_value=1.0, max_value=100.0, value=10.0)
             if st.form_submit_button("➕ បន្ថែម Promo"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "add_promo", "code": code, "discount": disc})
+                requests.post(APPS_SCRIPT_URL, json={"action": "add_promo", "code": code, "discount": disc}, timeout=20)
                 st.success("បានបន្ថែម!")
                 st.cache_data.clear()
 
@@ -545,7 +556,7 @@ elif mode == "admin":
             r_col1, r_col2 = st.columns([5, 1])
             r_col1.write(f"**{rev['name']}** ({rev['phone']}) - {'⭐' * rev['rating']} - *{rev['comment']}*")
             if r_col2.button("🗑️ លុប", key=f"del_rev_{rev['row_index']}"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "delete_review", "row_index": rev['row_index']})
+                requests.post(APPS_SCRIPT_URL, json={"action": "delete_review", "row_index": rev['row_index']}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
 
@@ -566,7 +577,7 @@ elif mode == "admin":
                         "khqr_merchant_name": set_merchant_name.strip()
                     }
                 }
-                requests.post(APPS_SCRIPT_URL, json=payload)
+                requests.post(APPS_SCRIPT_URL, json=payload, timeout=20)
                 st.success("✅ បានរក្សាទុកការកំណត់!")
                 st.cache_data.clear()
                 st.rerun()
