@@ -8,7 +8,7 @@ import urllib.parse
 # 1. Page Configuration & Custom CSS
 # ----------------------------------------------------------------
 st.set_page_config(
-    page_title="OunLen Salon & Smart Retail Hub",
+    page_title="អូនឡែន សម្រស់  & ផលិតផសថែសម្រស់ ",
     page_icon="💇‍♀️",
     layout="wide"
 )
@@ -98,8 +98,8 @@ data = load_all_data()
 # Parse Settings (មានប្រព័ន្ធទាញយកលេខគណនី ABA KHQR ស្វ័យប្រវត្តិ)
 settings_dict = {
     "low_stock_threshold": 5, 
-    "khqr_merchant_id": "012345678", 
-    "khqr_merchant_name": "OunLen Salon"
+    "khqr_merchant_id": "002242850", 
+    "khqr_merchant_name": "អូនឡែន សម្រស់"
 }
 if len(data.get("settings", [])) > 1:
     for r in data["settings"][1:]:
@@ -217,13 +217,13 @@ st.title("💇‍♀️ OunLen Beauty & Smart Retail Hub")
 # =================================================================
 if mode == "client":
     tab_c1, tab_c2, tab_c3 = st.tabs([
-        "📝 កក់ម៉ោង & ទិញទំនិញ (Book & Shop)",
-        "🔍 ពិនិត្យមើលការកក់ & វិក្កយបត្រ (Receipt)",
-        "⭐️ មតិរិះគន់ & ការវាយតម្លៃ (Reviews)"
+        "📝 កក់ម៉ោង & ទិញទំនិញ",
+        "🔍 កាកក់ & វិក្កយបត្រ (Receipt)",
+        "⭐️ មតិរិះគន់ & ការវាយតម្លៃ"
     ])
 
     with tab_c1:
-        st.subheader("👤 1. ព័ត៌មានអតិថិជន & កម្រិតសមាជិក (Customer & VIP)")
+        st.subheader("👤 1. អតិថិជន & កម្រិតសមាជិក (Customer & VIP)")
         c1, c2 = st.columns(2)
         cust_name = c1.text_input("ឈ្មោះអតិថិជន / Name*")
         cust_phone = c2.text_input("លេខទូរស័ព្ទ / Phone*")
