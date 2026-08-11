@@ -7,7 +7,7 @@ from datetime import datetime, date, time
 # 1. Page Configuration & Custom CSS
 # ----------------------------------------------------------------
 st.set_page_config(
-    page_title="OunLen Salon & Smart Retail Hub",
+    page_title="អូនឡែន សម្រស់",
     page_icon="💇‍♀️",
     layout="wide"
 )
@@ -201,7 +201,7 @@ if len(data.get("blocked_dates", [])) > 1:
 # ----------------------------------------------------------------
 mode = st.query_params.get("mode", "client")
 
-st.title("💇‍♀️ OunLen Beauty & Smart Retail Hub")
+st.title("💇‍♀️អូនឡែន សម្រស់")
 
 # =================================================================
 # 📱 1. CLIENT VIEW (?mode=client)
@@ -286,7 +286,7 @@ if mode == "client":
         st.markdown("---")
         st.subheader("⏰ 4. កាលបរិច្ឆេទ & ជាង (Date & Staff)")
         d1, d2, d3 = st.columns(3)
-        staff = d1.selectbox("ជ្រើសរើសជាង / Staff:", ["អ្នកគ្រូ ឡែន", "កញ្ញា ម៉ារី", "ចៃដន្យ (Any)"])
+        staff = d1.selectbox("ជ្រើសរើសជាង / Staff:", ["អ្នកគ្រូ ឡែន"])
         book_date = d2.date_input("ថ្ងៃណាត់ជួប / Date:", datetime.now())
         book_date_str = str(book_date)
 
@@ -452,7 +452,7 @@ if mode == "client":
 # 👑 2. ADMIN DASHBOARD (?mode=admin)
 # =================================================================
 elif mode == "admin":
-    st.title("👑 Admin Control Panel")
+    st.title("👑 ម្ចាស់ហាង អូនឡែន សម្រស់")
 
     if "admin_auth" not in st.session_state:
         st.session_state.admin_auth = False
