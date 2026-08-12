@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 import pandas as pd
 import math
+import html
+import re
 from datetime import datetime, time, timedelta
 
 # ==========================================
@@ -97,16 +99,38 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. CONFIG & SECRETS MANAGEMENT
+# 2. SECRETS & HTTP PERFORMANCE POOL
 # ==========================================
-APPS_SCRIPT_URL = st.secrets.get(
-    "APPS_SCRIPT_URL", 
-    "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
-)
+APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "")
+API_SECRET_KEY = st.secrets.get("API_SECRET_KEY", "OUNLEN_SALON_SECURE_API_KEY_2026")
 TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "")
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
 DEFAULT_PRODUCT_IMG = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500"
+
+# ⚡ HTTP Session Caching ជួយបង្កើនល្បឿន Request
+@st.cache_resource
+def get_http_session():
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+    session.mount('https://', adapter)
+    session.mount('http://', adapter)
+    return session
+
+http_client = get_http_session()
+
+def clean_input(text):
+    """🛡️ ការពារ XSS ដោយប្រើប្រាស់ HTML Escaping"""
+    if not text:
+        return ""
+    return html.escape(str(text).strip())
+
+def validate_phone(phone_str):
+    """🛡️ Validates phone numbers (Digits only, min 8 digits)"""
+    clean_p = re.sub(r"[^\d]", "", str(phone_str))
+    if len(clean_p) >= 8:
+        return clean_p
+    return None
 
 def get_cambodia_now():
     return datetime.utcnow() + timedelta(hours=7)
@@ -115,18 +139,18 @@ def send_telegram_alert(msg_text):
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         try:
-            requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": msg_text, "parse_mode": "Markdown"}, timeout=10)
+            http_client.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": msg_text, "parse_mode": "Markdown"}, timeout=5)
         except Exception:
             pass
 
 def calculate_user_points(phone, df_bookings, members_dict):
-    clean_phone = phone.strip().replace("'", "")
-    is_member = clean_phone in members_dict if clean_phone else False
+    clean_p = validate_phone(phone)
+    is_member = clean_p in members_dict if clean_p else False
     
-    if not is_member or df_bookings.empty or not clean_phone:
+    if not is_member or df_bookings.empty or not clean_p:
         return {"earned": 0, "redeemed": 0, "balance": 0, "is_member": is_member}
     
-    user_b = df_bookings[(df_bookings["Phone"].str.contains(clean_phone, na=False)) & (df_bookings["Status"] != "Cancelled")]
+    user_b = df_bookings[(df_bookings["Phone"].str.contains(clean_p, na=False)) & (df_bookings["Status"] != "Cancelled")]
     if user_b.empty:
         return {"earned": 0, "redeemed": 0, "balance": 0, "is_member": True}
 
@@ -137,12 +161,13 @@ def calculate_user_points(phone, df_bookings, members_dict):
     return {"earned": int(total_earned), "redeemed": int(total_redeemed), "balance": int(balance), "is_member": True}
 
 # ==========================================
-# 3. DATA LOADING FROM GOOGLE SHEETS
+# 3. DATA LOADING WITH AUTH & CACHING
 # ==========================================
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=10)
 def load_all_data():
     try:
-        res = requests.get(APPS_SCRIPT_URL, timeout=15)
+        url = f"{APPS_SCRIPT_URL}?api_key={API_SECRET_KEY}"
+        res = http_client.get(url, timeout=12)
         if res.status_code == 200:
             return res.json()
     except Exception:
@@ -167,12 +192,13 @@ members_dict = {}
 if len(data.get("members", [])) > 1:
     for idx, r in enumerate(data["members"][1:]):
         if len(r) >= 2 and r[0]:
-            clean_p = str(r[0]).replace("'", "").strip()
-            members_dict[clean_p] = {
-                "row_index": idx + 2,
-                "name": str(r[1]).strip(),
-                "date": str(r[2]).split("T")[0] if len(r) > 2 else ""
-            }
+            clean_p = validate_phone(r[0])
+            if clean_p:
+                members_dict[clean_p] = {
+                    "row_index": idx + 2,
+                    "name": clean_input(r[1]),
+                    "date": str(r[2]).split("T")[0] if len(r) > 2 else ""
+                }
 
 # Services
 services_list = []
@@ -183,9 +209,9 @@ if len(data.get("services", [])) > 1:
             p_val = float(str(r[1]).replace("$", "").replace(",", "").strip()) if len(r) > 1 and r[1] != "" else 0.0
             services_list.append({
                 "row_index": idx + 2,
-                "name": str(r[0]).strip(),
+                "name": clean_input(r[0]),
                 "price": p_val,
-                "desc": str(r[2]).strip() if len(r) > 2 and r[2] else ""
+                "desc": clean_input(r[2]) if len(r) > 2 and r[2] else ""
             })
         except Exception: pass
 
@@ -199,11 +225,11 @@ if len(data.get("products", [])) > 1:
             stk = int(row[3]) if str(row[3]).isdigit() else 0
             p_item = {
                 "row_index": idx + 2,
-                "name": str(row[0]),
+                "name": clean_input(row[0]),
                 "price": float(row[1]) if row[1] != "" else 0.0,
                 "image_url": str(row[2]) if row[2] else DEFAULT_PRODUCT_IMG,
                 "stock": stk,
-                "desc": str(row[4])
+                "desc": clean_input(row[4])
             }
             products_list.append(p_item)
             if stk <= LOW_STOCK_THRESHOLD:
@@ -219,21 +245,21 @@ if len(data.get("bookings", [])) > 1:
         try:
             b_rows.append({
                 "sheet_row": idx + 2,
-                "Created At": str(row[0]),
-                "Customer Name": str(row[1]),
-                "Phone": str(row[2]).replace("'", ""),
-                "Services": str(row[3]),
-                "Staff": str(row[4]),
+                "Created At": clean_input(row[0]),
+                "Customer Name": clean_input(row[1]),
+                "Phone": clean_input(str(row[2]).replace("'", "")),
+                "Services": clean_input(row[3]),
+                "Staff": clean_input(row[4]),
                 "Date": str(row[5]).split("T")[0],
-                "Time": str(row[6]),
-                "Note": str(row[7]),
-                "Status": str(row[8]) if row[8] else "Pending",
+                "Time": clean_input(row[6]),
+                "Note": clean_input(row[7]),
+                "Status": clean_input(row[8]) if row[8] else "Pending",
                 "Total Price": float(row[9]) if row[9] != "" else 0.0,
-                "Deposit": str(row[10]),
-                "Products": str(row[11]),
+                "Deposit": clean_input(row[10]),
+                "Products": clean_input(row[11]),
                 "Points Earned": int(row[12]) if str(row[12]).isdigit() else 0,
                 "Points Redeemed": int(row[13]) if str(row[13]).isdigit() else 0,
-                "Promo Code": str(row[14])
+                "Promo Code": clean_input(row[14])
             })
         except Exception: pass
     df_bookings = pd.DataFrame(b_rows)
@@ -243,7 +269,7 @@ promo_dict = {}
 if len(data.get("promo_codes", [])) > 1:
     for r in data["promo_codes"][1:]:
         if len(r) >= 2 and (len(r) < 3 or str(r[2]).lower() == "active"):
-            try: promo_dict[str(r[0]).upper().strip()] = float(r[1])
+            try: promo_dict[clean_input(r[0]).upper()] = float(r[1])
             except: pass
 
 # Blocked Dates
@@ -251,7 +277,7 @@ blocked_dates_dict = {}
 if len(data.get("blocked_dates", [])) > 1:
     for r in data["blocked_dates"][1:]:
         if len(r) >= 1:
-            blocked_dates_dict[str(r[0]).split("T")[0]] = r[1] if len(r) > 1 else "ថ្ងៃសម្រាក"
+            blocked_dates_dict[str(r[0]).split("T")[0]] = clean_input(r[1]) if len(r) > 1 else "ថ្ងៃសម្រាក"
 
 # Reviews
 reviews_list = []
@@ -262,10 +288,10 @@ if len(data.get("reviews", [])) > 1:
             reviews_list.append({
                 "row_index": idx + 2,
                 "date": str(row[0]).split("T")[0],
-                "name": str(row[1]),
-                "phone": str(row[2]).replace("'", ""),
+                "name": clean_input(row[1]),
+                "phone": clean_input(str(row[2]).replace("'", "")),
                 "rating": int(row[3]) if str(row[3]).isdigit() else 5,
-                "comment": str(row[4])
+                "comment": clean_input(row[4])
             })
         except Exception: pass
 
@@ -273,7 +299,7 @@ if "selected_slot" not in st.session_state:
     st.session_state.selected_slot = None
 
 # ==========================================
-# 4. APPLICATION ROUTING
+# 4. CLIENT INTERFACE
 # ==========================================
 mode = st.query_params.get("mode", "client")
 
@@ -299,13 +325,17 @@ if mode == "client":
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">👤 1. ព័ត៌មានអតិថិជន (Customer Information)</div>', unsafe_allow_html=True)
             ic1, ic2 = st.columns(2)
-            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="Ex.លី ស្រីឡែន ")
-            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="Ex. 067 969 877")
+            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. លី ស្រីឡែន ")
+            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 067 969 877")
 
+            valid_p = validate_phone(cust_phone)
             points_info = calculate_user_points(cust_phone, df_bookings, members_dict)
+            
             if cust_phone.strip():
-                if points_info["is_member"]:
-                    m_name = members_dict[cust_phone.strip().replace("'", "")]["name"]
+                if not valid_p:
+                    st.warning("⚠️ សូមបញ្ចូលលេខទូរស័ព្ទឱ្យបានត្រឹមត្រូវ (យ៉ាងហោចណាស់ ៨ ខ្ទង់)")
+                elif points_info["is_member"]:
+                    m_name = members_dict[valid_p]["name"]
                     st.markdown(f"""
                     <div class="points-card">
                         <b>🪙 សមតុល្យពិន្ទុរបស់អ្នក៖ <span style="color:#f59e0b; font-size:20px;">{points_info['balance']} Points</span></b><br>
@@ -315,7 +345,7 @@ if mode == "client":
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    st.info("ℹ️ **លោកអ្នកជាអតិថិជនទូទៅ** (មិនទាន់បានចុះឈ្មោះជាសមាជិកសន្សំពិន្ទុឡើយ)។ ពិន្ទុបញ្ចុះតម្លៃ គឺសម្រាប់តែអតិថិជនដែលបានចុះឈ្មោះសមាជិកប៉ុណ្ណោះ។ សូមទាក់ទងម្ចាស់ហាងដើម្បីចុះឈ្មោះសមាជិក!")
+                    st.info("ℹ️ **លោកអ្នកជាអតិថិជនទូទៅ** (មិនទាន់បានចុះឈ្មោះសមាជិកសន្សំពិន្ទុ)។ ការសន្សំពិន្ទុ និងប្រើប្រាស់ពិន្ទុបញ្ចុះតម្លៃ គឺសម្រាប់តែអតិថិជនដែលបានចុះឈ្មោះសមាជិកប៉ុណ្ណោះ។ សូមទាក់ទងហាងដើម្បីចុះឈ្មោះសមាជិក!")
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 2. ជ្រើសរើសសេវាកម្ម
@@ -363,7 +393,7 @@ if mode == "client":
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងទទួលបន្ទុក</div>', unsafe_allow_html=True)
             dt1, dt2 = st.columns(2)
-            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["អ្នកគ្រូ ឡែន (Master)", "ជាងជំនាញទី ១"])
+            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["លី ស្រីឡែន (ម្ចាស់ហាង)", "ជាងជំនាញទី ១"])
             
             book_date = dt2.date_input("ថ្ងៃណាត់ជួប / Date:", get_cambodia_now().date())
             book_date_str = str(book_date)
@@ -395,18 +425,18 @@ if mode == "client":
         # SUMMARY SIDEBAR
         with col_summary:
             st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color:white; margin-top:0;">ទឹកប្រាក់សរុបត្រូវទូទាត់</h3>', unsafe_allow_html=True)
             
             subtotal = services_total + products_total
             
             # Promo Code Discount
-            promo_input = st.text_input("🎟️ Promo Code (បើមាន):").strip().upper()
+            promo_input = clean_input(st.text_input("🎟️ Promo Code (បើមាន):")).upper()
             promo_discount = 0.0
             if promo_input in promo_dict:
                 promo_discount = promo_dict[promo_input]
                 st.success(f"🎉 ទទួលបានការបញ្ចុះតម្លៃ Promo: -${promo_discount:.2f}")
 
-            # Points Discount Calculation (Only for Members)
+            # Points Discount
             subtotal_after_promo = max(0.0, subtotal - promo_discount)
             redeem_points = 0
             points_discount = 0.0
@@ -428,7 +458,7 @@ if mode == "client":
 
             final_total = max(0.0, subtotal_after_promo - points_discount)
             
-            # Points Earning (Only for Members)
+            # Points Earning
             if points_info["is_member"]:
                 earned_points_new = math.floor(final_total * POINTS_PER_DOLLAR)
             else:
@@ -451,9 +481,12 @@ if mode == "client":
             else:
                 st.warning("សូមជ្រើសរើសម៉ោងណាត់ជួប")
 
-            if st.button("✅ បញ្ជាក់ការកក់ម៉ោង នឹងទឹកប្រាក់ត្រូវទូទាត់ ", type="primary", use_container_width=True):
-                if not cust_name.strip() or not cust_phone.strip():
-                    st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!")
+            if st.button("✅ បញ្ជាក់ការកក់ & បញ្ជាទិញ", type="primary", use_container_width=True):
+                clean_name = clean_input(cust_name)
+                clean_p = validate_phone(cust_phone)
+
+                if not clean_name or not clean_p:
+                    st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទឱ្យបានត្រឹមត្រូវ!")
                 elif not sel_services and not selected_products:
                     st.error("❌ សូមជ្រើសរើសសេវាកម្ម ឬទំនិញយ៉ាងហោចណាស់មួយ!")
                 elif is_blocked or not st.session_state.selected_slot:
@@ -461,9 +494,10 @@ if mode == "client":
                 else:
                     prod_str = ", ".join([f"{k} (x{v['qty']})" for k, v in selected_products.items()]) if selected_products else "None"
                     payload = {
+                        "api_key": API_SECRET_KEY,
                         "action": "add_booking",
-                        "customer_name": cust_name.strip(),
-                        "phone": cust_phone.strip(),
+                        "customer_name": clean_name,
+                        "phone": clean_p,
                         "service": ", ".join(sel_services),
                         "staff": staff,
                         "date": book_date_str,
@@ -481,13 +515,13 @@ if mode == "client":
                     
                     try:
                         with st.spinner("⏳ កំពុងរក្សាទុកការកក់..."):
-                            res = requests.post(APPS_SCRIPT_URL, json=payload, timeout=25)
+                            res = http_client.post(APPS_SCRIPT_URL, json=payload, timeout=15)
                         
                         if res.status_code == 200:
                             send_telegram_alert(
                                 f"🔔 *ការកក់ថ្មីបានចូល!*\n\n"
-                                f"👤 *អតិថិជន:* {cust_name.strip()} ({'សមាជិក' if points_info['is_member'] else 'អតិថិជនទូទៅ'})\n"
-                                f"📞 *ទូរស័ព្ទ:* `{cust_phone.strip()}`\n"
+                                f"👤 *អតិថិជន:* {clean_name} ({'សមាជិក' if points_info['is_member'] else 'អតិថិជនទូទៅ'})\n"
+                                f"📞 *ទូរស័ព្ទ:* `{clean_p}`\n"
                                 f"💆‍♀️ *សេវា:* {', '.join(sel_services)}\n"
                                 f"🛍️ *ទំនិញ:* {prod_str}\n"
                                 f"📅 *ថ្ងៃណាត់:* {book_date_str} @ {st.session_state.selected_slot}\n"
@@ -507,21 +541,21 @@ if mode == "client":
     # TAB 2: RECEIPT
     with tab_c2:
         st.subheader("🔍 ពិនិត្យមើលវិក្កយបត្រ (Digital Receipt)")
-        search_phone = st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:").strip()
+        search_phone = validate_phone(st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:"))
         if search_phone and not df_bookings.empty:
             matched_df = df_bookings[df_bookings["Phone"].str.contains(search_phone, na=False)]
             if not matched_df.empty:
                 for _, row in matched_df.iterrows():
                     st.markdown(f"""
                     <div class="receipt-box">
-                        <h3 style="text-align:center; margin:0;">🧾 អូនឡែន សម្រស់ </h3>
-                        <p style="text-align:center; font-size:12px;">ភូមិដំណាក់ពពូល ក្រុងកំពង់ឆ្នាំង | Tel: 067 969 877</p>
+                        <h3 style="text-align:center; margin:0;">🧾 ហាង អូនឡែន សម្រស់</h3>
+                        <p style="text-align:center; font-size:12px;">ភូមិ ដំណាក់ពពូល ក្រុងកំពង់ឆ្នាំង ខេត្តកំពង់ឆ្នាំង | Tel: 067 969 877</p>
                         <hr>
                         <p><b>កាលបរិច្ឆេទកក់:</b> {row['Created At']}</p>
                         <p><b>អតិថិជន:</b> {row['Customer Name']}</p>
                         <p><b>លេខទូរស័ព្ទ:</b> {row['Phone']}</p>
                         <p><b>ថ្ងៃណាត់ជួប:</b> {row['Date']} @ {row['Time']}</p>
-                        <p><b>ធ្វើសេវាកម្មដោយ:</b> {row['Staff']}</p>
+                        <p><b>អ្នកផ្តល់សេវាកម្ម:</b> {row['Staff']}</p>
                         <hr>
                         <p><b>សេវាកម្ម:</b> {row['Services']}</p>
                         <p><b>ទំនិញបញ្ជាទិញ:</b> {row['Products']}</p>
@@ -544,26 +578,27 @@ if mode == "client":
         
         st.markdown("---")
         with st.form("review_form", clear_on_submit=True):
-            r_name = st.text_input("ឈ្មោះរបស់អ្នក*")
-            r_phone = st.text_input("លេខទូរស័ព្ទ")
+            r_name = clean_input(st.text_input("ឈ្មោះរបស់អ្នក*"))
+            r_phone = validate_phone(st.text_input("លេខទូរស័ព្ទ"))
             r_stars = st.slider("ផ្តល់ពិន្ទុ (Stars)", 1, 5, 5)
-            r_comment = st.text_area("មតិរិះគន់ ឬការសរសើរ*")
+            r_comment = clean_input(st.text_area("មតិរិះគន់ ឬការសរសើរ*"))
             
             if st.form_submit_button("📤 ផ្ញើការវាយតម្លៃ"):
-                if r_name.strip() and r_comment.strip():
-                    requests.post(APPS_SCRIPT_URL, json={
+                if r_name and r_comment:
+                    http_client.post(APPS_SCRIPT_URL, json={
+                        "api_key": API_SECRET_KEY,
                         "action": "add_review",
-                        "customer_name": r_name.strip(),
-                        "phone": r_phone.strip(),
+                        "customer_name": r_name,
+                        "phone": r_phone or "",
                         "rating": r_stars,
-                        "comment": r_comment.strip()
-                    }, timeout=20)
+                        "comment": r_comment
+                    }, timeout=10)
                     st.success("✅ អរគុណសម្រាប់ការផ្តល់មតិវាយតម្លៃ!")
                     st.cache_data.clear()
                     st.rerun()
 
 # ==========================================
-# 5. ADMIN DASHBOARD (?mode=admin)
+# 5. ADMIN DASHBOARD
 # ==========================================
 elif mode == "admin":
     st.title("👑 ម្ចាស់ហាង - អូនឡែន សម្រស់")
@@ -603,19 +638,19 @@ elif mode == "admin":
             sel_row = st.selectbox("ជ្រើសរើស Row ID ដើម្បីប្តូរ Status:", df_bookings["sheet_row"].tolist())
             b_c1, b_c2, b_c3 = st.columns(3)
             if b_c1.button("🟢 Confirm"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Confirmed"}, timeout=20)
+                http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "update_status", "row_index": sel_row, "status": "Confirmed"}, timeout=10)
                 st.cache_data.clear()
                 st.rerun()
             if b_c2.button("🔵 Complete"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Completed"}, timeout=20)
+                http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "update_status", "row_index": sel_row, "status": "Completed"}, timeout=10)
                 st.cache_data.clear()
                 st.rerun()
             if b_c3.button("🔴 Cancel"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Cancelled"}, timeout=20)
+                http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "update_status", "row_index": sel_row, "status": "Cancelled"}, timeout=10)
                 st.cache_data.clear()
                 st.rerun()
 
-    # MEMBERS MANAGEMENT (បន្ថែមថ្មី)
+    # MEMBERS MANAGEMENT
     with ad_tab_members:
         st.subheader("👥 គ្រប់គ្រង និងចុះឈ្មោះសមាជិកសន្សំពិន្ទុ")
         m_col1, m_col2 = st.columns([1.2, 1])
@@ -627,7 +662,7 @@ elif mode == "admin":
                     mc1, mc2 = st.columns([3, 1])
                     mc1.write(f"• **{m_info['name']}** - `{phone}` (ថ្ងៃចុះឈ្មោះ: {m_info['date']})")
                     if mc2.button("🗑️ លុប", key=f"del_mem_{m_info['row_index']}"):
-                        requests.post(APPS_SCRIPT_URL, json={"action": "delete_member", "row_index": m_info['row_index']}, timeout=20)
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_member", "row_index": m_info['row_index']}, timeout=10)
                         st.cache_data.clear()
                         st.rerun()
             else:
@@ -636,24 +671,24 @@ elif mode == "admin":
         with m_col2:
             st.markdown("### ➕ ចុះឈ្មោះសមាជិកថ្មី")
             with st.form("add_member_form", clear_on_submit=True):
-                mem_name = st.text_input("ឈ្មោះសមាជិក*")
-                mem_phone = st.text_input("លេខទូរស័ព្ទ*")
+                mem_name = clean_input(st.text_input("ឈ្មោះសមាជិក*"))
+                mem_phone = validate_phone(st.text_input("លេខទូរស័ព្ទ*"))
                 if st.form_submit_button("✅ ចុះឈ្មោះសមាជិក"):
-                    clean_m_phone = mem_phone.strip().replace("'", "")
-                    if mem_name.strip() and clean_m_phone:
-                        if clean_m_phone in members_dict:
-                            st.error("❌ លេខទូរស័ព្ទនេះបានចុះឈ្មោះរួចហើយ!")
+                    if mem_name and mem_phone:
+                        if mem_phone in members_dict:
+                            st.error("❌ លេខទូរស័ព្ទនេះបានចុះឈ្មោះជានិមិត្តរូបរួចហើយ!")
                         else:
-                            requests.post(APPS_SCRIPT_URL, json={
+                            http_client.post(APPS_SCRIPT_URL, json={
+                                "api_key": API_SECRET_KEY,
                                 "action": "add_member",
-                                "customer_name": mem_name.strip(),
-                                "phone": clean_m_phone
-                            }, timeout=20)
+                                "customer_name": mem_name,
+                                "phone": mem_phone
+                            }, timeout=10)
                             st.success("🎉 ចុះឈ្មោះសមាជិកបានជោគជ័យ!")
                             st.cache_data.clear()
                             st.rerun()
                     else:
-                        st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!")
+                        st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទឱ្យបានត្រឹមត្រូវ!")
 
     # SERVICES
     with ad_tab_srv:
@@ -665,17 +700,17 @@ elif mode == "admin":
                     sc1, sc2 = st.columns([3, 1])
                     sc1.write(f"• **{s['name']}** - `${s['price']:.2f}`" + (f" ({s['desc']})" if s['desc'] else ""))
                     if sc2.button("🗑️ លុប", key=f"del_srv_{s['row_index']}"):
-                        requests.post(APPS_SCRIPT_URL, json={"action": "delete_service", "row_index": s['row_index']}, timeout=20)
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_service", "row_index": s['row_index']}, timeout=10)
                         st.cache_data.clear()
                         st.rerun()
         with col_srv_add:
             with st.form("add_service_admin", clear_on_submit=True):
-                s_name = st.text_input("ឈ្មោះសេវាកម្ម*")
+                s_name = clean_input(st.text_input("ឈ្មោះសេវាកម្ម*"))
                 s_price = st.number_input("តម្លៃសេវាកម្ម ($)*", min_value=0.0, step=1.0)
-                s_desc = st.text_input("ការពិពណ៌នាខ្លីៗ")
+                s_desc = clean_input(st.text_input("ការពិពណ៌នាខ្លីៗ"))
                 if st.form_submit_button("➕ រក្សាទុកសេវាកម្ម"):
-                    if s_name.strip():
-                        requests.post(APPS_SCRIPT_URL, json={"action": "add_service", "name": s_name.strip(), "price": s_price, "desc": s_desc.strip()}, timeout=20)
+                    if s_name:
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "add_service", "name": s_name, "price": s_price, "desc": s_desc}, timeout=10)
                         st.cache_data.clear()
                         st.rerun()
 
@@ -689,19 +724,19 @@ elif mode == "admin":
                     pc1, pc2 = st.columns([3, 1])
                     pc1.write(f"• **{p['name']}** - `${p['price']:.2f}` (ស្តុក: {p['stock']})")
                     if pc2.button("🗑️ លុប", key=f"del_prod_{p['row_index']}"):
-                        requests.post(APPS_SCRIPT_URL, json={"action": "delete_product", "row_index": p['row_index']}, timeout=20)
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_product", "row_index": p['row_index']}, timeout=10)
                         st.cache_data.clear()
                         st.rerun()
         with col_prod_add:
             with st.form("add_product_admin", clear_on_submit=True):
-                pn = st.text_input("ឈ្មោះផលិតផល*")
+                pn = clean_input(st.text_input("ឈ្មោះផលិតផល*"))
                 pp = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
-                pi = st.text_input("Link រូបភាព", value=DEFAULT_PRODUCT_IMG)
+                pi = clean_input(st.text_input("Link រូបភាព", value=DEFAULT_PRODUCT_IMG))
                 ps = st.number_input("ចំនួនក្នុងស្តុក*", min_value=0, value=10)
-                pd_desc = st.text_input("ការពិពណ៌នា")
+                pd_desc = clean_input(st.text_input("ការពិពណ៌នា"))
                 if st.form_submit_button("➕ រក្សាទុកផលិតផល"):
-                    if pn.strip():
-                        requests.post(APPS_SCRIPT_URL, json={"action": "add_product", "name": pn.strip(), "price": pp, "image_url": pi, "stock": ps, "desc": pd_desc.strip()}, timeout=20)
+                    if pn:
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "add_product", "name": pn, "price": pp, "image_url": pi, "stock": ps, "desc": pd_desc}, timeout=10)
                         st.cache_data.clear()
                         st.rerun()
 
@@ -709,11 +744,11 @@ elif mode == "admin":
     with ad_tab_promo:
         st.subheader("🎟️ បន្ថែម Promo Code")
         with st.form("add_promo_form", clear_on_submit=True):
-            p_code = st.text_input("Promo Code (ឧ. DISCOUNT5)*").upper()
+            p_code = clean_input(st.text_input("Promo Code (ឧ. DISCOUNT5)*")).upper()
             p_disc = st.number_input("ចំនួនបញ្ចុះតម្លៃ ($)*", min_value=0.5, step=0.5)
             if st.form_submit_button("➕ បន្ថែម Promo Code"):
-                if p_code.strip():
-                    requests.post(APPS_SCRIPT_URL, json={"action": "add_promo", "code": p_code.strip(), "discount": p_disc}, timeout=20)
+                if p_code:
+                    http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "add_promo", "code": p_code, "discount": p_disc}, timeout=10)
                     st.success("បានបន្ថែម Promo Code!")
                     st.cache_data.clear()
                     st.rerun()
@@ -738,14 +773,15 @@ elif mode == "admin":
             set_pts_redeem_rate = st.number_input("ចំនួនពិន្ទុដែលត្រូវប្រើដើម្បីបាន $1.00 បញ្ចុះតម្លៃ:", min_value=1.0, value=POINTS_REDEEM_RATE, step=1.0)
 
             if st.form_submit_button("💾 រក្សាទុកការកំណត់"):
-                requests.post(APPS_SCRIPT_URL, json={
+                http_client.post(APPS_SCRIPT_URL, json={
+                    "api_key": API_SECRET_KEY,
                     "action": "update_settings",
                     "settings": {
                         "low_stock_threshold": str(set_threshold),
                         "points_per_dollar": str(set_pts_per_dollar),
                         "points_redeem_rate": str(set_pts_redeem_rate)
                     }
-                }, timeout=20)
+                }, timeout=10)
                 st.success("✅ បានរក្សាទុកការកំណត់ជោគជ័យ!")
                 st.cache_data.clear()
                 st.rerun()
