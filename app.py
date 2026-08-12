@@ -8,7 +8,7 @@ from datetime import datetime, time, timedelta
 # 1. PAGE CONFIG & CUSTOM CSS
 # ==========================================
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់ - Salon & Spa",
+    page_title="អូនឡែន សម្រស់ ",
     page_icon="💆‍♀️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -280,8 +280,8 @@ mode = st.query_params.get("mode", "client")
 if mode == "client":
     st.markdown("""
     <div class="hero-container">
-        <div class="hero-title">✨ អូនឡែន សម្រស់ - Salon & Spa</div>
-        <div class="hero-subtitle">ប្រព័ន្ធកក់ម៉ោងធ្វើសក់ ថែរក្សាស្បែក និងសន្សំពិន្ទុរង្វាន់អនឡាញ</div>
+        <div class="hero-title">✨ អូនឡែន សម្រស់ </div>
+        <div class="hero-subtitle">សូមកក់ម៉ោងដើម្បីទទួលសេវាកម្ម ថែរក្សាសម្រស់ និងសន្សំពិន្ទុដើម្បីទទួលបានកាបញ្ចុះតម្លៃ</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -315,7 +315,7 @@ if mode == "client":
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    st.info("ℹ️ **លោកអ្នកជាអតិថិជនទូទៅ** (មិនទាន់បានចុះឈ្មោះសមាជិកសន្សំពិន្ទុ)។ ការសន្សំពិន្ទុ និងប្រើប្រាស់ពិន្ទុបញ្ចុះតម្លៃ គឺសម្រាប់តែអតិថិជនដែលបានចុះឈ្មោះសមាជិកប៉ុណ្ណោះ។ សូមទាក់ទងហាងដើម្បីចុះឈ្មោះសមាជិក!")
+                    st.info("ℹ️ **លោកអ្នកជាអតិថិជនទូទៅ** (មិនទាន់បានចុះឈ្មោះជាសមាជិកសន្សំពិន្ទុឡើយ)។ ពិន្ទុបញ្ចុះតម្លៃ គឺសម្រាប់តែអតិថិជនដែលបានចុះឈ្មោះសមាជិកប៉ុណ្ណោះ។ សូមទាក់ទងម្ចាស់ហាងដើម្បីចុះឈ្មោះសមាជិក!")
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 2. ជ្រើសរើសសេវាកម្ម
@@ -514,14 +514,14 @@ if mode == "client":
                 for _, row in matched_df.iterrows():
                     st.markdown(f"""
                     <div class="receipt-box">
-                        <h3 style="text-align:center; margin:0;">🧾 OUNLEN BEAUTY SALON</h3>
-                        <p style="text-align:center; font-size:12px;">Kampong Chhnang | Tel: 012 345 678</p>
+                        <h3 style="text-align:center; margin:0;">🧾 អូនឡែន សម្រស់ </h3>
+                        <p style="text-align:center; font-size:12px;">ភូមិដំណាក់ពពូល ក្រុងកំពង់ឆ្នាំង | Tel: 067 969 877</p>
                         <hr>
                         <p><b>កាលបរិច្ឆេទកក់:</b> {row['Created At']}</p>
                         <p><b>អតិថិជន:</b> {row['Customer Name']}</p>
                         <p><b>លេខទូរស័ព្ទ:</b> {row['Phone']}</p>
                         <p><b>ថ្ងៃណាត់ជួប:</b> {row['Date']} @ {row['Time']}</p>
-                        <p><b>ជាងទទួលបន្ទុក:</b> {row['Staff']}</p>
+                        <p><b>ធ្វើសេវាកម្មដោយ:</b> {row['Staff']}</p>
                         <hr>
                         <p><b>សេវាកម្ម:</b> {row['Services']}</p>
                         <p><b>ទំនិញបញ្ជាទិញ:</b> {row['Products']}</p>
@@ -566,7 +566,7 @@ if mode == "client":
 # 5. ADMIN DASHBOARD (?mode=admin)
 # ==========================================
 elif mode == "admin":
-    st.title("👑 ADMIN DASHBOARD - អូនឡែន សម្រស់")
+    st.title("👑 ម្ចាស់ហាង - អូនឡែន សម្រស់")
 
     if "admin_auth" not in st.session_state:
         st.session_state.admin_auth = False
@@ -642,7 +642,7 @@ elif mode == "admin":
                     clean_m_phone = mem_phone.strip().replace("'", "")
                     if mem_name.strip() and clean_m_phone:
                         if clean_m_phone in members_dict:
-                            st.error("❌ លេខទូរស័ព្ទនេះបានចុះឈ្មោះជានិមិត្តរូបរួចហើយ!")
+                            st.error("❌ លេខទូរស័ព្ទនេះបានចុះឈ្មោះរួចហើយ!")
                         else:
                             requests.post(APPS_SCRIPT_URL, json={
                                 "action": "add_member",
