@@ -299,8 +299,8 @@ if mode == "client":
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">👤 1. ព័ត៌មានអតិថិជន (Customer Information)</div>', unsafe_allow_html=True)
             ic1, ic2 = st.columns(2)
-            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. កែវ ធីតា")
-            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 012345678")
+            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="Ex.លី ស្រីឡែន ")
+            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="Ex. 067 969 877")
 
             points_info = calculate_user_points(cust_phone, df_bookings, members_dict)
             if cust_phone.strip():
@@ -336,9 +336,9 @@ if mode == "client":
                 st.info("ℹ️ មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធនៅឡើយទេ")
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 3. ទំនិញថែរក្សាសម្រស់
+            # 3. ផលិតផលថែរក្សាសម្រស់
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">🛍️ 3. ទិញទំនិញបន្ថែម (Beauty Products)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">🛍️ 3. ទិញផលិតផលបន្ថែម </div>', unsafe_allow_html=True)
             selected_products = {}
             ordered_items_list = []
             products_total = 0.0
@@ -451,7 +451,7 @@ if mode == "client":
             else:
                 st.warning("សូមជ្រើសរើសម៉ោងណាត់ជួប")
 
-            if st.button("✅ បញ្ជាក់ការកក់ & បញ្ជាទិញ", type="primary", use_container_width=True):
+            if st.button("✅ បញ្ជាក់ការកក់ម៉ោង នឹងទឹកប្រាក់ត្រូវទូទាត់ ", type="primary", use_container_width=True):
                 if not cust_name.strip() or not cust_phone.strip():
                     st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!")
                 elif not sel_services and not selected_products:
