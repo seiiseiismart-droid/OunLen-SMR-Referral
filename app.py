@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime, time, timedelta
 
 # ==========================================
-# 1. PAGE CONFIG & CUSTOM CSS (STYLING)
+# 1. PAGE CONFIG & CUSTOM CSS
 # ==========================================
 st.set_page_config(
     page_title="អូនឡែន សម្រស់ - Salon & Spa",
@@ -101,7 +101,11 @@ st.markdown("""
 # ==========================================
 # 2. CONFIG & SECRETS MANAGEMENT
 # ==========================================
-APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "https://script.google.com/macros/s/YOUR_EXEC_ID/exec")
+# Link Google Apps Script
+APPS_SCRIPT_URL = st.secrets.get(
+    "APPS_SCRIPT_URL", 
+    "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
+)
 TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "")
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
@@ -159,7 +163,7 @@ if len(data.get("settings", [])) > 1:
 
 LOW_STOCK_THRESHOLD = int(settings_dict.get("low_stock_threshold", 5))
 
-# Load Services Dynamic from Google Sheets (Robust Parsing)
+# Load Services Dynamic
 services_list = []
 raw_services = data.get("services", [])
 if len(raw_services) > 1:
@@ -322,7 +326,7 @@ if mode == "client":
                 """, unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 2. ជ្រើសរើសសេវាកម្ម (LOAD DYNAMICALLY FROM GOOGLE SHEETS)
+            # 2. ជ្រើសរើសសេវាកម្ម
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Beauty Services)</div>', unsafe_allow_html=True)
             
