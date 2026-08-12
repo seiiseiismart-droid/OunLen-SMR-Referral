@@ -119,20 +119,22 @@ def send_telegram_alert(msg_text):
         except Exception:
             pass
 
-def calculate_user_points(phone, df_bookings):
-    if df_bookings.empty or not phone.strip():
-        return {"earned": 0, "redeemed": 0, "balance": 0}
-    
+def calculate_user_points(phone, df_bookings, members_dict):
     clean_phone = phone.strip().replace("'", "")
+    is_member = clean_phone in members_dict if clean_phone else False
+    
+    if not is_member or df_bookings.empty or not clean_phone:
+        return {"earned": 0, "redeemed": 0, "balance": 0, "is_member": is_member}
+    
     user_b = df_bookings[(df_bookings["Phone"].str.contains(clean_phone, na=False)) & (df_bookings["Status"] != "Cancelled")]
     if user_b.empty:
-        return {"earned": 0, "redeemed": 0, "balance": 0}
+        return {"earned": 0, "redeemed": 0, "balance": 0, "is_member": True}
 
     total_earned = user_b["Points Earned"].sum()
     total_redeemed = user_b["Points Redeemed"].sum()
     balance = max(0, total_earned - total_redeemed)
 
-    return {"earned": int(total_earned), "redeemed": int(total_redeemed), "balance": int(balance)}
+    return {"earned": int(total_earned), "redeemed": int(total_redeemed), "balance": int(balance), "is_member": True}
 
 # ==========================================
 # 3. DATA LOADING FROM GOOGLE SHEETS
@@ -145,7 +147,7 @@ def load_all_data():
             return res.json()
     except Exception:
         pass
-    return {"bookings": [], "services": [], "blocked_dates": [], "products": [], "promo_codes": [], "reviews": [], "settings": []}
+    return {"bookings": [], "services": [], "blocked_dates": [], "products": [], "promo_codes": [], "reviews": [], "settings": [], "members": []}
 
 data = load_all_data()
 
@@ -159,6 +161,18 @@ if len(data.get("settings", [])) > 1:
 LOW_STOCK_THRESHOLD = int(settings_dict.get("low_stock_threshold", 5))
 POINTS_PER_DOLLAR = float(settings_dict.get("points_per_dollar", 1.0))
 POINTS_REDEEM_RATE = float(settings_dict.get("points_redeem_rate", 10.0))
+
+# Members Dictionary
+members_dict = {}
+if len(data.get("members", [])) > 1:
+    for idx, r in enumerate(data["members"][1:]):
+        if len(r) >= 2 and r[0]:
+            clean_p = str(r[0]).replace("'", "").strip()
+            members_dict[clean_p] = {
+                "row_index": idx + 2,
+                "name": str(r[1]).strip(),
+                "date": str(r[2]).split("T")[0] if len(r) > 2 else ""
+            }
 
 # Services
 services_list = []
@@ -288,15 +302,20 @@ if mode == "client":
             cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. កែវ ធីតា")
             cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 012345678")
 
-            points_info = calculate_user_points(cust_phone, df_bookings)
+            points_info = calculate_user_points(cust_phone, df_bookings, members_dict)
             if cust_phone.strip():
-                st.markdown(f"""
-                <div class="points-card">
-                    <b>🪙 សមតុល្យពិន្ទុរបស់អ្នក៖ <span style="color:#f59e0b; font-size:20px;">{points_info['balance']} Points</span></b><br>
-                    • សរុបពិន្ទុសន្សំបាន៖ <b>{points_info['earned']} Points</b> | ប្រើប្រាស់រួច៖ <b>{points_info['redeemed']} Points</b><br>
-                    <small>💡 លក្ខខណ្ឌ៖ <b>{POINTS_REDEEM_RATE:.0f} Points = $1.00</b> បញ្ចុះតម្លៃ | ចំណាយ <b>$1.00 = {POINTS_PER_DOLLAR:.1f} Points</b></small>
-                </div>
-                """, unsafe_allow_html=True)
+                if points_info["is_member"]:
+                    m_name = members_dict[cust_phone.strip().replace("'", "")]["name"]
+                    st.markdown(f"""
+                    <div class="points-card">
+                        <b>🪙 សមតុល្យពិន្ទុរបស់អ្នក៖ <span style="color:#f59e0b; font-size:20px;">{points_info['balance']} Points</span></b><br>
+                        • សមាជិក៖ <b>{m_name}</b><br>
+                        • សរុបពិន្ទុសន្សំបាន៖ <b>{points_info['earned']} Points</b> | ប្រើប្រាស់រួច៖ <b>{points_info['redeemed']} Points</b><br>
+                        <small>💡 លក្ខខណ្ឌ៖ <b>{POINTS_REDEEM_RATE:.0f} Points = $1.00</b> បញ្ចុះតម្លៃ | ចំណាយ <b>$1.00 = {POINTS_PER_DOLLAR:.1f} Points</b></small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.info("ℹ️ **លោកអ្នកជាអតិថិជនទូទៅ** (មិនទាន់បានចុះឈ្មោះសមាជិកសន្សំពិន្ទុ)។ ការសន្សំពិន្ទុ និងប្រើប្រាស់ពិន្ទុបញ្ចុះតម្លៃ គឺសម្រាប់តែអតិថិជនដែលបានចុះឈ្មោះសមាជិកប៉ុណ្ណោះ។ សូមទាក់ទងហាងដើម្បីចុះឈ្មោះសមាជិក!")
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 2. ជ្រើសរើសសេវាកម្ម
@@ -387,12 +406,12 @@ if mode == "client":
                 promo_discount = promo_dict[promo_input]
                 st.success(f"🎉 ទទួលបានការបញ្ចុះតម្លៃ Promo: -${promo_discount:.2f}")
 
-            # Points Discount Calculation
+            # Points Discount Calculation (Only for Members)
             subtotal_after_promo = max(0.0, subtotal - promo_discount)
             redeem_points = 0
             points_discount = 0.0
 
-            if points_info['balance'] >= POINTS_REDEEM_RATE and subtotal_after_promo > 0:
+            if points_info["is_member"] and points_info['balance'] >= POINTS_REDEEM_RATE and subtotal_after_promo > 0:
                 max_redeem_by_subtotal = int(subtotal_after_promo * POINTS_REDEEM_RATE)
                 max_usable_points = min(points_info['balance'], max_redeem_by_subtotal)
                 
@@ -408,7 +427,12 @@ if mode == "client":
                     points_discount = redeem_points / POINTS_REDEEM_RATE
 
             final_total = max(0.0, subtotal_after_promo - points_discount)
-            earned_points_new = math.floor(final_total * POINTS_PER_DOLLAR)
+            
+            # Points Earning (Only for Members)
+            if points_info["is_member"]:
+                earned_points_new = math.floor(final_total * POINTS_PER_DOLLAR)
+            else:
+                earned_points_new = 0
 
             st.markdown("<hr style='border-color:#334155;'>", unsafe_allow_html=True)
             st.markdown(f"សរុបសេវា + ទំនិញ៖ **${subtotal:.2f}**")
@@ -416,7 +440,11 @@ if mode == "client":
             if points_discount > 0: st.markdown(f"ដកពិន្ទុប្រើប្រាស់ (-{redeem_points} Pts)៖ <span style='color:#f43f5e;'>-${points_discount:.2f}</span>", unsafe_allow_html=True)
             
             st.markdown(f'<div class="total-price-tag">${final_total:.2f}</div>', unsafe_allow_html=True)
-            st.info(f"🪙 ការកក់នេះនឹងទទួលបាន៖ **+{earned_points_new} Points**")
+            
+            if points_info["is_member"]:
+                st.info(f"🪙 ការកក់នេះនឹងទទួលបាន៖ **+{earned_points_new} Points**")
+            else:
+                st.caption("ℹ️ អតិថិជនទូទៅមិនទទួលបានពិន្ទុទេ")
 
             if st.session_state.selected_slot:
                 st.success(f"ម៉ោងជ្រើសរើស៖ **{st.session_state.selected_slot}**")
@@ -458,7 +486,7 @@ if mode == "client":
                         if res.status_code == 200:
                             send_telegram_alert(
                                 f"🔔 *ការកក់ថ្មីបានចូល!*\n\n"
-                                f"👤 *អតិថិជន:* {cust_name.strip()}\n"
+                                f"👤 *អតិថិជន:* {cust_name.strip()} ({'សមាជិក' if points_info['is_member'] else 'អតិថិជនទូទៅ'})\n"
                                 f"📞 *ទូរស័ព្ទ:* `{cust_phone.strip()}`\n"
                                 f"💆‍♀️ *សេវា:* {', '.join(sel_services)}\n"
                                 f"🛍️ *ទំនិញ:* {prod_str}\n"
@@ -557,8 +585,9 @@ elif mode == "admin":
         st.warning(f"⚠️ **ទំនិញជិតអស់ពីស្តុក (≤ {LOW_STOCK_THRESHOLD}):** " + 
                    ", ".join([f"{i['name']} (សល់ {i['stock']})" for i in low_stock_items]))
 
-    ad_tab1, ad_tab_srv, ad_tab2, ad_tab_promo, ad_tab3, ad_tab5 = st.tabs([
+    ad_tab1, ad_tab_members, ad_tab_srv, ad_tab2, ad_tab_promo, ad_tab3, ad_tab5 = st.tabs([
         "📋 ការកក់ (Bookings)",
+        "👥 សមាជិកសន្សំពិន្ទុ",
         "💆‍♀️ សេវាកម្ម",
         "🛍️ ផលិតផល & ស្តុក",
         "🎟️ Promo Code",
@@ -585,6 +614,46 @@ elif mode == "admin":
                 requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Cancelled"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
+
+    # MEMBERS MANAGEMENT (បន្ថែមថ្មី)
+    with ad_tab_members:
+        st.subheader("👥 គ្រប់គ្រង និងចុះឈ្មោះសមាជិកសន្សំពិន្ទុ")
+        m_col1, m_col2 = st.columns([1.2, 1])
+        
+        with m_col1:
+            st.markdown("### 📋 បញ្ជីឈ្មោះសមាជិក")
+            if members_dict:
+                for phone, m_info in members_dict.items():
+                    mc1, mc2 = st.columns([3, 1])
+                    mc1.write(f"• **{m_info['name']}** - `{phone}` (ថ្ងៃចុះឈ្មោះ: {m_info['date']})")
+                    if mc2.button("🗑️ លុប", key=f"del_mem_{m_info['row_index']}"):
+                        requests.post(APPS_SCRIPT_URL, json={"action": "delete_member", "row_index": m_info['row_index']}, timeout=20)
+                        st.cache_data.clear()
+                        st.rerun()
+            else:
+                st.info("មិនទាន់មានសមាជិកត្រូវបានចុះឈ្មោះនៅឡើយទេ")
+
+        with m_col2:
+            st.markdown("### ➕ ចុះឈ្មោះសមាជិកថ្មី")
+            with st.form("add_member_form", clear_on_submit=True):
+                mem_name = st.text_input("ឈ្មោះសមាជិក*")
+                mem_phone = st.text_input("លេខទូរស័ព្ទ*")
+                if st.form_submit_button("✅ ចុះឈ្មោះសមាជិក"):
+                    clean_m_phone = mem_phone.strip().replace("'", "")
+                    if mem_name.strip() and clean_m_phone:
+                        if clean_m_phone in members_dict:
+                            st.error("❌ លេខទូរស័ព្ទនេះបានចុះឈ្មោះជានិមិត្តរូបរួចហើយ!")
+                        else:
+                            requests.post(APPS_SCRIPT_URL, json={
+                                "action": "add_member",
+                                "customer_name": mem_name.strip(),
+                                "phone": clean_m_phone
+                            }, timeout=20)
+                            st.success("🎉 ចុះឈ្មោះសមាជិកបានជោគជ័យ!")
+                            st.cache_data.clear()
+                            st.rerun()
+                    else:
+                        st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!")
 
     # SERVICES
     with ad_tab_srv:
