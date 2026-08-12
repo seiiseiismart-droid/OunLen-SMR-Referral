@@ -99,7 +99,10 @@ st.markdown("""
 # ==========================================
 # 2. CONFIG & SECRETS MANAGEMENT
 # ==========================================
-APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec")
+APPS_SCRIPT_URL = st.secrets.get(
+    "APPS_SCRIPT_URL", 
+    "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
+)
 TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "")
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
