@@ -535,31 +535,78 @@ if mode == "client":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # TAB 2: RECEIPT
+    # # TAB 2: RECEIPT (80mm Thermal Receipt Format)
     with tab_c2:
-        st.subheader("🔍 ពិនិត្យមើលវិក្កយបត្រ (Digital Receipt)")
-        search_phone = validate_phone(st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:"))
+        st.subheader("🔍 ពិនិត្យមើលវិក្កយបត្រ (Digital Receipt 80mm)")
+        search_phone = validate_phone(st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:", key="search_receipt_input"))
+        
         if search_phone and not df_bookings.empty:
             matched_df = df_bookings[df_bookings["Phone"].str.contains(search_phone, na=False)]
             if not matched_df.empty:
                 for _, row in matched_df.iterrows():
+                    # សម្រួលទម្រង់ថ្ងៃខែឱ្យស្អាត (កាត់ T...Z ចេញ)
+                    created_date = str(row['Created At']).split("T")[0] if "T" in str(row['Created At']) else str(row['Created At'])
+                    appt_date = str(row['Date']).split("T")[0] if "T" in str(row['Date']) else str(row['Date'])
+                    
                     st.markdown(f"""
-                    <div class="receipt-box">
-                        <h3 style="text-align:center; margin:0;">អូនឡែន សម្រស់</h3>
-                        <p style="text-align:center; font-size:12px;">ភូមិ ដំណាក់ពពូល ក្រុងកំពង់ឆ្នាំង | Tel: 067 969 877</p>
-                        <hr>
-                        <p><b>កាលបរិច្ឆេទកក់:</b> {row['Created At']}</p>
-                        <p><b>អតិថិជន:</b> {row['Customer Name']}</p>
-                        <p><b>លេខទូរស័ព្ទ:</b> {row['Phone']}</p>
-                        <p><b>ថ្ងៃណាត់ជួប:</b> {row['Date']} @ {row['Time']}</p>
-                        <p><b>អ្នកផ្ដល់សេវាកម្ម:</b> {row['Staff']}</p>
-                        <hr>
-                        <p><b>សេវាកម្ម:</b> {row['Services']}</p>
-                        <p><b>ទំនិញបញ្ជាទិញ:</b> {row['Products']}</p>
-                        <p><b>ពិន្ទុទទួលបាន:</b> +{row['Points Earned']} Points</p>
-                        <p><b>ពិន្ទុប្រើប្រាស់:</b> -{row['Points Redeemed']} Points</p>
-                        <h3 style="text-align:right; color:#2563eb;">សរុប៖ ${row['Total Price']:.2f}</h3>
-                        <p style="text-align:center; font-size:12px;"><b>Status:</b> {row['Status']}</p>
+                    <div class="receipt-80mm">
+                        <div class="header">
+                            <div class="title">អូនឡែន សម្រស់</div>
+                            <div class="subtitle">ភូមិ ដំណាក់កុយ ក្រុងកំពង់ឆ្នាំង | Tel: 067 969 877</div>
+                        </div>
+                        
+                        <div class="item-row">
+                            <span class="item-label">កាលបរិច្ឆេទកក់:</span>
+                            <span class="item-val">{created_date}</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="item-label">អតិថិជន:</span>
+                            <span class="item-val"><b>{row['Customer Name']}</b></span>
+                        </div>
+                        <div class="item-row">
+                            <span class="item-label">លេខទូរស័ព្ទ:</span>
+                            <span class="item-val">{row['Phone']}</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="item-label">ថ្ងៃណាត់ជួប:</span>
+                            <span class="item-val">{appt_date} @ {row['Time']}</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="item-label">អ្នកផ្តល់សេវាកម្ម:</span>
+                            <span class="item-val">{row['Staff']}</span>
+                        </div>
+                        
+                        <div class="dashed-line"></div>
+                        
+                        <div class="item-row">
+                            <span class="item-label">សេវាកម្ម:</span>
+                            <span class="item-val">{row['Services']}</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="item-label">ទំនិញបញ្ជាទិញ:</span>
+                            <span class="item-val">{row['Products']}</span>
+                        </div>
+                        
+                        <div class="dashed-line"></div>
+                        
+                        <div class="item-row">
+                            <span class="item-label">ពិន្ទុទទួលបាន:</span>
+                            <span class="item-val">+{row['Points Earned']} Pts</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="item-label">ពិន្ទុប្រើប្រាស់:</span>
+                            <span class="item-val">-{row['Points Redeemed']} Pts</span>
+                        </div>
+                        
+                        <div class="total-row">
+                            <span>សរុប:</span>
+                            <span>${row['Total Price']:.2f}</span>
+                        </div>
+                        
+                        <div class="footer">
+                            <div><b>Status:</b> {row['Status']}</div>
+                            <div style="margin-top:3px;">សូមអរគុណ! Thank You! 🙏</div>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
                     st.write("")
