@@ -7,7 +7,7 @@ from datetime import datetime, time, timedelta
 # 1. PAGE CONFIG & CUSTOM CSS (STYLING)
 # ==========================================
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់ - Beauty Salon",
+    page_title="អូនឡែន សម្រស់ - Salon & Spa",
     page_icon="💆‍♀️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -159,23 +159,36 @@ if len(data.get("settings", [])) > 1:
 
 LOW_STOCK_THRESHOLD = int(settings_dict.get("low_stock_threshold", 5))
 
-# Load Services Dynamic from Google Sheets
+# Load Services Dynamic from Google Sheets (Robust Parsing)
 services_list = []
-if len(data.get("services", [])) > 1:
-    for idx, r in enumerate(data["services"][1:]):
-        row = list(r) + [""] * (3 - len(r))
-        try:
-            if row[0]:
-                services_list.append({
-                    "row_index": idx + 2,
-                    "name": str(row[0]).strip(),
-                    "price": float(row[1]) if row[1] != "" else 0.0,
-                    "desc": str(row[2]).strip()
-                })
-        except Exception:
-            pass
+raw_services = data.get("services", [])
+if len(raw_services) > 1:
+    for idx, r in enumerate(raw_services[1:]):
+        if not r or len(r) == 0:
+            continue
+        
+        srv_name = str(r[0]).strip() if r[0] is not None else ""
+        if not srv_name or srv_name.lower() == "service_name":
+            continue
 
-# Load Products Dynamic from Google Sheets
+        price_val = 0.0
+        if len(r) > 1 and r[1] is not None and str(r[1]).strip() != "":
+            try:
+                clean_price = str(r[1]).replace("$", "").replace(",", "").strip()
+                price_val = float(clean_price)
+            except ValueError:
+                price_val = 0.0
+
+        desc_val = str(r[2]).strip() if len(r) > 2 and r[2] is not None else ""
+
+        services_list.append({
+            "row_index": idx + 2,
+            "name": srv_name,
+            "price": price_val,
+            "desc": desc_val
+        })
+
+# Load Products Dynamic
 products_list = []
 low_stock_items = []
 if len(data.get("products", [])) > 1:
@@ -584,7 +597,7 @@ elif mode == "admin":
                 st.cache_data.clear()
                 st.rerun()
 
-    # ADMIN: SERVICES MANAGEMENT (NEW)
+    # ADMIN: SERVICES MANAGEMENT
     with ad_tab_srv:
         st.subheader("💆‍♀️ គ្រប់គ្រងសេវាកម្ម (Services Management)")
         
