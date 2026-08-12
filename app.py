@@ -1,13 +1,14 @@
 import streamlit as st
 import requests
 import pandas as pd
+import math
 from datetime import datetime, time, timedelta
 
 # ==========================================
 # 1. PAGE CONFIG & CUSTOM CSS
 # ==========================================
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់",
+    page_title="អូនឡែន សម្រស់ - Salon & Spa",
     page_icon="💆‍♀️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -44,9 +45,9 @@ st.markdown("""
         margin-top: 5px;
     }
 
-    .vip-card {
+    .points-card {
         background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        border: 1px solid #475569;
+        border: 1px solid #f59e0b;
         border-left: 6px solid #f59e0b;
         padding: 18px;
         border-radius: 14px;
@@ -66,9 +67,6 @@ st.markdown("""
         font-weight: 600;
         color: #f472b6;
         margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
     }
 
     .summary-box {
@@ -101,11 +99,7 @@ st.markdown("""
 # ==========================================
 # 2. CONFIG & SECRETS MANAGEMENT
 # ==========================================
-# Link Google Apps Script
-APPS_SCRIPT_URL = st.secrets.get(
-    "APPS_SCRIPT_URL", 
-    "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
-)
+APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec")
 TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "")
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
@@ -122,22 +116,20 @@ def send_telegram_alert(msg_text):
         except Exception:
             pass
 
-def calculate_vip_tier(phone, df_bookings):
+def calculate_user_points(phone, df_bookings):
     if df_bookings.empty or not phone.strip():
-        return {"tier": "Standard", "discount": 0.0, "total_spent": 0.0, "total_bookings": 0}
+        return {"earned": 0, "redeemed": 0, "balance": 0}
     
-    user_b = df_bookings[(df_bookings["Phone"].str.contains(phone.strip())) & (df_bookings["Status"] != "Cancelled")]
-    total_spent = user_b["Total Price"].sum() if not user_b.empty else 0.0
-    total_bookings = len(user_b)
+    clean_phone = phone.strip().replace("'", "")
+    user_b = df_bookings[(df_bookings["Phone"].str.contains(clean_phone, na=False)) & (df_bookings["Status"] != "Cancelled")]
+    if user_b.empty:
+        return {"earned": 0, "redeemed": 0, "balance": 0}
 
-    if total_spent >= 300 or total_bookings >= 10:
-        return {"tier": "VIP Gold", "discount": 15.0, "total_spent": total_spent, "total_bookings": total_bookings}
-    elif total_spent >= 150 or total_bookings >= 5:
-        return {"tier": "VIP Silver", "discount": 10.0, "total_spent": total_spent, "total_bookings": total_bookings}
-    elif total_spent >= 50 or total_bookings >= 2:
-        return {"tier": "Member", "discount": 5.0, "total_spent": total_spent, "total_bookings": total_bookings}
-    else:
-        return {"tier": "Standard", "discount": 0.0, "total_spent": total_spent, "total_bookings": total_bookings}
+    total_earned = user_b["Points Earned"].sum()
+    total_redeemed = user_b["Points Redeemed"].sum()
+    balance = max(0, total_earned - total_redeemed)
+
+    return {"earned": int(total_earned), "redeemed": int(total_redeemed), "balance": int(balance)}
 
 # ==========================================
 # 3. DATA LOADING FROM GOOGLE SHEETS
@@ -154,52 +146,40 @@ def load_all_data():
 
 data = load_all_data()
 
-# Load Settings
-settings_dict = {"low_stock_threshold": 5}
+# Settings
+settings_dict = {}
 if len(data.get("settings", [])) > 1:
     for r in data["settings"][1:]:
         if len(r) >= 2:
             settings_dict[str(r[0])] = str(r[1])
 
 LOW_STOCK_THRESHOLD = int(settings_dict.get("low_stock_threshold", 5))
+POINTS_PER_DOLLAR = float(settings_dict.get("points_per_dollar", 1.0))
+POINTS_REDEEM_RATE = float(settings_dict.get("points_redeem_rate", 10.0))
 
-# Load Services Dynamic
+# Services
 services_list = []
-raw_services = data.get("services", [])
-if len(raw_services) > 1:
-    for idx, r in enumerate(raw_services[1:]):
-        if not r or len(r) == 0:
-            continue
-        
-        srv_name = str(r[0]).strip() if r[0] is not None else ""
-        if not srv_name or srv_name.lower() == "service_name":
-            continue
+if len(data.get("services", [])) > 1:
+    for idx, r in enumerate(data["services"][1:]):
+        if not r or not r[0]: continue
+        try:
+            p_val = float(str(r[1]).replace("$", "").replace(",", "").strip()) if len(r) > 1 and r[1] != "" else 0.0
+            services_list.append({
+                "row_index": idx + 2,
+                "name": str(r[0]).strip(),
+                "price": p_val,
+                "desc": str(r[2]).strip() if len(r) > 2 and r[2] else ""
+            })
+        except Exception: pass
 
-        price_val = 0.0
-        if len(r) > 1 and r[1] is not None and str(r[1]).strip() != "":
-            try:
-                clean_price = str(r[1]).replace("$", "").replace(",", "").strip()
-                price_val = float(clean_price)
-            except ValueError:
-                price_val = 0.0
-
-        desc_val = str(r[2]).strip() if len(r) > 2 and r[2] is not None else ""
-
-        services_list.append({
-            "row_index": idx + 2,
-            "name": srv_name,
-            "price": price_val,
-            "desc": desc_val
-        })
-
-# Load Products Dynamic
+# Products
 products_list = []
 low_stock_items = []
 if len(data.get("products", [])) > 1:
     for idx, r in enumerate(data["products"][1:]):
         row = list(r) + [""] * (5 - len(r))
         try:
-            stk = int(row[3]) if str(row[3]).isdigit() else 10
+            stk = int(row[3]) if str(row[3]).isdigit() else 0
             p_item = {
                 "row_index": idx + 2,
                 "name": str(row[0]),
@@ -211,32 +191,20 @@ if len(data.get("products", [])) > 1:
             products_list.append(p_item)
             if stk <= LOW_STOCK_THRESHOLD:
                 low_stock_items.append(p_item)
-        except Exception:
-            pass
+        except Exception: pass
 
-# Load Promo Codes
-promo_dict = {}
-if len(data.get("promo_codes", [])) > 1:
-    for r in data["promo_codes"][1:]:
-        if len(r) >= 3 and str(r[2]).strip().lower() == "active":
-            try:
-                promo_dict[str(r[0]).strip().upper()] = float(r[1])
-            except Exception:
-                pass
-
-# Load Bookings
-bookings_raw = data.get("bookings", [])
+# Bookings
 df_bookings = pd.DataFrame()
-if len(bookings_raw) > 1:
+if len(data.get("bookings", [])) > 1:
     b_rows = []
-    for idx, r in enumerate(bookings_raw[1:]):
+    for idx, r in enumerate(data["bookings"][1:]):
         row = list(r) + [""] * (15 - len(r))
         try:
             b_rows.append({
                 "sheet_row": idx + 2,
                 "Created At": str(row[0]),
                 "Customer Name": str(row[1]),
-                "Phone": str(row[2]),
+                "Phone": str(row[2]).replace("'", ""),
                 "Services": str(row[3]),
                 "Staff": str(row[4]),
                 "Date": str(row[5]).split("T")[0],
@@ -246,15 +214,29 @@ if len(bookings_raw) > 1:
                 "Total Price": float(row[9]) if row[9] != "" else 0.0,
                 "Deposit": str(row[10]),
                 "Products": str(row[11]),
-                "Promo": str(row[12]),
-                "Discount": float(row[13]) if row[13] != "" else 0.0,
-                "VIP_Tier": str(row[14]) if row[14] else "Standard"
+                "Points Earned": int(row[12]) if str(row[12]).isdigit() else 0,
+                "Points Redeemed": int(row[13]) if str(row[13]).isdigit() else 0,
+                "Promo Code": str(row[14])
             })
-        except Exception:
-            pass
+        except Exception: pass
     df_bookings = pd.DataFrame(b_rows)
 
-# Load Reviews
+# Promo Codes
+promo_dict = {}
+if len(data.get("promo_codes", [])) > 1:
+    for r in data["promo_codes"][1:]:
+        if len(r) >= 2 and (len(r) < 3 or str(r[2]).lower() == "active"):
+            try: promo_dict[str(r[0]).upper().strip()] = float(r[1])
+            except: pass
+
+# Blocked Dates
+blocked_dates_dict = {}
+if len(data.get("blocked_dates", [])) > 1:
+    for r in data["blocked_dates"][1:]:
+        if len(r) >= 1:
+            blocked_dates_dict[str(r[0]).split("T")[0]] = r[1] if len(r) > 1 else "ថ្ងៃសម្រាក"
+
+# Reviews
 reviews_list = []
 if len(data.get("reviews", [])) > 1:
     for idx, r in enumerate(data["reviews"][1:]):
@@ -264,20 +246,11 @@ if len(data.get("reviews", [])) > 1:
                 "row_index": idx + 2,
                 "date": str(row[0]).split("T")[0],
                 "name": str(row[1]),
-                "phone": str(row[2]),
+                "phone": str(row[2]).replace("'", ""),
                 "rating": int(row[3]) if str(row[3]).isdigit() else 5,
                 "comment": str(row[4])
             })
-        except Exception:
-            pass
-
-# Load Blocked Dates
-blocked_dates_dict = {}
-if len(data.get("blocked_dates", [])) > 1:
-    for r in data["blocked_dates"][1:]:
-        if len(r) >= 1:
-            d = str(r[0]).split("T")[0]
-            blocked_dates_dict[d] = r[1] if len(r) > 1 else "ថ្ងៃសម្រាក"
+        except Exception: pass
 
 if "selected_slot" not in st.session_state:
     st.session_state.selected_slot = None
@@ -290,8 +263,8 @@ mode = st.query_params.get("mode", "client")
 if mode == "client":
     st.markdown("""
     <div class="hero-container">
-        <div class="hero-title">✨ អូនឡែន សម្រស់ </div>
-        <div class="hero-subtitle">កក់ម៉ោង ថែរក្សាស្បែក និងបញ្ជាទិញផលិតផលថែរក្សាសម្រស់</div>
+        <div class="hero-title">✨ អូនឡែន សម្រស់ - Salon & Spa</div>
+        <div class="hero-subtitle">ប្រព័ន្ធកក់ម៉ោងធ្វើសក់ ថែរក្សាស្បែក និងសន្សំពិន្ទុរង្វាន់អនឡាញ</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -301,9 +274,6 @@ if mode == "client":
         "⭐️ ការវាយតម្លៃពីអតិថិជន"
     ])
 
-    # ----------------------------------------
-    # TAB 1: CLIENT BOOKING FORM
-    # ----------------------------------------
     with tab_c1:
         col_main, col_summary = st.columns([1.8, 1], gap="large")
 
@@ -312,45 +282,41 @@ if mode == "client":
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">👤 1. ព័ត៌មានអតិថិជន (Customer Information)</div>', unsafe_allow_html=True)
             ic1, ic2 = st.columns(2)
-            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. លី ស្រីឡែន")
-            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 067969877")
+            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. កែវ ធីតា")
+            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 012345678")
 
-            vip_info = calculate_vip_tier(cust_phone, df_bookings)
+            points_info = calculate_user_points(cust_phone, df_bookings)
             if cust_phone.strip():
                 st.markdown(f"""
-                <div class="vip-card">
-                    <b>👑 កម្រិតសមាជិក៖ <span style="color:#f59e0b;">{vip_info['tier']}</span></b><br>
-                    • ប្រវត្តិចំណាយសរុប៖ <b>${vip_info['total_spent']:.2f}</b> | កក់បាន៖ <b>{vip_info['total_bookings']} ដង</b><br>
-                    • ទទួលបានការបញ្ចុះតម្លៃសមាជិក៖ <b style="color:#10b981;">{vip_info['discount']:.0f}%</b>
+                <div class="points-card">
+                    <b>🪙 សមតុល្យពិន្ទុរបស់អ្នក៖ <span style="color:#f59e0b; font-size:20px;">{points_info['balance']} Points</span></b><br>
+                    • សរុបពិន្ទុសន្សំបាន៖ <b>{points_info['earned']} Points</b> | ប្រើប្រាស់រួច៖ <b>{points_info['redeemed']} Points</b><br>
+                    <small>💡 លក្ខខណ្ឌ៖ <b>{POINTS_REDEEM_RATE:.0f} Points = $1.00</b> បញ្ចុះតម្លៃ | ចំណាយ <b>$1.00 = {POINTS_PER_DOLLAR:.1f} Points</b></small>
                 </div>
                 """, unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 2. ជ្រើសរើសសេវាកម្ម
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">💆‍♀️ សេវាកម្ម (Beauty Services)</div>', unsafe_allow_html=True)
-            
+            st.markdown('<div class="section-header">💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Beauty Services)</div>', unsafe_allow_html=True)
             sel_services = []
             services_total = 0.0
 
             if services_list:
                 sc_cols = st.columns(2)
                 for idx, srv in enumerate(services_list):
-                    sc_col = sc_cols[idx % 2]
-                    with sc_col:
-                        checked = st.checkbox(f"**{srv['name']}**", key=f"srv_check_{idx}")
-                        st.caption(f"តម្លៃសេវាកម្ម: **${srv['price']:.2f}**" + (f" | {srv['desc']}" if srv['desc'] else ""))
-                        if checked:
+                    with sc_cols[idx % 2]:
+                        if st.checkbox(f"**{srv['name']}**", key=f"srv_check_{idx}"):
                             sel_services.append(srv['name'])
                             services_total += srv['price']
+                        st.caption(f"តម្លៃសេវាកម្ម: **${srv['price']:.2f}**" + (f" | {srv['desc']}" if srv['desc'] else ""))
             else:
                 st.info("ℹ️ មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធនៅឡើយទេ")
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 3. ទំនិញថែរក្សាសម្រស់
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">🛍️ មើលទំនិញបន្ថែម (Beauty Products)</div>', unsafe_allow_html=True)
-            
+            st.markdown('<div class="section-header">🛍️ 3. ទិញទំនិញបន្ថែម (Beauty Products)</div>', unsafe_allow_html=True)
             selected_products = {}
             ordered_items_list = []
             products_total = 0.0
@@ -358,8 +324,7 @@ if mode == "client":
             if products_list:
                 p_cols = st.columns(3)
                 for i, prod in enumerate(products_list):
-                    p_col = p_cols[i % 3]
-                    with p_col:
+                    with p_cols[i % 3]:
                         st.image(prod["image_url"], use_container_width=True)
                         st.markdown(f"**{prod['name']}**")
                         st.markdown(f"<span style='color:#38bdf8; font-weight:bold;'>${prod['price']:.2f}</span>", unsafe_allow_html=True)
@@ -372,18 +337,16 @@ if mode == "client":
                             products_total += prod['price'] * qty
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 4. កាលបរិច្ឆេទ និងម៉ោង
+            # 4. កាលបរិច្ឆេទ & ម៉ោង
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងធ្វើសេវាកម្មផ្ទាល់</div>', unsafe_allow_html=True)
-            
+            st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងទទួលបន្ទុក</div>', unsafe_allow_html=True)
             dt1, dt2 = st.columns(2)
-            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["លី ស្រីឡែន (ម្ចាស់ហាង)", "ជាងជំនាញទី ១"])
+            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["អ្នកគ្រូ ឡែន (Master)", "ជាងជំនាញទី ១"])
             
-            cambodia_today = get_cambodia_now().date()
-            book_date = dt2.date_input("ថ្ងៃណាត់ជួប / Date:", cambodia_today)
+            book_date = dt2.date_input("ថ្ងៃណាត់ជួប / Date:", get_cambodia_now().date())
             book_date_str = str(book_date)
-
             is_blocked = book_date_str in blocked_dates_dict
+
             all_slots = [time(h, m).strftime("%I:%M %p") for h in range(8, 20) for m in (0, 30)]
             booked_slots = df_bookings[(df_bookings["Date"] == book_date_str) & (df_bookings["Status"] != "Cancelled")]["Time"].tolist() if not df_bookings.empty else []
             
@@ -407,28 +370,50 @@ if mode == "client":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # RIGHT COLUMN: SUMMARY
+        # SUMMARY SIDEBAR
         with col_summary:
             st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown('<h3 style="color:white; margin-top:0;">💳 សរុបប្រាក់ត្រូវទូទាត់</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
             
-            input_promo = st.text_input("បញ្ចូល Promo Code (បើមាន):", placeholder="កូដបញ្ចុះតម្លៃ សម្រាប់អតិថិជនដែលបានចុះឈ្មោះទទួលបានកូដបញ្ចុះតម្លៃតែប៉ុណ្ណោះ").strip().upper()
-            promo_discount = promo_dict.get(input_promo, 0.0)
-            vip_discount = vip_info['discount']
-            total_discount_percent = max(promo_discount, vip_discount)
-
             subtotal = services_total + products_total
-            discount_val = (subtotal * total_discount_percent) / 100.0
-            final_total = subtotal - discount_val
+            
+            # Promo Code Discount
+            promo_input = st.text_input("🎟️ Promo Code (បើមាន):").strip().upper()
+            promo_discount = 0.0
+            if promo_input in promo_dict:
+                promo_discount = promo_dict[promo_input]
+                st.success(f"🎉 ទទួលបានការបញ្ចុះតម្លៃ Promo: -${promo_discount:.2f}")
+
+            # Points Discount Calculation
+            subtotal_after_promo = max(0.0, subtotal - promo_discount)
+            redeem_points = 0
+            points_discount = 0.0
+
+            if points_info['balance'] >= POINTS_REDEEM_RATE and subtotal_after_promo > 0:
+                max_redeem_by_subtotal = int(subtotal_after_promo * POINTS_REDEEM_RATE)
+                max_usable_points = min(points_info['balance'], max_redeem_by_subtotal)
+                
+                if st.checkbox("🎁 ប្រើប្រាស់ពិន្ទុប្តូរការបញ្ចុះតម្លៃ"):
+                    step_val = int(POINTS_REDEEM_RATE) if POINTS_REDEEM_RATE >= 1 else 1
+                    redeem_points = st.number_input(
+                        f"ចំនួនពិន្ទុ (អតិបរមា {max_usable_points} Pts):",
+                        min_value=int(POINTS_REDEEM_RATE),
+                        max_value=max_usable_points,
+                        step=step_val,
+                        value=min(int(POINTS_REDEEM_RATE), max_usable_points)
+                    )
+                    points_discount = redeem_points / POINTS_REDEEM_RATE
+
+            final_total = max(0.0, subtotal_after_promo - points_discount)
+            earned_points_new = math.floor(final_total * POINTS_PER_DOLLAR)
 
             st.markdown("<hr style='border-color:#334155;'>", unsafe_allow_html=True)
-            st.markdown(f"សរុបសេវាកម្ម៖ **${services_total:.2f}**")
-            st.markdown(f"សរុបទំនិញ៖ **${products_total:.2f}**")
-            st.markdown(f"ការបញ្ចុះតម្លៃ ({total_discount_percent:.0f}%)៖ <span style='color:#f43f5e;'>-${discount_val:.2f}</span>", unsafe_allow_html=True)
+            st.markdown(f"សរុបសេវា + ទំនិញ៖ **${subtotal:.2f}**")
+            if promo_discount > 0: st.markdown(f"បញ្ចុះតម្លៃ Promo Code៖ <span style='color:#f43f5e;'>-${promo_discount:.2f}</span>", unsafe_allow_html=True)
+            if points_discount > 0: st.markdown(f"ដកពិន្ទុប្រើប្រាស់ (-{redeem_points} Pts)៖ <span style='color:#f43f5e;'>-${points_discount:.2f}</span>", unsafe_allow_html=True)
             
-            st.markdown('<div class="total-price-tag">', unsafe_allow_html=True)
-            st.markdown(f"${final_total:.2f}")
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="total-price-tag">${final_total:.2f}</div>', unsafe_allow_html=True)
+            st.info(f"🪙 ការកក់នេះនឹងទទួលបាន៖ **+{earned_points_new} Points**")
 
             if st.session_state.selected_slot:
                 st.success(f"ម៉ោងជ្រើសរើស៖ **{st.session_state.selected_slot}**")
@@ -457,9 +442,9 @@ if mode == "client":
                         "total_price": final_total,
                         "deposit": "None",
                         "products_ordered": prod_str,
-                        "promo_code": input_promo if input_promo else "None",
-                        "discount_amount": discount_val,
-                        "vip_tier": vip_info['tier'],
+                        "points_earned": earned_points_new,
+                        "points_redeemed": redeem_points,
+                        "promo_code": promo_input if promo_input in promo_dict else "None",
                         "ordered_items_list": ordered_items_list
                     }
                     
@@ -468,17 +453,16 @@ if mode == "client":
                             res = requests.post(APPS_SCRIPT_URL, json=payload, timeout=25)
                         
                         if res.status_code == 200:
-                            alert_msg = (
+                            send_telegram_alert(
                                 f"🔔 *ការកក់ថ្មីបានចូល!*\n\n"
-                                f"👤 *អតិថិជន:* {cust_name.strip()} ({vip_info['tier']})\n"
+                                f"👤 *អតិថិជន:* {cust_name.strip()}\n"
                                 f"📞 *ទូរស័ព្ទ:* `{cust_phone.strip()}`\n"
                                 f"💆‍♀️ *សេវា:* {', '.join(sel_services)}\n"
                                 f"🛍️ *ទំនិញ:* {prod_str}\n"
                                 f"📅 *ថ្ងៃណាត់:* {book_date_str} @ {st.session_state.selected_slot}\n"
-                                f"💰 *សរុប:* ${final_total:.2f}"
+                                f"💰 *សរុប:* ${final_total:.2f}\n"
+                                f"🪙 *ពិន្ទុបានសន្សំ:* +{earned_points_new} Pts | *បានប្រើ:* -{redeem_points} Pts"
                             )
-                            send_telegram_alert(alert_msg)
-
                             st.balloons()
                             st.success("🎉 កក់បានជោគជ័យ! សូមពិនិត្យមើលវិក្កយបត្រក្នុង Tab ទី ២។")
                             st.cache_data.clear()
@@ -489,14 +473,12 @@ if mode == "client":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # ----------------------------------------
-    # TAB 2: RECEIPT CHECK
-    # ----------------------------------------
+    # TAB 2: RECEIPT
     with tab_c2:
         st.subheader("🔍 ពិនិត្យមើលវិក្កយបត្រ (Digital Receipt)")
-        search_phone = st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:")
-        if search_phone.strip() and not df_bookings.empty:
-            matched_df = df_bookings[df_bookings["Phone"].str.contains(search_phone.strip())]
+        search_phone = st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:").strip()
+        if search_phone and not df_bookings.empty:
+            matched_df = df_bookings[df_bookings["Phone"].str.contains(search_phone, na=False)]
             if not matched_df.empty:
                 for _, row in matched_df.iterrows():
                     st.markdown(f"""
@@ -505,14 +487,15 @@ if mode == "client":
                         <p style="text-align:center; font-size:12px;">Kampong Chhnang | Tel: 012 345 678</p>
                         <hr>
                         <p><b>កាលបរិច្ឆេទកក់:</b> {row['Created At']}</p>
-                        <p><b>អតិថិជន:</b> {row['Customer Name']} ({row['VIP_Tier']})</p>
+                        <p><b>អតិថិជន:</b> {row['Customer Name']}</p>
                         <p><b>លេខទូរស័ព្ទ:</b> {row['Phone']}</p>
                         <p><b>ថ្ងៃណាត់ជួប:</b> {row['Date']} @ {row['Time']}</p>
                         <p><b>ជាងទទួលបន្ទុក:</b> {row['Staff']}</p>
                         <hr>
                         <p><b>សេវាកម្ម:</b> {row['Services']}</p>
                         <p><b>ទំនិញបញ្ជាទិញ:</b> {row['Products']}</p>
-                        <p><b>ការបញ្ចុះតម្លៃ:</b> -${row['Discount']:.2f}</p>
+                        <p><b>ពិន្ទុទទួលបាន:</b> +{row['Points Earned']} Points</p>
+                        <p><b>ពិន្ទុប្រើប្រាស់:</b> -{row['Points Redeemed']} Points</p>
                         <h3 style="text-align:right; color:#2563eb;">សរុប៖ ${row['Total Price']:.2f}</h3>
                         <p style="text-align:center; font-size:12px;"><b>Status:</b> {row['Status']}</p>
                     </div>
@@ -521,9 +504,7 @@ if mode == "client":
             else:
                 st.warning("មិនរកឃើញទិន្នន័យការកក់សម្រាប់លេខទូរស័ព្ទនេះទេ")
 
-    # ----------------------------------------
     # TAB 3: REVIEWS
-    # ----------------------------------------
     with tab_c3:
         st.subheader("⭐️ ការវាយតម្លៃ និងមតិរិះគន់")
         if reviews_list:
@@ -554,7 +535,7 @@ if mode == "client":
 # 5. ADMIN DASHBOARD (?mode=admin)
 # ==========================================
 elif mode == "admin":
-    st.title("👑 ម្ចាស់ហាង - អូនឡែន សម្រស់")
+    st.title("👑 ADMIN DASHBOARD - អូនឡែន សម្រស់")
 
     if "admin_auth" not in st.session_state:
         st.session_state.admin_auth = False
@@ -573,19 +554,20 @@ elif mode == "admin":
         st.warning(f"⚠️ **ទំនិញជិតអស់ពីស្តុក (≤ {LOW_STOCK_THRESHOLD}):** " + 
                    ", ".join([f"{i['name']} (សល់ {i['stock']})" for i in low_stock_items]))
 
-    ad_tab1, ad_tab_srv, ad_tab2, ad_tab3, ad_tab4, ad_tab5 = st.tabs([
+    ad_tab1, ad_tab_srv, ad_tab2, ad_tab_promo, ad_tab3, ad_tab5 = st.tabs([
         "📋 ការកក់ (Bookings)",
-        "💆‍♀️ សេវាកម្ម (Services)",
+        "💆‍♀️ សេវាកម្ម",
         "🛍️ ផលិតផល & ស្តុក",
-        "📊 វិភាគចំណូល",
         "🎟️ Promo Code",
+        "📊 វិភាគចំណូល & ពិន្ទុ",
         "⚙️ កំណត់ប្រព័ន្ធ"
     ])
 
+    # BOOKINGS
     with ad_tab1:
         st.subheader("📋 គ្រប់គ្រងការកក់")
         if not df_bookings.empty:
-            st.dataframe(df_bookings[["sheet_row", "Customer Name", "Phone", "Services", "Products", "Date", "Time", "Total Price", "Status"]], use_container_width=True)
+            st.dataframe(df_bookings[["sheet_row", "Customer Name", "Phone", "Services", "Products", "Date", "Time", "Total Price", "Points Earned", "Points Redeemed", "Status"]], use_container_width=True)
             sel_row = st.selectbox("ជ្រើសរើស Row ID ដើម្បីប្តូរ Status:", df_bookings["sheet_row"].tolist())
             b_c1, b_c2, b_c3 = st.columns(3)
             if b_c1.button("🟢 Confirm"):
@@ -601,83 +583,97 @@ elif mode == "admin":
                 st.cache_data.clear()
                 st.rerun()
 
-    # ADMIN: SERVICES MANAGEMENT
+    # SERVICES
     with ad_tab_srv:
-        st.subheader("💆‍♀️ គ្រប់គ្រងសេវាកម្ម (Services Management)")
-        
+        st.subheader("💆‍♀️ គ្រប់គ្រងសេវាកម្ម")
         col_srv_list, col_srv_add = st.columns([1.2, 1])
-        
         with col_srv_list:
-            st.write("<b>បញ្ជីសេវាកម្មបច្ចុប្បន្ន</b>", unsafe_allow_html=True)
             if services_list:
                 for s in services_list:
                     sc1, sc2 = st.columns([3, 1])
                     sc1.write(f"• **{s['name']}** - `${s['price']:.2f}`" + (f" ({s['desc']})" if s['desc'] else ""))
                     if sc2.button("🗑️ លុប", key=f"del_srv_{s['row_index']}"):
                         requests.post(APPS_SCRIPT_URL, json={"action": "delete_service", "row_index": s['row_index']}, timeout=20)
-                        st.success("បានលុបសេវាកម្ម!")
                         st.cache_data.clear()
                         st.rerun()
-            else:
-                st.info("មិនទាន់មានសេវាកម្មក្នុង Google Sheet នៅឡើយទេ")
-
         with col_srv_add:
-            st.write("<b>➕ បន្ថែមសេវាកម្មថ្មី</b>", unsafe_allow_html=True)
             with st.form("add_service_admin", clear_on_submit=True):
                 s_name = st.text_input("ឈ្មោះសេវាកម្ម*")
                 s_price = st.number_input("តម្លៃសេវាកម្ម ($)*", min_value=0.0, step=1.0)
                 s_desc = st.text_input("ការពិពណ៌នាខ្លីៗ")
-                
                 if st.form_submit_button("➕ រក្សាទុកសេវាកម្ម"):
                     if s_name.strip():
-                        requests.post(APPS_SCRIPT_URL, json={
-                            "action": "add_service",
-                            "name": s_name.strip(),
-                            "price": s_price,
-                            "desc": s_desc.strip()
-                        }, timeout=20)
-                        st.success("បានបន្ថែមសេវាកម្មថ្មីជោគជ័យ!")
+                        requests.post(APPS_SCRIPT_URL, json={"action": "add_service", "name": s_name.strip(), "price": s_price, "desc": s_desc.strip()}, timeout=20)
                         st.cache_data.clear()
                         st.rerun()
-                    else:
-                        st.error("សូមបញ្ចូលឈ្មោះសេវាកម្ម!")
 
+    # PRODUCTS
     with ad_tab2:
-        st.subheader("➕ បន្ថែមផលិតផលថ្មី")
-        with st.form("add_product_admin"):
-            pn = st.text_input("ឈ្មោះផលិតផល*")
-            pp = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
-            pi = st.text_input("Link រូបភាព", value=DEFAULT_PRODUCT_IMG)
-            ps = st.number_input("ចំនួនក្នុងស្តុក*", min_value=0, value=10)
-            pd_desc = st.text_input("ការពិពណ៌នា")
-            if st.form_submit_button("➕ រក្សាទុក"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "add_product", "name": pn, "price": pp, "image_url": pi, "stock": ps, "desc": pd_desc}, timeout=20)
-                st.success("បានបន្ថែម!")
-                st.cache_data.clear()
-                st.rerun()
+        st.subheader("🛍️ គ្រប់គ្រងផលិតផល")
+        col_prod_list, col_prod_add = st.columns([1.2, 1])
+        with col_prod_list:
+            if products_list:
+                for p in products_list:
+                    pc1, pc2 = st.columns([3, 1])
+                    pc1.write(f"• **{p['name']}** - `${p['price']:.2f}` (ស្តុក: {p['stock']})")
+                    if pc2.button("🗑️ លុប", key=f"del_prod_{p['row_index']}"):
+                        requests.post(APPS_SCRIPT_URL, json={"action": "delete_product", "row_index": p['row_index']}, timeout=20)
+                        st.cache_data.clear()
+                        st.rerun()
+        with col_prod_add:
+            with st.form("add_product_admin", clear_on_submit=True):
+                pn = st.text_input("ឈ្មោះផលិតផល*")
+                pp = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
+                pi = st.text_input("Link រូបភាព", value=DEFAULT_PRODUCT_IMG)
+                ps = st.number_input("ចំនួនក្នុងស្តុក*", min_value=0, value=10)
+                pd_desc = st.text_input("ការពិពណ៌នា")
+                if st.form_submit_button("➕ រក្សាទុកផលិតផល"):
+                    if pn.strip():
+                        requests.post(APPS_SCRIPT_URL, json={"action": "add_product", "name": pn.strip(), "price": pp, "image_url": pi, "stock": ps, "desc": pd_desc.strip()}, timeout=20)
+                        st.cache_data.clear()
+                        st.rerun()
 
+    # PROMO CODES
+    with ad_tab_promo:
+        st.subheader("🎟️ បន្ថែម Promo Code")
+        with st.form("add_promo_form", clear_on_submit=True):
+            p_code = st.text_input("Promo Code (ឧ. DISCOUNT5)*").upper()
+            p_disc = st.number_input("ចំនួនបញ្ចុះតម្លៃ ($)*", min_value=0.5, step=0.5)
+            if st.form_submit_button("➕ បន្ថែម Promo Code"):
+                if p_code.strip():
+                    requests.post(APPS_SCRIPT_URL, json={"action": "add_promo", "code": p_code.strip(), "discount": p_disc}, timeout=20)
+                    st.success("បានបន្ថែម Promo Code!")
+                    st.cache_data.clear()
+                    st.rerun()
+
+    # ANALYTICS
     with ad_tab3:
-        st.subheader("📊 ផ្ទាំងវិភាគចំណូល")
+        st.subheader("📊 ផ្ទាំងវិភាគចំណូល & ពិន្ទុ")
         if not df_bookings.empty:
             completed_df = df_bookings[df_bookings["Status"] == "Completed"]
-            st.metric("ចំណូលសរុប (Completed)", f"${completed_df['Total Price'].sum():.2f}")
+            m1, m2, m3 = st.columns(3)
+            m1.metric("ចំណូលសរុប (Completed)", f"${completed_df['Total Price'].sum():.2f}")
+            m2.metric("ពិន្ទុបានផ្តល់សរុប", f"{df_bookings['Points Earned'].sum()} Pts")
+            m3.metric("ពិន្ទុដែលបានប្រើយករង្វាន់", f"{df_bookings['Points Redeemed'].sum()} Pts")
 
-    with ad_tab4:
-        st.subheader("🎟️ បង្កើត Promo Code")
-        with st.form("add_promo_admin"):
-            code = st.text_input("កូដបញ្ចុះតម្លៃ*").strip().upper()
-            disc = st.number_input("ភាគរយចុះ (%)*", min_value=1.0, max_value=100.0, value=10.0)
-            if st.form_submit_button("➕ បន្ថែម Promo"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "add_promo", "code": code, "discount": disc}, timeout=20)
-                st.success("បានបន្ថែម!")
-                st.cache_data.clear()
-
+    # SETTINGS
     with ad_tab5:
-        st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ")
+        st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ & លក្ខខណ្ឌពិន្ទុ")
         with st.form("settings_admin"):
-            set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់:", value=LOW_STOCK_THRESHOLD)
-            if st.form_submit_button("💾 រក្សាទុក"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "update_settings", "settings": {"low_stock_threshold": str(set_threshold)}}, timeout=20)
-                st.success("បានរក្សាទុក!")
+            set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់ (Low Stock Alert):", min_value=1, value=LOW_STOCK_THRESHOLD)
+            st.markdown("---")
+            set_pts_per_dollar = st.number_input("ចំនួនពិន្ទុទទួលបានលើការចំណាយ $1.00:", min_value=0.1, value=POINTS_PER_DOLLAR, step=0.5)
+            set_pts_redeem_rate = st.number_input("ចំនួនពិន្ទុដែលត្រូវប្រើដើម្បីបាន $1.00 បញ្ចុះតម្លៃ:", min_value=1.0, value=POINTS_REDEEM_RATE, step=1.0)
+
+            if st.form_submit_button("💾 រក្សាទុកការកំណត់"):
+                requests.post(APPS_SCRIPT_URL, json={
+                    "action": "update_settings",
+                    "settings": {
+                        "low_stock_threshold": str(set_threshold),
+                        "points_per_dollar": str(set_pts_per_dollar),
+                        "points_redeem_rate": str(set_pts_redeem_rate)
+                    }
+                }, timeout=20)
+                st.success("✅ បានរក្សាទុកការកំណត់ជោគជ័យ!")
                 st.cache_data.clear()
                 st.rerun()
