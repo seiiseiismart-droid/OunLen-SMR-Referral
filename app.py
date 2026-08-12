@@ -87,13 +87,56 @@ st.markdown("""
         margin: 15px 0;
     }
 
-    .receipt-box {
+    /* 80mm Thermal Receipt Styling */
+    .receipt-80mm {
+        width: 320px;
         background-color: #ffffff;
-        color: #0f172a;
-        padding: 25px;
-        border-radius: 12px;
-        border: 2px dashed #94a3b8;
-        font-family: monospace;
+        color: #000000;
+        padding: 18px;
+        border-radius: 8px;
+        font-family: 'Courier New', Courier, monospace;
+        margin: 0 auto;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .receipt-80mm .header {
+        text-align: center;
+        margin-bottom: 12px;
+    }
+    .receipt-80mm .title {
+        font-size: 20px;
+        font-weight: bold;
+    }
+    .receipt-80mm .subtitle {
+        font-size: 11px;
+        color: #444444;
+    }
+    .receipt-80mm .item-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin: 4px 0;
+    }
+    .receipt-80mm .item-label {
+        color: #333333;
+    }
+    .receipt-80mm .item-val {
+        text-align: right;
+    }
+    .receipt-80mm .dashed-line {
+        border-bottom: 1px dashed #000000;
+        margin: 8px 0;
+    }
+    .receipt-80mm .total-row {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 16px;
+        margin-top: 6px;
+    }
+    .receipt-80mm .footer {
+        text-align: center;
+        font-size: 11px;
+        margin-top: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -535,7 +578,7 @@ if mode == "client":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # # TAB 2: RECEIPT (80mm Thermal Receipt Format)
+    # TAB 2: RECEIPT (80mm Thermal Receipt Format)
     with tab_c2:
         st.subheader("🔍 ពិនិត្យមើលវិក្កយបត្រ (Digital Receipt 80mm)")
         search_phone = validate_phone(st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:", key="search_receipt_input"))
@@ -544,7 +587,6 @@ if mode == "client":
             matched_df = df_bookings[df_bookings["Phone"].str.contains(search_phone, na=False)]
             if not matched_df.empty:
                 for _, row in matched_df.iterrows():
-                    # សម្រួលទម្រង់ថ្ងៃខែឱ្យស្អាត (កាត់ T...Z ចេញ)
                     created_date = str(row['Created At']).split("T")[0] if "T" in str(row['Created At']) else str(row['Created At'])
                     appt_date = str(row['Date']).split("T")[0] if "T" in str(row['Date']) else str(row['Date'])
                     
@@ -717,115 +759,220 @@ elif mode == "admin":
             with st.form("add_member_form", clear_on_submit=True):
                 mem_name = clean_input(st.text_input("ឈ្មោះសមាជិក*"))
                 mem_phone = validate_phone(st.text_input("លេខទូរស័ព្ទ*"))
-                if st.form_submit_button("✅ ចុះឈ្មោះសមាជិក"):
+                if st.form_submit_button("➕ បញ្ចូលសមាជិក"):
                     if mem_name and mem_phone:
-                        if mem_phone in members_dict:
-                            st.error("❌ លេខទូរស័ព្ទនេះបានចុះឈ្មោះជានិមិត្តរូបរួចហើយ!")
-                        else:
-                            http_client.post(APPS_SCRIPT_URL, json={
-                                "api_key": API_SECRET_KEY,
-                                "action": "add_member",
-                                "customer_name": mem_name,
-                                "phone": mem_phone
-                            }, timeout=10)
-                            st.success("🎉 ចុះឈ្មោះសមាជិកបានជោគជ័យ!")
-                            st.cache_data.clear()
-                            st.rerun()
+                        http_client.post(APPS_SCRIPT_URL, json={
+                            "api_key": API_SECRET_KEY,
+                            "action": "add_member",
+                            "name": mem_name,
+                            "phone": mem_phone
+                        }, timeout=10)
+                        st.success("✅ បានចុះឈ្មោះសមាជិកថ្មីជោគជ័យ!")
+                        st.cache_data.clear()
+                        st.rerun()
                     else:
                         st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទឱ្យបានត្រឹមត្រូវ!")
 
-    # SERVICES
+    # SERVICES MANAGEMENT
     with ad_tab_srv:
         st.subheader("💆‍♀️ គ្រប់គ្រងសេវាកម្ម")
-        col_srv_list, col_srv_add = st.columns([1.2, 1])
-        with col_srv_list:
-            if services_list:
-                for s in services_list:
-                    sc1, sc2 = st.columns([3, 1])
-                    sc1.write(f"• **{s['name']}** - `${s['price']:.2f}`" + (f" ({s['desc']})" if s['desc'] else ""))
-                    if sc2.button("🗑️ លុប", key=f"del_srv_{s['row_index']}"):
-                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_service", "row_index": s['row_index']}, timeout=10)
-                        st.cache_data.clear()
-                        st.rerun()
-        with col_srv_add:
-            with st.form("add_service_admin", clear_on_submit=True):
-                s_name = clean_input(st.text_input("ឈ្មោះសេវាកម្ម*"))
-                s_price = st.number_input("តម្លៃសេវាកម្ម ($)*", min_value=0.0, step=1.0)
-                s_desc = clean_input(st.text_input("ការពិពណ៌នាខ្លីៗ"))
-                if st.form_submit_button("➕ រក្សាទុកសេវាកម្ម"):
-                    if s_name:
-                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "add_service", "name": s_name, "price": s_price, "desc": s_desc}, timeout=10)
-                        st.cache_data.clear()
-                        st.rerun()
+        s_col1, s_col2 = st.columns([1.2, 1])
 
-    # PRODUCTS
+        with s_col1:
+            st.markdown("### 📋 បញ្ជីសេវាកម្ម")
+            if services_list:
+                for srv in services_list:
+                    sc1, sc2 = st.columns([3, 1])
+                    sc1.write(f"• **{srv['name']}** - ${srv['price']:.2f}" + (f" ({srv['desc']})" if srv['desc'] else ""))
+                    if sc2.button("🗑️ លុប", key=f"del_srv_{srv['row_index']}"):
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_service", "row_index": srv['row_index']}, timeout=10)
+                        st.cache_data.clear()
+                        st.rerun()
+            else:
+                st.info("មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធនៅឡើយទេ")
+
+        with s_col2:
+            st.markdown("### ➕ បញ្ចូលសេវាកម្មថ្មី")
+            with st.form("add_service_form", clear_on_submit=True):
+                srv_name = clean_input(st.text_input("ឈ្មោះសេវាកម្ម*"))
+                srv_price = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
+                srv_desc = clean_input(st.text_area("ពិពណ៌នាបន្ថែម"))
+                if st.form_submit_button("➕ បញ្ចូលសេវាកម្ម"):
+                    if srv_name:
+                        http_client.post(APPS_SCRIPT_URL, json={
+                            "api_key": API_SECRET_KEY,
+                            "action": "add_service",
+                            "name": srv_name,
+                            "price": srv_price,
+                            "desc": srv_desc
+                        }, timeout=10)
+                        st.success("✅ បានបញ្ចូលសេវាកម្មថ្មីជោគជ័យ!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("❌ សូមបញ្ចូលឈ្មោះសេវាកម្ម!")
+
+    # PRODUCTS & STOCK MANAGEMENT
     with ad_tab2:
-        st.subheader("🛍️ គ្រប់គ្រងផលិតផល")
-        col_prod_list, col_prod_add = st.columns([1.2, 1])
-        with col_prod_list:
+        st.subheader("🛍️ គ្រប់គ្រងផលិតផល & ស្តុក")
+        p_col1, p_col2 = st.columns([1.2, 1])
+
+        with p_col1:
+            st.markdown("### 📋 បញ្ជីផលិតផល")
             if products_list:
-                for p in products_list:
-                    pc1, pc2 = st.columns([3, 1])
-                    pc1.write(f"• **{p['name']}** - `${p['price']:.2f}` (ស្តុក: {p['stock']})")
-                    if pc2.button("🗑️ លុប", key=f"del_prod_{p['row_index']}"):
-                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_product", "row_index": p['row_index']}, timeout=10)
+                for prod in products_list:
+                    pc1, pc2, pc3 = st.columns([2, 1, 1])
+                    pc1.write(f"• **{prod['name']}** - ${prod['price']:.2f} (ស្តុក: {prod['stock']})")
+                    new_stock = pc2.number_input("ស្តុកថ្មី", min_value=0, value=prod['stock'], key=f"stk_in_{prod['row_index']}")
+                    if pc2.button("💾 រក្សាទុក", key=f"up_stk_{prod['row_index']}"):
+                        http_client.post(APPS_SCRIPT_URL, json={
+                            "api_key": API_SECRET_KEY,
+                            "action": "update_stock",
+                            "row_index": prod['row_index'],
+                            "stock": new_stock
+                        }, timeout=10)
+                        st.success("✅ បច្ចុប្បន្នភាពស្តុកបានជោគជ័យ!")
                         st.cache_data.clear()
                         st.rerun()
-        with col_prod_add:
-            with st.form("add_product_admin", clear_on_submit=True):
-                pn = clean_input(st.text_input("ឈ្មោះផលិតផល*"))
-                pp = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
-                pi = clean_input(st.text_input("Link រូបភាព", value=DEFAULT_PRODUCT_IMG))
-                ps = st.number_input("ចំនួនក្នុងស្តុក*", min_value=0, value=10)
-                pd_desc = clean_input(st.text_input("ការពិពណ៌នា"))
-                if st.form_submit_button("➕ រក្សាទុកផលិតផល"):
-                    if pn:
-                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "add_product", "name": pn, "price": pp, "image_url": pi, "stock": ps, "desc": pd_desc}, timeout=10)
+                    if pc3.button("🗑️ លុប", key=f"del_prod_{prod['row_index']}"):
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_product", "row_index": prod['row_index']}, timeout=10)
                         st.cache_data.clear()
                         st.rerun()
+            else:
+                st.info("មិនទាន់មានផលិតផលក្នុងប្រព័ន្ធនៅឡើយទេ")
+
+        with p_col2:
+            st.markdown("### ➕ បញ្ចូលផលិតផលថ្មី")
+            with st.form("add_product_form", clear_on_submit=True):
+                prod_name = clean_input(st.text_input("ឈ្មោះផលិតផល*"))
+                prod_price = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
+                prod_img = clean_input(st.text_input("Link រូបភាព (URL)", value=DEFAULT_PRODUCT_IMG))
+                prod_stock = st.number_input("ចំនួនក្នុងស្តុក", min_value=0, value=10)
+                prod_desc = clean_input(st.text_area("ពិពណ៌នាបន្ថែម"))
+                if st.form_submit_button("➕ បញ្ចូលផលិតផល"):
+                    if prod_name:
+                        http_client.post(APPS_SCRIPT_URL, json={
+                            "api_key": API_SECRET_KEY,
+                            "action": "add_product",
+                            "name": prod_name,
+                            "price": prod_price,
+                            "image_url": prod_img,
+                            "stock": prod_stock,
+                            "desc": prod_desc
+                        }, timeout=10)
+                        st.success("✅ បានបញ្ចូលផលិតផលថ្មីជោគជ័យ!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("❌ សូមបញ្ចូលឈ្មោះផលិតផល!")
 
     # PROMO CODES
     with ad_tab_promo:
-        st.subheader("🎟️ បន្ថែម Promo Code")
-        with st.form("add_promo_form", clear_on_submit=True):
-            p_code = clean_input(st.text_input("Promo Code (ឧ. DISCOUNT5)*")).upper()
-            p_disc = st.number_input("ចំនួនបញ្ចុះតម្លៃ ($)*", min_value=0.5, step=0.5)
-            if st.form_submit_button("➕ បន្ថែម Promo Code"):
-                if p_code:
-                    http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "add_promo", "code": p_code, "discount": p_disc}, timeout=10)
-                    st.success("បានបន្ថែម Promo Code!")
+        st.subheader("🎟️ គ្រប់គ្រង Promo Code (ការបញ្ចុះតម្លៃ)")
+        pr_col1, pr_col2 = st.columns([1.2, 1])
+
+        with pr_col1:
+            st.markdown("### 📋 បញ្ជី Promo Code")
+            if promo_dict:
+                for code, discount in promo_dict.items():
+                    prc1, prc2 = st.columns([3, 1])
+                    prc1.write(f"• **{code}** - បញ្ចុះតម្លៃ: **${discount:.2f}**")
+                    if prc2.button("🗑️ លុប", key=f"del_promo_{code}"):
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_promo", "code": code}, timeout=10)
+                        st.cache_data.clear()
+                        st.rerun()
+            else:
+                st.info("មិនទាន់មាន Promo Code នៅឡើយទេ")
+
+        with pr_col2:
+            st.markdown("### ➕ បញ្ចូល Promo Code ថ្មី")
+            with st.form("add_promo_form", clear_on_submit=True):
+                promo_code_in = clean_input(st.text_input("កូដបញ្ចុះតម្លៃ (Code)*")).upper()
+                promo_disc_in = st.number_input("ចំនួនទឹកប្រាក់បញ្ចុះ ($)*", min_value=0.5, step=0.5)
+                if st.form_submit_button("➕ បង្កើត Promo Code"):
+                    if promo_code_in:
+                        http_client.post(APPS_SCRIPT_URL, json={
+                            "api_key": API_SECRET_KEY,
+                            "action": "add_promo",
+                            "code": promo_code_in,
+                            "discount": promo_disc_in
+                        }, timeout=10)
+                        st.success("✅ បានបង្កើត Promo Code ថ្មីជោគជ័យ!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("❌ សូមបញ្ចូលកូដបញ្ចុះតម្លៃ!")
+
+    # ANALYTICS & REVENUE
+    with ad_tab3:
+        st.subheader("📊 វិភាគចំណូល & ការប្រើប្រាស់ពិន្ទុ")
+        if not df_bookings.empty:
+            completed_b = df_bookings[df_bookings["Status"].isin(["Completed", "Confirmed"])]
+            
+            total_rev = completed_b["Total Price"].sum() if not completed_b.empty else 0.0
+            total_pts_given = df_bookings["Points Earned"].sum()
+            total_pts_used = df_bookings["Points Redeemed"].sum()
+            
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("ចំណូលសរុប (Confirmed/Completed)", f"${total_rev:.2f}")
+            m2.metric("ចំនួនការកក់សរុប", f"{len(df_bookings)}")
+            m3.metric("ពិន្ទុផ្ញើជូនអតិថិជន", f"{total_pts_given} Pts")
+            m4.metric("ពិន្ទុត្រូវបានប្រើប្រាស់", f"{total_pts_used} Pts")
+
+            st.markdown("---")
+            st.markdown("### 📈 តារាងការកក់តាមស្ថានភាព (Booking Status Breakdown)")
+            st.bar_chart(df_bookings["Status"].value_counts())
+        else:
+            st.info("មិនទាន់មានទិន្នន័យសម្រាប់ធ្វើការវិភាគនៅឡើយទេ")
+
+    # SYSTEM SETTINGS & BLOCKED DATES
+    with ad_tab5:
+        st.subheader("⚙️ កំណត់ប្រព័ន្ធ & ថ្ងៃសម្រាក (System Settings & Blocked Dates)")
+        st1, st2 = st.columns(2)
+
+        with st1:
+            st.markdown("### 🛑 គ្រប់គ្រងថ្ងៃសម្រាកហាង (Blocked Dates)")
+            with st.form("add_blocked_date_form", clear_on_submit=True):
+                block_d = st.date_input("ជ្រើសរើសថ្ងៃសម្រាក", get_cambodia_now().date())
+                block_reason = clean_input(st.text_input("មូលហេតុសម្រាក", value="ថ្ងៃសម្រាកបុណ្យ / ជួសជុលហាង"))
+                if st.form_submit_button("➕ បន្ថែមថ្ងៃសម្រាក"):
+                    http_client.post(APPS_SCRIPT_URL, json={
+                        "api_key": API_SECRET_KEY,
+                        "action": "add_blocked_date",
+                        "date": str(block_d),
+                        "reason": block_reason
+                    }, timeout=10)
+                    st.success("✅ បានបន្ថែមថ្ងៃសម្រាកជោគជ័យ!")
                     st.cache_data.clear()
                     st.rerun()
 
-    # ANALYTICS
-    with ad_tab3:
-        st.subheader("📊 ផ្ទាំងវិភាគចំណូល & ពិន្ទុ")
-        if not df_bookings.empty:
-            completed_df = df_bookings[df_bookings["Status"] == "Completed"]
-            m1, m2, m3 = st.columns(3)
-            m1.metric("ចំណូលសរុប (Completed)", f"${completed_df['Total Price'].sum():.2f}")
-            m2.metric("ពិន្ទុបានផ្តល់សរុប", f"{df_bookings['Points Earned'].sum()} Pts")
-            m3.metric("ពិន្ទុដែលបានប្រើយករង្វាន់", f"{df_bookings['Points Redeemed'].sum()} Pts")
+            st.markdown("#### 📋 បញ្ជីថ្ងៃសម្រាក")
+            if blocked_dates_dict:
+                for d_str, reason in blocked_dates_dict.items():
+                    bc1, bc2 = st.columns([3, 1])
+                    bc1.write(f"• **{d_str}**: {reason}")
+                    if bc2.button("🗑️ លុប", key=f"del_bd_{d_str}"):
+                        http_client.post(APPS_SCRIPT_URL, json={"api_key": API_SECRET_KEY, "action": "delete_blocked_date", "date": d_str}, timeout=10)
+                        st.cache_data.clear()
+                        st.rerun()
+            else:
+                st.info("មិនទាន់មានកំណត់ថ្ងៃសម្រាកនៅឡើយទេ")
 
-    # SETTINGS
-    with ad_tab5:
-        st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ & លក្ខខណ្ឌពិន្ទុ")
-        with st.form("settings_admin"):
-            set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់ (Low Stock Alert):", min_value=1, value=LOW_STOCK_THRESHOLD)
-            st.markdown("---")
-            set_pts_per_dollar = st.number_input("ចំនួនពិន្ទុទទួលបានលើការចំណាយ $1.00:", min_value=0.1, value=POINTS_PER_DOLLAR, step=0.5)
-            set_pts_redeem_rate = st.number_input("ចំនួនពិន្ទុដែលត្រូវប្រើដើម្បីបាន $1.00 បញ្ចុះតម្លៃ:", min_value=1.0, value=POINTS_REDEEM_RATE, step=1.0)
-
-            if st.form_submit_button("💾 រក្សាទុកការកំណត់"):
-                http_client.post(APPS_SCRIPT_URL, json={
-                    "api_key": API_SECRET_KEY,
-                    "action": "update_settings",
-                    "settings": {
-                        "low_stock_threshold": str(set_threshold),
-                        "points_per_dollar": str(set_pts_per_dollar),
-                        "points_redeem_rate": str(set_pts_redeem_rate)
-                    }
-                }, timeout=10)
-                st.success("✅ បានរក្សាទុកការកំណត់ជោគជ័យ!")
-                st.cache_data.clear()
-                st.rerun()
+        with st2:
+            st.markdown("### ⚙️ កំណត់តម្លៃពិន្ទុ និងស្តុក")
+            with st.form("update_settings_form"):
+                new_low_stock = st.number_input("កម្រិតប្រកាសអាសន្នស្តុក (Low Stock Threshold)", min_value=1, value=LOW_STOCK_THRESHOLD)
+                new_pts_dollar = st.number_input("ពិន្ទុទទួលបានក្នុង $1 (Points per $1)", min_value=0.1, value=POINTS_PER_DOLLAR, step=0.5)
+                new_pts_rate = st.number_input("ចំនួនពិន្ទុដើម្បីបាន $1 បញ្ចុះតម្លៃ (Points for $1 Discount)", min_value=1.0, value=POINTS_REDEEM_RATE, step=1.0)
+                
+                if st.form_submit_button("💾 រក្សាទុកការកំណត់"):
+                    http_client.post(APPS_SCRIPT_URL, json={
+                        "api_key": API_SECRET_KEY,
+                        "action": "update_settings",
+                        "low_stock_threshold": new_low_stock,
+                        "points_per_dollar": new_pts_dollar,
+                        "points_redeem_rate": new_pts_rate
+                    }, timeout=10)
+                    st.success("✅ កំណត់ប្រព័ន្ធត្រូវបានរក្សាទុក!")
+                    st.cache_data.clear()
+                    st.rerun()
