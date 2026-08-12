@@ -7,7 +7,7 @@ from datetime import datetime, time, timedelta
 # 1. PAGE CONFIG & CUSTOM CSS
 # ==========================================
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់ - Salon & Spa",
+    page_title="អូនឡែន សម្រស់",
     page_icon="💆‍♀️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -290,8 +290,8 @@ mode = st.query_params.get("mode", "client")
 if mode == "client":
     st.markdown("""
     <div class="hero-container">
-        <div class="hero-title">✨ អូនឡែន សម្រស់ - Salon & Spa</div>
-        <div class="hero-subtitle">ប្រព័ន្ធកក់ម៉ោងធ្វើសក់ ថែរក្សាស្បែក និងបញ្ជាទិញផលិតផលសម្រស់អនឡាញ</div>
+        <div class="hero-title">✨ អូនឡែន សម្រស់ </div>
+        <div class="hero-subtitle">កក់ម៉ោង ថែរក្សាស្បែក និងបញ្ជាទិញផលិតផលថែរក្សាសម្រស់</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -312,8 +312,8 @@ if mode == "client":
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">👤 1. ព័ត៌មានអតិថិជន (Customer Information)</div>', unsafe_allow_html=True)
             ic1, ic2 = st.columns(2)
-            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. កែវ ធីតា")
-            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 012345678")
+            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. លី ស្រីឡែន")
+            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 067969877")
 
             vip_info = calculate_vip_tier(cust_phone, df_bookings)
             if cust_phone.strip():
@@ -328,7 +328,7 @@ if mode == "client":
 
             # 2. ជ្រើសរើសសេវាកម្ម
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Beauty Services)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">💆‍♀️ សេវាកម្ម (Beauty Services)</div>', unsafe_allow_html=True)
             
             sel_services = []
             services_total = 0.0
@@ -349,7 +349,7 @@ if mode == "client":
 
             # 3. ទំនិញថែរក្សាសម្រស់
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">🛍️ 3. ទិញទំនិញបន្ថែម (Beauty Products)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">🛍️ មើលទំនិញបន្ថែម (Beauty Products)</div>', unsafe_allow_html=True)
             
             selected_products = {}
             ordered_items_list = []
@@ -372,12 +372,12 @@ if mode == "client":
                             products_total += prod['price'] * qty
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 4. កាលបរិច្ឆេទ ជាង និងម៉ោង
+            # 4. កាលបរិច្ឆេទ និងម៉ោង
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងទទួលបន្ទុក</div>', unsafe_allow_html=True)
             
             dt1, dt2 = st.columns(2)
-            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["អ្នកគ្រូ ឡែន (Master)", "ជាងជំនាញទី ១"])
+            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["លី ស្រីឡែន (ម្ចាស់ហាង)", "ជាងជំនាញទី ១"])
             
             cambodia_today = get_cambodia_now().date()
             book_date = dt2.date_input("ថ្ងៃណាត់ជួប / Date:", cambodia_today)
@@ -554,7 +554,7 @@ if mode == "client":
 # 5. ADMIN DASHBOARD (?mode=admin)
 # ==========================================
 elif mode == "admin":
-    st.title("👑 ADMIN DASHBOARD - អូនឡែន សម្រស់")
+    st.title("👑 ម្ចាស់ហាង - អូនឡែន សម្រស់")
 
     if "admin_auth" not in st.session_state:
         st.session_state.admin_auth = False
