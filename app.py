@@ -3,51 +3,119 @@ import requests
 import pandas as pd
 from datetime import datetime, time, timedelta
 
-# ----------------------------------------------------------------
-# 1. Page Configuration & Custom CSS
-# ----------------------------------------------------------------
+# ==========================================
+# 1. PAGE CONFIG & CUSTOM CSS (STYLING)
+# ==========================================
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់",
-    page_icon="💇‍♀️",
-    layout="wide"
+    page_title="អូនឡែន សម្រស់ - Beauty Salon",
+    page_icon="💆‍♀️",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
+# Custom CSS
 st.markdown("""
 <style>
-    .metric-card {
-        background-color: #1e293b;
-        border-radius: 10px;
-        padding: 15px;
-        color: white;
-        border-left: 5px solid #3b82f6;
+    @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&display=swap');
+    
+    * {
+        font-family: 'Kantumruy Pro', sans-serif;
     }
-    .receipt-card {
-        background-color: #ffffff;
-        color: #000000;
+    .stApp {
+        background-color: #0f172a;
+        color: #f8fafc;
+    }
+    
+    /* Hero Banner */
+    .hero-container {
+        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
+        padding: 30px;
+        border-radius: 20px;
+        color: white;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.3);
+    }
+    .hero-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0;
+    }
+    .hero-subtitle {
+        font-size: 16px;
+        opacity: 0.9;
+        margin-top: 5px;
+    }
+
+    /* VIP Card Badge */
+    .vip-card {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border: 1px solid #475569;
+        border-left: 6px solid #f59e0b;
+        padding: 18px;
+        border-radius: 14px;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+
+    /* Section Cards */
+    .section-card {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 16px;
         padding: 20px;
-        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .section-header {
+        font-size: 18px;
+        font-weight: 600;
+        color: #f472b6;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Summary Card */
+    .summary-box {
+        background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+        border: 2px solid #6366f1;
+        border-radius: 20px;
+        padding: 25px;
+        position: sticky;
+        top: 20px;
+    }
+    .total-price-tag {
+        font-size: 36px;
+        font-weight: 700;
+        color: #38bdf8;
+        text-align: center;
+        margin: 15px 0;
+    }
+
+    /* Receipt Styling */
+    .receipt-box {
+        background-color: #ffffff;
+        color: #0f172a;
+        padding: 25px;
+        border-radius: 12px;
         border: 2px dashed #94a3b8;
-        font-family: 'Courier New', Courier, monospace;
+        font-family: monospace;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------------
-# 2. Config & Secrets Management
-# ----------------------------------------------------------------
-APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec")
+# ==========================================
+# 2. CONFIG & SECRETS MANAGEMENT
+# ==========================================
+APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "https://script.google.com/macros/s/YOUR_EXEC_ID/exec")
 TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "")
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
 DEFAULT_PRODUCT_IMG = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500"
 
 def get_cambodia_now():
-    """គណនាម៉ោងបច្ចុប្បន្ននៅប្រទេសកម្ពុជា (UTC+7)"""
     return datetime.utcnow() + timedelta(hours=7)
 
-# ----------------------------------------------------------------
-# 3. Helper Functions
-# ----------------------------------------------------------------
 def send_telegram_alert(msg_text):
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -61,7 +129,7 @@ def calculate_vip_tier(phone, df_bookings):
         return {"tier": "Standard", "discount": 0.0, "total_spent": 0.0, "total_bookings": 0}
     
     user_b = df_bookings[(df_bookings["Phone"].str.contains(phone.strip())) & (df_bookings["Status"] != "Cancelled")]
-    total_spent = user_b["Total Price"].sum()
+    total_spent = user_b["Total Price"].sum() if not user_b.empty else 0.0
     total_bookings = len(user_b)
 
     if total_spent >= 300 or total_bookings >= 10:
@@ -73,9 +141,9 @@ def calculate_vip_tier(phone, df_bookings):
     else:
         return {"tier": "Standard", "discount": 0.0, "total_spent": total_spent, "total_bookings": total_bookings}
 
-# ----------------------------------------------------------------
-# 4. Load Data & Settings
-# ----------------------------------------------------------------
+# ==========================================
+# 3. DATA LOADING
+# ==========================================
 @st.cache_data(ttl=5)
 def load_all_data():
     try:
@@ -97,7 +165,7 @@ if len(data.get("settings", [])) > 1:
 
 LOW_STOCK_THRESHOLD = int(settings_dict.get("low_stock_threshold", 5))
 
-# Services Dict
+# Services
 services_dict = {}
 if len(data.get("services", [])) > 1:
     for r in data["services"][1:]:
@@ -107,7 +175,7 @@ if len(data.get("services", [])) > 1:
             except Exception:
                 pass
 
-# Products List
+# Products
 products_list = []
 low_stock_items = []
 if len(data.get("products", [])) > 1:
@@ -139,7 +207,7 @@ if len(data.get("promo_codes", [])) > 1:
             except Exception:
                 pass
 
-# Bookings Dataframe
+# Bookings
 bookings_raw = data.get("bookings", [])
 df_bookings = pd.DataFrame()
 if len(bookings_raw) > 1:
@@ -169,7 +237,7 @@ if len(bookings_raw) > 1:
             pass
     df_bookings = pd.DataFrame(b_rows)
 
-# Reviews List
+# Reviews
 reviews_list = []
 if len(data.get("reviews", [])) > 1:
     for idx, r in enumerate(data["reviews"][1:]):
@@ -194,293 +262,331 @@ if len(data.get("blocked_dates", [])) > 1:
             d = str(r[0]).split("T")[0]
             blocked_dates_dict[d] = r[1] if len(r) > 1 else "ថ្ងៃសម្រាក"
 
-# ----------------------------------------------------------------
-# 5. Application Navigation
-# ----------------------------------------------------------------
-mode = st.query_params.get("mode", "client")
-st.title("💇‍♀️ អូនឡែន សម្រស់")
+# Session State for Time Selection
+if "selected_slot" not in st.session_state:
+    st.session_state.selected_slot = None
 
-# =================================================================
-# 📱 1. CLIENT VIEW (?mode=client)
-# =================================================================
+# ==========================================
+# 4. APPLICATION ROUTING
+# ==========================================
+mode = st.query_params.get("mode", "client")
+
 if mode == "client":
+    # Hero Banner
+    st.markdown("""
+    <div class="hero-container">
+        <div class="hero-title">✨ អូនឡែន សម្រស់ - Salon & Spa</div>
+        <div class="hero-subtitle">ប្រព័ន្ធកក់ម៉ោងធ្វើសក់ ថែរក្សាស្បែក និងបញ្ជាទិញផលិតផលសម្រស់អនឡាញ</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     tab_c1, tab_c2, tab_c3 = st.tabs([
-        "📝 កក់ម៉ោង & ទិញទំនិញ (Book & Shop)",
-        "🔍 ពិនិត្យមើលការកក់ & វិក្កយបត្រ (Receipt)",
-        "⭐️ មតិរិះគន់ & ការវាយតម្លៃ (Reviews)"
+        "💆‍♀️ កក់សេវាកម្ម & ទិញទំនិញ",
+        "🧾 ពិនិត្យមើលវិក្កយបត្រ",
+        "⭐️ ការវាយតម្លៃពីអតិថិជន"
     ])
 
+    # ----------------------------------------
+    # TAB 1: CLIENT BOOKING FORM (NEW DESIGN)
+    # ----------------------------------------
     with tab_c1:
-        st.subheader("👤 1. ព័ត៌មានអតិថិជន & កម្រិតសមាជិក (Customer & VIP)")
-        c1, c2 = st.columns(2)
-        cust_name = c1.text_input("ឈ្មោះអតិថិជន / Name*")
-        cust_phone = c2.text_input("លេខទូរស័ព្ទ / Phone*")
+        col_main, col_summary = st.columns([1.8, 1], gap="large")
 
-        vip_info = calculate_vip_tier(cust_phone, df_bookings)
-        if cust_phone.strip():
-            st.markdown(f"""
-            <div class="metric-card">
-                👑 <b>កម្រិតសមាជិកភាព: <span style="color:#f59e0b;">{vip_info['tier']}</span></b> 
-                | ចំណាយសរុប: <b>${vip_info['total_spent']:.2f}</b> 
-                | កក់បាន: <b>{vip_info['total_bookings']} ដង</b> 
-                | ការបញ្ចុះតម្លៃសមាជិកស្វ័យប្រវត្តិ: <b>{vip_info['discount']:.0f}%</b>
-            </div>
-            """, unsafe_allow_html=True)
+        with col_main:
+            # 1. ព័ត៌មានអតិថិជន
+            st.markdown('<div class="section-card">', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">👤 1. ព័ត៌មានអតិថិជន (Customer Information)</div>', unsafe_allow_html=True)
+            ic1, ic2 = st.columns(2)
+            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. កែវ ធីតា")
+            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 012345678")
 
-        st.markdown("---")
-        st.subheader("💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Services)")
-        sel_services = []
-        if services_dict:
-            service_display_options = [f"{name} (${price:.2f})" for name, price in services_dict.items()]
-            service_map = {f"{name} (${price:.2f})": name for name, price in services_dict.items()}
+            vip_info = calculate_vip_tier(cust_phone, df_bookings)
+            if cust_phone.strip():
+                st.markdown(f"""
+                <div class="vip-card">
+                    <b>👑 កម្រិតសមាជិក៖ <span style="color:#f59e0b;">{vip_info['tier']}</span></b><br>
+                    • ប្រវត្តិចំណាយសរុប៖ <b>${vip_info['total_spent']:.2f}</b> | កក់បាន៖ <b>{vip_info['total_bookings']} ដង</b><br>
+                    • ទទួលបានការបញ្ចុះតម្លៃសមាជិក៖ <b style="color:#10b981;">{vip_info['discount']:.0f}%</b>
+                </div>
+                """, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-            try:
-                selected_pills = st.pills(
-                    "👇 ចុចលើបូតុងសេវាកម្មខាងក្រោមដើម្បីជ្រើសរើស៖",
-                    options=service_display_options,
-                    selection_mode="multi"
-                )
-                sel_services = [service_map[item] for item in selected_pills] if selected_pills else []
-            except AttributeError:
-                cols = st.columns(2)
-                for i, (s_name, s_price) in enumerate(services_dict.items()):
-                    col = cols[i % 2]
-                    is_selected = col.checkbox(f"✨ {s_name} — **${s_price:.2f}**", key=f"srv_{i}")
-                    if is_selected:
-                        sel_services.append(s_name)
-
-        services_total = sum(services_dict.get(s, 0.0) for s in sel_services)
-
-        st.markdown("---")
-        st.subheader("🛍️ 3. ទំនិញថែរក្សាសម្រស់ (Products Catalog)")
-        selected_products = {}
-        ordered_items_list = []
-        products_total = 0.0
-
-        if products_list:
-            p_cols = st.columns(3)
-            for i, prod in enumerate(products_list):
-                col = p_cols[i % 3]
-                with col:
-                    st.image(prod["image_url"], caption=f"{prod['name']} - ${prod['price']:.2f}", use_container_width=True)
-                    st.caption(f"📦 ស្តុក: {prod['stock']} | {prod['desc']}")
-                    qty = st.number_input(f"ចំនួន ({prod['name']}):", min_value=0, max_value=prod['stock'], key=f"p_qty_{i}")
-                    if qty > 0:
-                        selected_products[prod['name']] = {"price": prod['price'], "qty": qty}
-                        ordered_items_list.append({"name": prod['name'], "qty": qty})
-                        products_total += prod['price'] * qty
-
-        st.markdown("---")
-        st.subheader("⏰ 4. កាលបរិច្ឆេទ & ជាង (Date & Staff)")
-        d1, d2, d3 = st.columns(3)
-        staff = d1.selectbox("ជ្រើសរើសជាង / Staff:", ["អ្នកគ្រូ ឡែន"])
-        
-        # ប្រើប្រាស់ Timezone ប្រទេសកម្ពុជា
-        cambodia_today = get_cambodia_now().date()
-        book_date = d2.date_input("ថ្ងៃណាត់ជួប / Date:", cambodia_today)
-        book_date_str = str(book_date)
-
-        is_blocked = book_date_str in blocked_dates_dict
-        all_slots = [time(h, m).strftime("%I:%M %p") for h in range(8, 21) for m in (0, 30)]
-        booked_slots = df_bookings[(df_bookings["Date"] == book_date_str) & (df_bookings["Status"] != "Cancelled")]["Time"].tolist() if not df_bookings.empty else []
-        avail_slots = [s for s in all_slots if s not in booked_slots]
-
-        if is_blocked:
-            d3.error(f"❌ ហាងបិទសម្រាក ({blocked_dates_dict[book_date_str]})")
-            book_time = None
-        elif avail_slots:
-            book_time = d3.selectbox("ម៉ោងទំនេរ / Time Slot:", avail_slots)
-        else:
-            d3.warning("❌ ពេញម៉ោងអស់ហើយ!")
-            book_time = None
-
-        st.markdown("---")
-        st.subheader("💳 5. គណនាប្រាក់សរុប (Payment Calculation)")
-        p_col1, p_col2 = st.columns(2)
-        input_promo = p_col1.text_input("បញ្ចូល Promo Code (ប្រសិនបើមាន):").strip().upper()
-
-        promo_discount = promo_dict.get(input_promo, 0.0)
-        vip_discount = vip_info['discount']
-        total_discount_percent = max(promo_discount, vip_discount)
-
-        subtotal = services_total + products_total
-        discount_val = (subtotal * total_discount_percent) / 100.0
-        final_total = subtotal - discount_val
-
-        p_col1.markdown(f"""
-            * ការបញ្ចុះតម្លៃ Promo Code: **{promo_discount:.0f}%**
-            * ការបញ្ចុះតម្លៃ VIP Member: **{vip_discount:.0f}%**
-            * ភាគរយចុះតម្លៃអនុវត្តសរុប: <b style="color:green;">{total_discount_percent:.0f}%</b>
-        """, unsafe_allow_html=True)
-
-        p_col2.markdown(f"""
-            ### 💰 ចំនួនត្រូវទូទាត់សរុប: <span style="color:#2563eb;">${final_total:.2f}</span>
-        """, unsafe_allow_html=True)
-
-        if st.button("✅ បញ្ជាក់ការកក់ & ចេញវិក្កយបត្រ", type="primary", use_container_width=True):
-            if not cust_name.strip() or not cust_phone.strip():
-                st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!")
-            elif not sel_services and not selected_products:
-                st.error("❌ សូមជ្រើសរើសសេវាកម្ម ឬទំនិញយ៉ាងហោចណាស់មួយ!")
-            elif is_blocked or not book_time:
-                st.error("❌ មិនអាចកក់បានទេ!")
+            # 2. ជ្រើសរើសសេវាកម្ម
+            st.markdown('<div class="section-card">', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Beauty Services)</div>', unsafe_allow_html=True)
+            
+            sel_services = []
+            if services_dict:
+                sc_cols = st.columns(2)
+                for idx, (s_name, s_price) in enumerate(services_dict.items()):
+                    sc_col = sc_cols[idx % 2]
+                    with sc_col:
+                        checked = st.checkbox(f"**{s_name}**", key=f"srv_check_{idx}")
+                        st.caption(f"តម្លៃសេវាកម្ម: ${s_price:.2f}")
+                        if checked:
+                            sel_services.append(s_name)
             else:
-                prod_str = ", ".join([f"{k} (x{v['qty']})" for k, v in selected_products.items()]) if selected_products else "None"
-                payload = {
-                    "action": "add_booking",
-                    "customer_name": cust_name.strip(),
-                    "phone": cust_phone.strip(),
-                    "service": ", ".join(sel_services),
-                    "staff": staff,
-                    "date": book_date_str,
-                    "time": book_time,
-                    "note": "",
-                    "status": "Pending",
-                    "total_price": final_total,
-                    "deposit": "None",
-                    "products_ordered": prod_str,
-                    "promo_code": input_promo if input_promo else "None",
-                    "discount_amount": discount_val,
-                    "vip_tier": vip_info['tier'],
-                    "ordered_items_list": ordered_items_list
-                }
-                
-                try:
-                    with st.spinner("⏳ កំពុងរក្សាទុកទិន្នន័យការកក់..."):
-                        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=30)
+                st.info("មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធនៅឡើយទេ")
+            
+            services_total = sum(services_dict.get(s, 0.0) for s in sel_services)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # 3. ទំនិញថែរក្សាសម្រស់
+            st.markdown('<div class="section-card">', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">🛍️ 3. ទិញទំនិញបន្ថែម (Beauty Products)</div>', unsafe_allow_html=True)
+            
+            selected_products = {}
+            ordered_items_list = []
+            products_total = 0.0
+
+            if products_list:
+                p_cols = st.columns(3)
+                for i, prod in enumerate(products_list):
+                    p_col = p_cols[i % 3]
+                    with p_col:
+                        st.image(prod["image_url"], use_container_width=True)
+                        st.markdown(f"**{prod['name']}**")
+                        st.markdown(f"<span style='color:#38bdf8; font-weight:bold;'>${prod['price']:.2f}</span>", unsafe_allow_html=True)
+                        st.caption(f"ស្តុកសល់: {prod['stock']}")
+                        
+                        qty = st.number_input("ចំនួន", min_value=0, max_value=prod['stock'], key=f"prod_qty_{i}")
+                        if qty > 0:
+                            selected_products[prod['name']] = {"price": prod['price'], "qty": qty}
+                            ordered_items_list.append({"name": prod['name'], "qty": qty})
+                            products_total += prod['price'] * qty
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # 4. កាលបរិច្ឆេទ ជាង និងម៉ោង
+            st.markdown('<div class="section-card">', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងទទួលបន្ទុក</div>', unsafe_allow_html=True)
+            
+            dt1, dt2 = st.columns(2)
+            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["អ្នកគ្រូ ឡែន (Master)", "ជាងជំនាញទី ១"])
+            
+            cambodia_today = get_cambodia_now().date()
+            book_date = dt2.date_input("ថ្ងៃណាត់ជួប / Date:", cambodia_today)
+            book_date_str = str(book_date)
+
+            is_blocked = book_date_str in blocked_dates_dict
+            all_slots = [time(h, m).strftime("%I:%M %p") for h in range(8, 20) for m in (0, 30)]
+            booked_slots = df_bookings[(df_bookings["Date"] == book_date_str) & (df_bookings["Status"] != "Cancelled")]["Time"].tolist() if not df_bookings.empty else []
+            
+            st.write("ជ្រើសរើសម៉ោងទំនេរ (Time Slot):")
+            if is_blocked:
+                st.error(f"❌ ហាងបិទសម្រាក៖ {blocked_dates_dict[book_date_str]}")
+                st.session_state.selected_slot = None
+            else:
+                slot_cols = st.columns(4)
+                for idx, slot in enumerate(all_slots):
+                    s_col = slot_cols[idx % 4]
+                    is_booked = slot in booked_slots
+                    btn_type = "primary" if st.session_state.selected_slot == slot else "secondary"
                     
-                    if response.status_code == 200:
-                        alert_msg = (
-                            f"🔔 *ការកក់ម៉ោង & កម្ម៉ង់ទំនិញថ្មី!*\n\n"
-                            f"👤 *អតិថិជន:* {cust_name.strip()} ({vip_info['tier']})\n"
-                            f"📞 *ទូរស័ព្ទ:* `{cust_phone.strip()}`\n"
-                            f"💆‍♀️ *សេវាកម្ម:* {', '.join(sel_services)}\n"
-                            f"🛍️ *ទំនិញ:* {prod_str}\n"
-                            f"📅 *ថ្ងៃណាត់:* {book_date_str} | 🕒 *ម៉ោង:* {book_time}\n"
-                            f"💰 *សរុបទូទាត់:* ${final_total:.2f}"
-                        )
-                        send_telegram_alert(alert_msg)
-
-                        st.balloons()
-                        st.success("🎉 ការកក់ជោគជ័យ! លោកអ្នកអាចពិនិត្យវិក្កយបត្រក្នុង Tab ទី ២។")
-                        st.cache_data.clear()
-                        st.rerun()
+                    if is_booked:
+                        s_col.button(f"🔒 {slot}", key=f"slot_btn_{idx}", disabled=True, use_container_width=True)
                     else:
-                        st.error("❌ មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!")
-                except Exception as e:
-                    st.error(f"❌ កើតមានកំហុស៖ {e}")
+                        if s_col.button(f"🕒 {slot}", key=f"slot_btn_{idx}", type=btn_type, use_container_width=True):
+                            st.session_state.selected_slot = slot
+                            st.rerun()
 
-    # Tab 2: Digital Receipt
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # RIGHT COLUMN: CHECKOUT & SUMMARY
+        with col_summary:
+            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+            st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
+            
+            input_promo = st.text_input("បញ្ចូល Promo Code (បើមាន):", placeholder="កូដបញ្ចុះតម្លៃ").strip().upper()
+            promo_discount = promo_dict.get(input_promo, 0.0)
+            vip_discount = vip_info['discount']
+            total_discount_percent = max(promo_discount, vip_discount)
+
+            subtotal = services_total + products_total
+            discount_val = (subtotal * total_discount_percent) / 100.0
+            final_total = subtotal - discount_val
+
+            st.markdown("<hr style='border-color:#334155;'>", unsafe_allow_html=True)
+            st.markdown(f"សរុបសេវាកម្ម៖ **${services_total:.2f}**")
+            st.markdown(f"សរុបទំនិញ៖ **${products_total:.2f}**")
+            st.markdown(f"ការបញ្ចុះតម្លៃ ({total_discount_percent:.0f}%)៖ <span style='color:#f43f5e;'>-${discount_val:.2f}</span>", unsafe_allow_html=True)
+            
+            st.markdown('<div class="total-price-tag">', unsafe_allow_html=True)
+            st.markdown(f"${final_total:.2f}")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            if st.session_state.selected_slot:
+                st.success(f"ម៉ោងជ្រើសរើស៖ **{st.session_state.selected_slot}**")
+            else:
+                st.warning("សូមជ្រើសរើសម៉ោងណាត់ជួប")
+
+            if st.button("✅ បញ្ជាក់ការកក់ & បញ្ជាទិញ", type="primary", use_container_width=True):
+                if not cust_name.strip() or not cust_phone.strip():
+                    st.error("❌ សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទ!")
+                elif not sel_services and not selected_products:
+                    st.error("❌ សូមជ្រើសរើសសេវាកម្ម ឬទំនិញយ៉ាងហោចណាស់មួយ!")
+                elif is_blocked or not st.session_state.selected_slot:
+                    st.error("❌ សូមជ្រើសរើសម៉ោងដែលទំនេរ!")
+                else:
+                    prod_str = ", ".join([f"{k} (x{v['qty']})" for k, v in selected_products.items()]) if selected_products else "None"
+                    payload = {
+                        "action": "add_booking",
+                        "customer_name": cust_name.strip(),
+                        "phone": cust_phone.strip(),
+                        "service": ", ".join(sel_services),
+                        "staff": staff,
+                        "date": book_date_str,
+                        "time": st.session_state.selected_slot,
+                        "note": "",
+                        "status": "Pending",
+                        "total_price": final_total,
+                        "deposit": "None",
+                        "products_ordered": prod_str,
+                        "promo_code": input_promo if input_promo else "None",
+                        "discount_amount": discount_val,
+                        "vip_tier": vip_info['tier'],
+                        "ordered_items_list": ordered_items_list
+                    }
+                    
+                    try:
+                        with st.spinner("⏳ កំពុងរក្សាទុកការកក់..."):
+                            res = requests.post(APPS_SCRIPT_URL, json=payload, timeout=25)
+                        
+                        if res.status_code == 200:
+                            alert_msg = (
+                                f"🔔 *ការកក់ថ្មីបានចូល!*\n\n"
+                                f"👤 *អតិថិជន:* {cust_name.strip()} ({vip_info['tier']})\n"
+                                f"📞 *ទូរស័ព្ទ:* `{cust_phone.strip()}`\n"
+                                f"💆‍♀️ *សេវា:* {', '.join(sel_services)}\n"
+                                f"🛍️ *ទំនិញ:* {prod_str}\n"
+                                f"📅 *ថ្ងៃណាត់:* {book_date_str} @ {st.session_state.selected_slot}\n"
+                                f"💰 *សរុប:* ${final_total:.2f}"
+                            )
+                            send_telegram_alert(alert_msg)
+
+                            st.balloons()
+                            st.success("🎉 កក់បានជោគជ័យ! សូមពិនិត្យមើលវិក្កយបត្រក្នុង Tab ទី ២។")
+                            st.cache_data.clear()
+                        else:
+                            st.error("❌ មានបញ្ហាក្នុងការភ្ជាប់ទៅប្រព័ន្ធ!")
+                    except Exception as e:
+                        st.error(f"❌ កើតមានកំហុស៖ {e}")
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    # ----------------------------------------
+    # TAB 2: RECEIPT CHECK
+    # ----------------------------------------
     with tab_c2:
-        st.subheader("🔍 ស្វែងរកការកក់ & បោះពុម្ពវិក្កយបត្រ (Digital Receipt)")
-        s_phone = st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីមើលវិក្កយបត្រ:")
-        if s_phone.strip() and not df_bookings.empty:
-            res_df = df_bookings[df_bookings["Phone"].str.contains(s_phone.strip())]
-            if not res_df.empty:
-                for _, r in res_df.iterrows():
+        st.subheader("🔍 ពិនិត្យមើលវិក្កយបត្រ (Digital Receipt)")
+        search_phone = st.text_input("បញ្ចូលលេខទូរស័ព្ទដើម្បីទាញយកវិក្កយបត្រ:")
+        if search_phone.strip() and not df_bookings.empty:
+            matched_df = df_bookings[df_bookings["Phone"].str.contains(search_phone.strip())]
+            if not matched_df.empty:
+                for _, row in matched_df.iterrows():
                     st.markdown(f"""
-                    <div class="receipt-card">
+                    <div class="receipt-box">
                         <h3 style="text-align:center; margin:0;">🧾 OUNLEN BEAUTY SALON</h3>
-                        <p style="text-align:center; font-size:12px; margin-bottom:15px;">Kampong Chhnang | Tel: 012 345 678</p>
+                        <p style="text-align:center; font-size:12px;">Kampong Chhnang | Tel: 012 345 678</p>
                         <hr>
-                        <p><b>កាលបរិច្ឆេទ:</b> {r['Created At']}</p>
-                        <p><b>អតិថិជន:</b> {r['Customer Name']} ({r['VIP_Tier']})</p>
-                        <p><b>លេខទូរស័ព្ទ:</b> {r['Phone']}</p>
-                        <p><b>ថ្ងៃណាត់ធ្វើ:</b> {r['Date']} @ {r['Time']}</p>
-                        <p><b>ជាងទទួលបន្ទុក:</b> {r['Staff']}</p>
+                        <p><b>កាលបរិច្ឆេទកក់:</b> {row['Created At']}</p>
+                        <p><b>អតិថិជន:</b> {row['Customer Name']} ({row['VIP_Tier']})</p>
+                        <p><b>លេខទូរស័ព្ទ:</b> {row['Phone']}</p>
+                        <p><b>ថ្ងៃណាត់ជួប:</b> {row['Date']} @ {row['Time']}</p>
+                        <p><b>ជាងទទួលបន្ទុក:</b> {row['Staff']}</p>
                         <hr>
-                        <p><b>សេវាកម្ម:</b> {r['Services']}</p>
-                        <p><b>ទំនិញទិញបន្ថែម:</b> {r['Products']}</p>
-                        <p><b>បញ្ចុះតម្លៃ:</b> -${r['Discount']:.2f}</p>
-                        <h3 style="text-align:right;">សរុប: ${r['Total Price']:.2f}</h3>
-                        <p style="text-align:center; font-size:11px;">Status: <b>{r['Status']}</b> | អរគុណសម្រាប់ការគាំទ្រ!</p>
+                        <p><b>សេវាកម្ម:</b> {row['Services']}</p>
+                        <p><b>ទំនិញបញ្ជាទិញ:</b> {row['Products']}</p>
+                        <p><b>ការបញ្ចុះតម្លៃ:</b> -${row['Discount']:.2f}</p>
+                        <h3 style="text-align:right; color:#2563eb;">សរុប៖ ${row['Total Price']:.2f}</h3>
+                        <p style="text-align:center; font-size:12px;"><b>Status:</b> {row['Status']}</p>
                     </div>
                     """, unsafe_allow_html=True)
                     st.write("")
+            else:
+                st.warning("មិនរកឃើញទិន្នន័យការកក់សម្រាប់លេខទូរស័ព្ទនេះទេ")
 
-    # Tab 3: Reviews System
+    # ----------------------------------------
+    # TAB 3: REVIEWS
+    # ----------------------------------------
     with tab_c3:
-        st.subheader("⭐️ ស្ទង់មតិ & ការវាយតម្លៃពីអតិថិជន")
+        st.subheader("⭐️ ការវាយតម្លៃ និងមតិរិះគន់")
         if reviews_list:
             avg_rating = sum(r['rating'] for r in reviews_list) / len(reviews_list)
-            st.metric("ពិន្ទុវាយតម្លៃមធ្យម", f"⭐️ {avg_rating:.1f} / 5.0", f"ពីការវាយតម្លៃ {len(reviews_list)} មតិ")
-
+            st.metric("ពិន្ទុវាយតម្លៃជាមធ្យម", f"⭐️ {avg_rating:.1f} / 5.0", f"សរុប {len(reviews_list)} មតិ")
+        
         st.markdown("---")
-        rev_name = st.text_input("ឈ្មោះរបស់អ្នក:")
-        rev_phone = st.text_input("លេខទូរស័ព្ទ:")
-        rev_star = st.slider("ផ្តល់ពិន្ទុ (Stars):", 1, 5, 5)
-        rev_comment = st.text_area("មតិរិះគន់ ឬការសរសើរ:")
-
-        if st.button("📤 ផ្ញើការវាយតម្លៃ", type="primary"):
-            if rev_name.strip() and rev_comment.strip():
-                try:
+        with st.form("review_form", clear_on_submit=True):
+            r_name = st.text_input("ឈ្មោះរបស់អ្នក*")
+            r_phone = st.text_input("លេខទូរស័ព្ទ")
+            r_stars = st.slider("ផ្តល់ពិន្ទុ (Stars)", 1, 5, 5)
+            r_comment = st.text_area("មតិរិះគន់ ឬការសរសើរ*")
+            
+            if st.form_submit_button("📤 ផ្ញើការវាយតម្លៃ"):
+                if r_name.strip() and r_comment.strip():
                     requests.post(APPS_SCRIPT_URL, json={
                         "action": "add_review",
-                        "customer_name": rev_name.strip(),
-                        "phone": rev_phone.strip(),
-                        "rating": rev_star,
-                        "comment": rev_comment.strip()
+                        "customer_name": r_name.strip(),
+                        "phone": r_phone.strip(),
+                        "rating": r_stars,
+                        "comment": r_comment.strip()
                     }, timeout=20)
                     st.success("✅ អរគុណសម្រាប់ការផ្តល់មតិវាយតម្លៃ!")
                     st.cache_data.clear()
                     st.rerun()
-                except Exception as e:
-                    st.error(f"❌ កើតមានកំហុស៖ {e}")
 
-# =================================================================
-# 👑 2. ADMIN DASHBOARD (?mode=admin)
-# =================================================================
+# ==========================================
+# 5. ADMIN DASHBOARD (?mode=admin)
+# ==========================================
 elif mode == "admin":
-    st.title("👑 ម្ចាស់ហាង អូនឡែន សម្រស់")
+    st.title("👑 ADMIN DASHBOARD - អូនឡែន សម្រស់")
 
     if "admin_auth" not in st.session_state:
         st.session_state.admin_auth = False
 
     if not st.session_state.admin_auth:
-        pwd = st.text_input("បញ្ចូលពាក្យសម្ងាត់ Admin Password:", type="password")
-        if st.button("🔑 ចូលប្រព័ន្ធ"):
+        pwd = st.text_input("Enter Admin Password:", type="password")
+        if st.button("🔑 Login"):
             if pwd == ADMIN_PASSWORD:
                 st.session_state.admin_auth = True
                 st.rerun()
             else:
-                st.error("❌ ពាក្យសម្ងាត់មិនត្រឹមត្រូវ!")
+                st.error("❌ Wrong password!")
         st.stop()
 
     if low_stock_items:
-        st.warning(f"⚠️ **ផលិតផលជិតអស់ពីស្តុក (សល់ ≤ {LOW_STOCK_THRESHOLD}):** " + 
-                   ", ".join([f"{item['name']} (សល់ {item['stock']})" for item in low_stock_items]))
+        st.warning(f"⚠️ **ទំនិញជិតអស់ពីស្តុក (≤ {LOW_STOCK_THRESHOLD}):** " + 
+                   ", ".join([f"{i['name']} (សល់ {i['stock']})" for i in low_stock_items]))
 
-    ad_tab1, ad_tab2, ad_tab3, ad_tab4, ad_tab5, ad_tab6 = st.tabs([
+    ad_tab1, ad_tab2, ad_tab3, ad_tab4, ad_tab5 = st.tabs([
         "📋 ការកក់ (Bookings)",
         "🛍️ ផលិតផល & ស្តុក",
-        "📊 វិភាគទិន្នន័យ (Analytics)",
-        "👑 VIP & Promo",
-        "⭐️ មតិរិះគន់",
+        "📊 វិភាគចំណូល",
+        "🎟️ Promo Code",
         "⚙️ កំណត់ប្រព័ន្ធ"
     ])
 
     with ad_tab1:
         st.subheader("📋 គ្រប់គ្រងការកក់")
         if not df_bookings.empty:
-            st.dataframe(df_bookings[["sheet_row", "Customer Name", "Phone", "Services", "Products", "Date", "Time", "Total Price", "Status", "VIP_Tier"]], use_container_width=True)
+            st.dataframe(df_bookings[["sheet_row", "Customer Name", "Phone", "Services", "Products", "Date", "Time", "Total Price", "Status"]], use_container_width=True)
             sel_row = st.selectbox("ជ្រើសរើស Row ID ដើម្បីប្តូរ Status:", df_bookings["sheet_row"].tolist())
-            c_s1, c_s2, c_s3 = st.columns(3)
-            if c_s1.button("🟢 Confirm"):
+            b_c1, b_c2, b_c3 = st.columns(3)
+            if b_c1.button("🟢 Confirm"):
                 requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Confirmed"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
-            if c_s2.button("🔵 Complete"):
+            if b_c2.button("🔵 Complete"):
                 requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Completed"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
-            if c_s3.button("🔴 Cancel"):
+            if b_c3.button("🔴 Cancel"):
                 requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Cancelled"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
 
     with ad_tab2:
         st.subheader("➕ បន្ថែមផលិតផលថ្មី")
-        with st.form("add_prod_form", clear_on_submit=True):
+        with st.form("add_product_admin"):
             pn = st.text_input("ឈ្មោះផលិតផល*")
             pp = st.number_input("តម្លៃ ($)*", min_value=0.0, step=0.5)
             pi = st.text_input("Link រូបភាព", value=DEFAULT_PRODUCT_IMG)
@@ -492,28 +598,15 @@ elif mode == "admin":
                 st.cache_data.clear()
                 st.rerun()
 
-        st.markdown("---")
-        for p in products_list:
-            col1, col2, col3 = st.columns([1, 4, 1])
-            col1.image(p["image_url"], width=60)
-            col2.write(f"**{p['name']}** | តម្លៃ: `${p['price']:.2f}` | ស្តុក: `{p['stock']}`")
-            if col3.button("🗑️ លុប", key=f"del_{p['row_index']}"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "delete_product", "row_index": p['row_index']}, timeout=20)
-                st.cache_data.clear()
-                st.rerun()
-
     with ad_tab3:
         st.subheader("📊 ផ្ទាំងវិភាគចំណូល")
         if not df_bookings.empty:
             completed_df = df_bookings[df_bookings["Status"] == "Completed"]
-            m1, m2, m3 = st.columns(3)
-            m1.metric("ចំណូលសរុប (Completed)", f"${completed_df['Total Price'].sum():.2f}")
-            m2.metric("ការកក់ជោគជ័យសរុប", f"{len(completed_df)} ដង")
-            m3.metric("ការកក់ Pending", f"{len(df_bookings[df_bookings['Status'] == 'Pending'])} ដង")
+            st.metric("ចំណូលសរុប (Completed)", f"${completed_df['Total Price'].sum():.2f}")
 
     with ad_tab4:
         st.subheader("🎟️ បង្កើត Promo Code")
-        with st.form("add_promo_form", clear_on_submit=True):
+        with st.form("add_promo_admin"):
             code = st.text_input("កូដបញ្ចុះតម្លៃ*").strip().upper()
             disc = st.number_input("ភាគរយចុះ (%)*", min_value=1.0, max_value=100.0, value=10.0)
             if st.form_submit_button("➕ បន្ថែម Promo"):
@@ -522,22 +615,11 @@ elif mode == "admin":
                 st.cache_data.clear()
 
     with ad_tab5:
-        st.subheader("⭐️ គ្រប់គ្រងការវាយតម្លៃ")
-        for rev in reviews_list:
-            r_col1, r_col2 = st.columns([5, 1])
-            r_col1.write(f"**{rev['name']}** - {'⭐' * rev['rating']} - *{rev['comment']}*")
-            if r_col2.button("🗑️ លុប", key=f"del_rev_{rev['row_index']}"):
-                requests.post(APPS_SCRIPT_URL, json={"action": "delete_review", "row_index": rev['row_index']}, timeout=20)
-                st.cache_data.clear()
-                st.rerun()
-
-    with ad_tab6:
         st.subheader("⚙️ ការកំណត់ប្រព័ន្ធ")
-        with st.form("settings_form"):
+        with st.form("settings_admin"):
             set_threshold = st.number_input("កម្រិតកំណត់ស្តុកជិតអស់:", value=LOW_STOCK_THRESHOLD)
             if st.form_submit_button("💾 រក្សាទុក"):
-                payload = {"action": "update_settings", "settings": {"low_stock_threshold": str(set_threshold)}}
-                requests.post(APPS_SCRIPT_URL, json=payload, timeout=20)
-                st.success("✅ បានរក្សាទុក!")
+                requests.post(APPS_SCRIPT_URL, json={"action": "update_settings", "settings": {"low_stock_threshold": str(set_threshold)}}, timeout=20)
+                st.success("បានរក្សាទុក!")
                 st.cache_data.clear()
                 st.rerun()
