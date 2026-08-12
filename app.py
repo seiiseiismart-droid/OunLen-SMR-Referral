@@ -374,7 +374,7 @@ if mode == "client":
 
             # 4. កាលបរិច្ឆេទ និងម៉ោង
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងទទួលបន្ទុក</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងធ្វើសេវាកម្មផ្ទាល់</div>', unsafe_allow_html=True)
             
             dt1, dt2 = st.columns(2)
             staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["លី ស្រីឡែន (ម្ចាស់ហាង)", "ជាងជំនាញទី ១"])
@@ -412,7 +412,7 @@ if mode == "client":
             st.markdown('<div class="summary-box">', unsafe_allow_html=True)
             st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
             
-            input_promo = st.text_input("បញ្ចូល Promo Code (បើមាន):", placeholder="កូដបញ្ចុះតម្លៃ").strip().upper()
+            input_promo = st.text_input("បញ្ចូល Promo Code (បើមាន):", placeholder="កូដបញ្ចុះតម្លៃ សម្រាប់អតិថិជនដែលបានចុះឈ្មោះទទួលបានកូដបញ្ចុះតម្លៃតែប៉ុណ្ណោះ").strip().upper()
             promo_discount = promo_dict.get(input_promo, 0.0)
             vip_discount = vip_info['discount']
             total_discount_percent = max(promo_discount, vip_discount)
