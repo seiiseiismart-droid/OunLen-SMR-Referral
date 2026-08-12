@@ -10,7 +10,7 @@ from datetime import datetime, time, timedelta
 # 1. PAGE CONFIG & CUSTOM CSS
 # ==========================================
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់ ",
+    page_title="អូនឡែន សម្រស់ - Salon & Spa",
     page_icon="💆‍♀️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -101,14 +101,16 @@ st.markdown("""
 # ==========================================
 # 2. SECRETS & HTTP PERFORMANCE POOL
 # ==========================================
-APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "")
+APPS_SCRIPT_URL = st.secrets.get(
+    "APPS_SCRIPT_URL", 
+    "https://script.google.com/macros/s/AKfycbwlwyd3zHFO-9EzByegad9As7ti6KgwN-dLuZJl-219t6Ez97jpC_wjWMhpUkmWtGhw/exec"
+)
 API_SECRET_KEY = st.secrets.get("API_SECRET_KEY", "OUNLEN_SALON_SECURE_API_KEY_2026")
 TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = st.secrets.get("TELEGRAM_CHAT_ID", "")
 ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "123456")
 DEFAULT_PRODUCT_IMG = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500"
 
-# ⚡ HTTP Session Caching ជួយបង្កើនល្បឿន Request
 @st.cache_resource
 def get_http_session():
     session = requests.Session()
@@ -120,13 +122,11 @@ def get_http_session():
 http_client = get_http_session()
 
 def clean_input(text):
-    """🛡️ ការពារ XSS ដោយប្រើប្រាស់ HTML Escaping"""
     if not text:
         return ""
     return html.escape(str(text).strip())
 
 def validate_phone(phone_str):
-    """🛡️ Validates phone numbers (Digits only, min 8 digits)"""
     clean_p = re.sub(r"[^\d]", "", str(phone_str))
     if len(clean_p) >= 8:
         return clean_p
@@ -306,8 +306,8 @@ mode = st.query_params.get("mode", "client")
 if mode == "client":
     st.markdown("""
     <div class="hero-container">
-        <div class="hero-title">✨ អូនឡែន សម្រស់ </div>
-        <div class="hero-subtitle">សូមកក់ម៉ោងដើម្បីទទួលសេវាកម្ម ថែរក្សាសម្រស់ និងសន្សំពិន្ទុដើម្បីទទួលបានកាបញ្ចុះតម្លៃ</div>
+        <div class="hero-title">✨ អូនឡែន សម្រស់ - Salon & Spa</div>
+        <div class="hero-subtitle">ប្រព័ន្ធកក់ម៉ោងធ្វើសក់ ថែរក្សាស្បែក និងសន្សំពិន្ទុរង្វាន់អនឡាញ</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -325,8 +325,8 @@ if mode == "client":
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">👤 1. ព័ត៌មានអតិថិជន (Customer Information)</div>', unsafe_allow_html=True)
             ic1, ic2 = st.columns(2)
-            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. លី ស្រីឡែន ")
-            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 067 969 877")
+            cust_name = ic1.text_input("ឈ្មោះអតិថិជន / Name*", placeholder="ឧ. កែវ ធីតា")
+            cust_phone = ic2.text_input("លេខទូរស័ព្ទ / Phone Number*", placeholder="ឧ. 012345678")
 
             valid_p = validate_phone(cust_phone)
             points_info = calculate_user_points(cust_phone, df_bookings, members_dict)
@@ -366,9 +366,9 @@ if mode == "client":
                 st.info("ℹ️ មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធនៅឡើយទេ")
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 3. ផលិតផលថែរក្សាសម្រស់
+            # 3. ទំនិញថែរក្សាសម្រស់
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-header">🛍️ 3. ទិញផលិតផលបន្ថែម </div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">🛍️ 3. ទិញទំនិញបន្ថែម (Beauty Products)</div>', unsafe_allow_html=True)
             selected_products = {}
             ordered_items_list = []
             products_total = 0.0
@@ -393,7 +393,7 @@ if mode == "client":
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">⏰ 4. កាលបរិច្ឆេទ & ជាងទទួលបន្ទុក</div>', unsafe_allow_html=True)
             dt1, dt2 = st.columns(2)
-            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["លី ស្រីឡែន (ម្ចាស់ហាង)", "ជាងជំនាញទី ១"])
+            staff = dt1.selectbox("ជ្រើសរើសជាង / Stylist:", ["អ្នកគ្រូ ឡែន (Master)", "ជាងជំនាញទី ១"])
             
             book_date = dt2.date_input("ថ្ងៃណាត់ជួប / Date:", get_cambodia_now().date())
             book_date_str = str(book_date)
@@ -425,18 +425,16 @@ if mode == "client":
         # SUMMARY SIDEBAR
         with col_summary:
             st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown('<h3 style="color:white; margin-top:0;">ទឹកប្រាក់សរុបត្រូវទូទាត់</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
             
             subtotal = services_total + products_total
             
-            # Promo Code Discount
             promo_input = clean_input(st.text_input("🎟️ Promo Code (បើមាន):")).upper()
             promo_discount = 0.0
             if promo_input in promo_dict:
                 promo_discount = promo_dict[promo_input]
                 st.success(f"🎉 ទទួលបានការបញ្ចុះតម្លៃ Promo: -${promo_discount:.2f}")
 
-            # Points Discount
             subtotal_after_promo = max(0.0, subtotal - promo_discount)
             redeem_points = 0
             points_discount = 0.0
@@ -458,7 +456,6 @@ if mode == "client":
 
             final_total = max(0.0, subtotal_after_promo - points_discount)
             
-            # Points Earning
             if points_info["is_member"]:
                 earned_points_new = math.floor(final_total * POINTS_PER_DOLLAR)
             else:
@@ -548,14 +545,14 @@ if mode == "client":
                 for _, row in matched_df.iterrows():
                     st.markdown(f"""
                     <div class="receipt-box">
-                        <h3 style="text-align:center; margin:0;">🧾 ហាង អូនឡែន សម្រស់</h3>
-                        <p style="text-align:center; font-size:12px;">ភូមិ ដំណាក់ពពូល ក្រុងកំពង់ឆ្នាំង ខេត្តកំពង់ឆ្នាំង | Tel: 067 969 877</p>
+                        <h3 style="text-align:center; margin:0;">🧾 OUNLEN BEAUTY SALON</h3>
+                        <p style="text-align:center; font-size:12px;">Kampong Chhnang | Tel: 012 345 678</p>
                         <hr>
                         <p><b>កាលបរិច្ឆេទកក់:</b> {row['Created At']}</p>
                         <p><b>អតិថិជន:</b> {row['Customer Name']}</p>
                         <p><b>លេខទូរស័ព្ទ:</b> {row['Phone']}</p>
                         <p><b>ថ្ងៃណាត់ជួប:</b> {row['Date']} @ {row['Time']}</p>
-                        <p><b>អ្នកផ្តល់សេវាកម្ម:</b> {row['Staff']}</p>
+                        <p><b>ជាងទទួលបន្ទុក:</b> {row['Staff']}</p>
                         <hr>
                         <p><b>សេវាកម្ម:</b> {row['Services']}</p>
                         <p><b>ទំនិញបញ្ជាទិញ:</b> {row['Products']}</p>
@@ -601,7 +598,7 @@ if mode == "client":
 # 5. ADMIN DASHBOARD
 # ==========================================
 elif mode == "admin":
-    st.title("👑 ម្ចាស់ហាង - អូនឡែន សម្រស់")
+    st.title("👑 ADMIN DASHBOARD - អូនឡែន សម្រស់")
 
     if "admin_auth" not in st.session_state:
         st.session_state.admin_auth = False
