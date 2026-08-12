@@ -410,7 +410,7 @@ if mode == "client":
         # RIGHT COLUMN: SUMMARY
         with col_summary:
             st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color:white; margin-top:0;">💳 សរុបប្រាក់ត្រូវទូទាត់</h3>', unsafe_allow_html=True)
             
             input_promo = st.text_input("បញ្ចូល Promo Code (បើមាន):", placeholder="កូដបញ្ចុះតម្លៃ សម្រាប់អតិថិជនដែលបានចុះឈ្មោះទទួលបានកូដបញ្ចុះតម្លៃតែប៉ុណ្ណោះ").strip().upper()
             promo_discount = promo_dict.get(input_promo, 0.0)
