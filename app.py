@@ -8,7 +8,7 @@ from datetime import datetime, time, timedelta
 # 1. PAGE CONFIG & CUSTOM CSS
 # ==========================================
 st.set_page_config(
-    page_title="អូនឡែន សម្រស់ - Salon & Spa",
+    page_title="អូនឡែន សម្រស់ ",
     page_icon="💆‍♀️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -267,7 +267,7 @@ if mode == "client":
     st.markdown("""
     <div class="hero-container">
         <div class="hero-title">✨ អូនឡែន សម្រស់ - Salon & Spa</div>
-        <div class="hero-subtitle">ប្រព័ន្ធកក់ម៉ោងធ្វើសក់ ថែរក្សាស្បែក និងសន្សំពិន្ទុរង្វាន់អនឡាញ</div>
+        <div class="hero-subtitle">កក់ម៉ោងទទួលសេវាកម្ម ថែរក្សាស្បែក និង សន្សំពិន្ទុរដើម្បីបានបញ្ចុះតម្លៃ</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -376,7 +376,7 @@ if mode == "client":
         # SUMMARY SIDEBAR
         with col_summary:
             st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color:white; margin-top:0;">💳 ប្រាក់សរុបត្រូវទូទាត់</h3>', unsafe_allow_html=True)
             
             subtotal = services_total + products_total
             
