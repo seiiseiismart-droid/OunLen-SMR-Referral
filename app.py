@@ -13,7 +13,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&display=swap');
@@ -26,7 +25,6 @@ st.markdown("""
         color: #f8fafc;
     }
     
-    /* Hero Banner */
     .hero-container {
         background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
         padding: 30px;
@@ -46,7 +44,6 @@ st.markdown("""
         margin-top: 5px;
     }
 
-    /* VIP Card Badge */
     .vip-card {
         background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         border: 1px solid #475569;
@@ -57,7 +54,6 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* Section Cards */
     .section-card {
         background-color: #1e293b;
         border: 1px solid #334155;
@@ -75,7 +71,6 @@ st.markdown("""
         gap: 10px;
     }
 
-    /* Summary Card */
     .summary-box {
         background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
         border: 2px solid #6366f1;
@@ -92,7 +87,6 @@ st.markdown("""
         margin: 15px 0;
     }
 
-    /* Receipt Styling */
     .receipt-box {
         background-color: #ffffff;
         color: #0f172a;
@@ -142,7 +136,7 @@ def calculate_vip_tier(phone, df_bookings):
         return {"tier": "Standard", "discount": 0.0, "total_spent": total_spent, "total_bookings": total_bookings}
 
 # ==========================================
-# 3. DATA LOADING
+# 3. DATA LOADING FROM GOOGLE SHEETS
 # ==========================================
 @st.cache_data(ttl=5)
 def load_all_data():
@@ -156,7 +150,7 @@ def load_all_data():
 
 data = load_all_data()
 
-# Settings
+# Load Settings
 settings_dict = {"low_stock_threshold": 5}
 if len(data.get("settings", [])) > 1:
     for r in data["settings"][1:]:
@@ -165,17 +159,23 @@ if len(data.get("settings", [])) > 1:
 
 LOW_STOCK_THRESHOLD = int(settings_dict.get("low_stock_threshold", 5))
 
-# Services
-services_dict = {}
+# Load Services Dynamic from Google Sheets
+services_list = []
 if len(data.get("services", [])) > 1:
-    for r in data["services"][1:]:
-        if len(r) >= 2:
-            try:
-                services_dict[str(r[0])] = float(r[1])
-            except Exception:
-                pass
+    for idx, r in enumerate(data["services"][1:]):
+        row = list(r) + [""] * (3 - len(r))
+        try:
+            if row[0]:
+                services_list.append({
+                    "row_index": idx + 2,
+                    "name": str(row[0]).strip(),
+                    "price": float(row[1]) if row[1] != "" else 0.0,
+                    "desc": str(row[2]).strip()
+                })
+        except Exception:
+            pass
 
-# Products
+# Load Products Dynamic from Google Sheets
 products_list = []
 low_stock_items = []
 if len(data.get("products", [])) > 1:
@@ -197,7 +197,7 @@ if len(data.get("products", [])) > 1:
         except Exception:
             pass
 
-# Promo Codes
+# Load Promo Codes
 promo_dict = {}
 if len(data.get("promo_codes", [])) > 1:
     for r in data["promo_codes"][1:]:
@@ -207,7 +207,7 @@ if len(data.get("promo_codes", [])) > 1:
             except Exception:
                 pass
 
-# Bookings
+# Load Bookings
 bookings_raw = data.get("bookings", [])
 df_bookings = pd.DataFrame()
 if len(bookings_raw) > 1:
@@ -237,7 +237,7 @@ if len(bookings_raw) > 1:
             pass
     df_bookings = pd.DataFrame(b_rows)
 
-# Reviews
+# Load Reviews
 reviews_list = []
 if len(data.get("reviews", [])) > 1:
     for idx, r in enumerate(data["reviews"][1:]):
@@ -254,7 +254,7 @@ if len(data.get("reviews", [])) > 1:
         except Exception:
             pass
 
-# Blocked Dates
+# Load Blocked Dates
 blocked_dates_dict = {}
 if len(data.get("blocked_dates", [])) > 1:
     for r in data["blocked_dates"][1:]:
@@ -262,7 +262,6 @@ if len(data.get("blocked_dates", [])) > 1:
             d = str(r[0]).split("T")[0]
             blocked_dates_dict[d] = r[1] if len(r) > 1 else "ថ្ងៃសម្រាក"
 
-# Session State for Time Selection
 if "selected_slot" not in st.session_state:
     st.session_state.selected_slot = None
 
@@ -272,7 +271,6 @@ if "selected_slot" not in st.session_state:
 mode = st.query_params.get("mode", "client")
 
 if mode == "client":
-    # Hero Banner
     st.markdown("""
     <div class="hero-container">
         <div class="hero-title">✨ អូនឡែន សម្រស់ - Salon & Spa</div>
@@ -287,7 +285,7 @@ if mode == "client":
     ])
 
     # ----------------------------------------
-    # TAB 1: CLIENT BOOKING FORM (NEW DESIGN)
+    # TAB 1: CLIENT BOOKING FORM
     # ----------------------------------------
     with tab_c1:
         col_main, col_summary = st.columns([1.8, 1], gap="large")
@@ -311,24 +309,25 @@ if mode == "client":
                 """, unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 2. ជ្រើសរើសសេវាកម្ម
+            # 2. ជ្រើសរើសសេវាកម្ម (LOAD DYNAMICALLY FROM GOOGLE SHEETS)
             st.markdown('<div class="section-card">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">💆‍♀️ 2. ជ្រើសរើសសេវាកម្ម (Beauty Services)</div>', unsafe_allow_html=True)
             
             sel_services = []
-            if services_dict:
+            services_total = 0.0
+
+            if services_list:
                 sc_cols = st.columns(2)
-                for idx, (s_name, s_price) in enumerate(services_dict.items()):
+                for idx, srv in enumerate(services_list):
                     sc_col = sc_cols[idx % 2]
                     with sc_col:
-                        checked = st.checkbox(f"**{s_name}**", key=f"srv_check_{idx}")
-                        st.caption(f"តម្លៃសេវាកម្ម: ${s_price:.2f}")
+                        checked = st.checkbox(f"**{srv['name']}**", key=f"srv_check_{idx}")
+                        st.caption(f"តម្លៃសេវាកម្ម: **${srv['price']:.2f}**" + (f" | {srv['desc']}" if srv['desc'] else ""))
                         if checked:
-                            sel_services.append(s_name)
+                            sel_services.append(srv['name'])
+                            services_total += srv['price']
             else:
-                st.info("មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធនៅឡើយទេ")
-            
-            services_total = sum(services_dict.get(s, 0.0) for s in sel_services)
+                st.info("ℹ️ មិនទាន់មានសេវាកម្មក្នុងប្រព័ន្ធនៅឡើយទេ")
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 3. ទំនិញថែរក្សាសម្រស់
@@ -391,7 +390,7 @@ if mode == "client":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # RIGHT COLUMN: CHECKOUT & SUMMARY
+        # RIGHT COLUMN: SUMMARY
         with col_summary:
             st.markdown('<div class="summary-box">', unsafe_allow_html=True)
             st.markdown('<h3 style="color:white; margin-top:0;">💳 សង្ខេបការទូទាត់</h3>', unsafe_allow_html=True)
@@ -557,8 +556,9 @@ elif mode == "admin":
         st.warning(f"⚠️ **ទំនិញជិតអស់ពីស្តុក (≤ {LOW_STOCK_THRESHOLD}):** " + 
                    ", ".join([f"{i['name']} (សល់ {i['stock']})" for i in low_stock_items]))
 
-    ad_tab1, ad_tab2, ad_tab3, ad_tab4, ad_tab5 = st.tabs([
+    ad_tab1, ad_tab_srv, ad_tab2, ad_tab3, ad_tab4, ad_tab5 = st.tabs([
         "📋 ការកក់ (Bookings)",
+        "💆‍♀️ សេវាកម្ម (Services)",
         "🛍️ ផលិតផល & ស្តុក",
         "📊 វិភាគចំណូល",
         "🎟️ Promo Code",
@@ -583,6 +583,47 @@ elif mode == "admin":
                 requests.post(APPS_SCRIPT_URL, json={"action": "update_status", "row_index": sel_row, "status": "Cancelled"}, timeout=20)
                 st.cache_data.clear()
                 st.rerun()
+
+    # ADMIN: SERVICES MANAGEMENT (NEW)
+    with ad_tab_srv:
+        st.subheader("💆‍♀️ គ្រប់គ្រងសេវាកម្ម (Services Management)")
+        
+        col_srv_list, col_srv_add = st.columns([1.2, 1])
+        
+        with col_srv_list:
+            st.write("<b>បញ្ជីសេវាកម្មបច្ចុប្បន្ន</b>", unsafe_allow_html=True)
+            if services_list:
+                for s in services_list:
+                    sc1, sc2 = st.columns([3, 1])
+                    sc1.write(f"• **{s['name']}** - `${s['price']:.2f}`" + (f" ({s['desc']})" if s['desc'] else ""))
+                    if sc2.button("🗑️ លុប", key=f"del_srv_{s['row_index']}"):
+                        requests.post(APPS_SCRIPT_URL, json={"action": "delete_service", "row_index": s['row_index']}, timeout=20)
+                        st.success("បានលុបសេវាកម្ម!")
+                        st.cache_data.clear()
+                        st.rerun()
+            else:
+                st.info("មិនទាន់មានសេវាកម្មក្នុង Google Sheet នៅឡើយទេ")
+
+        with col_srv_add:
+            st.write("<b>➕ បន្ថែមសេវាកម្មថ្មី</b>", unsafe_allow_html=True)
+            with st.form("add_service_admin", clear_on_submit=True):
+                s_name = st.text_input("ឈ្មោះសេវាកម្ម*")
+                s_price = st.number_input("តម្លៃសេវាកម្ម ($)*", min_value=0.0, step=1.0)
+                s_desc = st.text_input("ការពិពណ៌នាខ្លីៗ")
+                
+                if st.form_submit_button("➕ រក្សាទុកសេវាកម្ម"):
+                    if s_name.strip():
+                        requests.post(APPS_SCRIPT_URL, json={
+                            "action": "add_service",
+                            "name": s_name.strip(),
+                            "price": s_price,
+                            "desc": s_desc.strip()
+                        }, timeout=20)
+                        st.success("បានបន្ថែមសេវាកម្មថ្មីជោគជ័យ!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("សូមបញ្ចូលឈ្មោះសេវាកម្ម!")
 
     with ad_tab2:
         st.subheader("➕ បន្ថែមផលិតផលថ្មី")
