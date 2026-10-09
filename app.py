@@ -1,16 +1,13 @@
 import streamlit as st
 import requests
 import pandas as pd
-import math
-import html
-import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # ==========================================
 # 1. PAGE CONFIG & CUSTOM CSS
 # ==========================================
 st.set_page_config(
-    page_title="Ai-Cha - គ្រប់គ្រងស្តុក និងរបាយការណ៍ចំណាយ",
+    page_title="Ai-Cha - របាយការណ៍ និងគ្រប់គ្រងស្តុក",
     page_icon="🧋",
     layout="wide"
 )
@@ -20,10 +17,10 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&display=swap');
     * { font-family: 'Kantumruy Pro', sans-serif; }
     .stApp { background-color: #0f172a; color: #f8fafc; }
-    .metric-card {
+    .metric-box {
         background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         border: 1px solid #38bdf8;
-        padding: 18px;
+        padding: 20px;
         border-radius: 12px;
         text-align: center;
     }
@@ -37,21 +34,21 @@ APPS_SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "https://script.google.com/m
 API_SECRET_KEY = st.secrets.get("API_SECRET_KEY", "AICHA_SECURE_KEY_2026")
 
 @st.cache_data(ttl=10)
-def fetch_all_aicha_data():
+def fetch_aicha_data():
     try:
         res = requests.get(f"{APPS_SCRIPT_URL}?api_key={API_SECRET_KEY}", timeout=10)
         if res.status_code == 200:
             return res.json()
     except Exception as e:
-        st.error(f"Error loading data: {e}")
+        st.error(f"កំហុសក្នុងការទាញយកទិន្នន័យ៖ {e}")
     return {}
 
-data = fetch_all_aicha_data()
+data = fetch_aicha_data()
 
 # ==========================================
-# 3. NAVIGATION MENU
+# 3. SIDEBAR NAVIGATION
 # ==========================================
-st.sidebar.title("🧋 Ai-Cha Management")
+st.sidebar.title("🧋 Ai-Cha System")
 menu = st.sidebar.radio("ជ្រើសរើសទំព័រ៖", [
     "📊 Dashboard & Summary",
     "📦 Ingredient Master List",
@@ -63,29 +60,29 @@ menu = st.sidebar.radio("ជ្រើសរើសទំព័រ៖", [
 # 4. DASHBOARD & SUMMARY
 # ==========================================
 if menu == "📊 Dashboard & Summary":
-    st.title("📊 របាយការណ៍សង្ខេបប្រចាំខែ (Dashboard)")
+    st.title("📊 របាយការណ៍ចំណូល-ចំណាយប្រចាំខែ (Dashboard)")
     
-    fixed_costs = data.get("fixed_costs", 1595.0)  # Staff, Rent, Utilities, POS, etc.
+    fixed_costs = data.get("fixed_costs", 1595.0)
     usage_list = data.get("usage_tracker", [])
     sales_list = data.get("sales_tracker", [])
     
     # Calculate Total Ingredient Cost
-    total_ingredient_cost = sum([float(item.get("total_cost", 0)) for item in usage_list])
+    total_ingredient_cost = sum([float(item.get("total_cost", 0)) for item in usage_list if item.get("total_cost")])
     total_overall_cost = fixed_costs + total_ingredient_cost
     
-    # Calculate Total Sales Revenue
-    total_revenue = sum([float(item.get("total_revenue", 0)) for item in sales_list])
+    # Calculate Total Revenue
+    total_revenue = sum([float(item.get("total_revenue", 0)) for item in sales_list if item.get("total_revenue")])
     net_profit = total_revenue - total_overall_cost
     
-    # Display Cards
+    # Metric Display
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("ចំណូលលក់សរុប (Revenue)", f"${total_revenue:.2f}")
     c2.metric("ចំណាយថេរ (Fixed Costs)", f"${fixed_costs:.2f}")
-    c3.metric("ចំណាយគ្រឿងផ្សំ (Usage Cost)", f"${total_ingredient_cost:.2f}")
+    c3.metric("ចំណាយគ្រឿងផ្សំ (Ingredient Costs)", f"${total_ingredient_cost:.2f}")
     c4.metric("ចំណេញ/ខាត សុទ្ធ (Net Profit)", f"${net_profit:.2f}")
     
     st.markdown("---")
-    st.subheader("📌 ចំណាយថេរប្រចាំខែ (Fixed Operational Expenses)")
+    st.subheader("📌 ព័ត៌មានលម្អិតចំណាយថេរប្រចាំខែ (Fixed Operational Costs)")
     fixed_df = pd.DataFrame([
         {"Expense Category": "Staff (បុគ្គលិក ៤នាក់)", "Monthly Cost": "$800.00"},
         {"Expense Category": "Building Rent (ជួលអគារ)", "Monthly Cost": "$300.00"},
@@ -99,13 +96,14 @@ if menu == "📊 Dashboard & Summary":
 # 5. INGREDIENT MASTER LIST
 # ==========================================
 elif menu == "📦 Ingredient Master List":
-    st.title("📦 បញ្ជីថ្លៃដើមគ្រឿងផ្សំ (Ingredient Master List)")
+    st.title("📦 បញ្ជីថ្លៃដើមគ្រឿងផ្សំ (Ingredient & Cost Master List)")
     ingredients = data.get("ingredients", [])
+    
     if ingredients:
         df_ing = pd.DataFrame(ingredients)
         st.dataframe(df_ing, use_container_width=True)
     else:
-        st.info("មិនទាន់មានទិន្នន័យគ្រឿងផ្សំនៅឡើយទេ")
+        st.info("មិនទាន់មានទិន្នន័យគ្រឿងផ្សំទេ")
 
 # ==========================================
 # 6. DAILY USAGE TRACKER
@@ -114,21 +112,22 @@ elif menu == "📉 Daily Usage Tracker":
     st.title("📉 ការកត់ត្រាប្រើប្រាស់គ្រឿងផ្សំប្រចាំថ្ងៃ")
     
     ingredients = data.get("ingredients", [])
-    ing_names = [i["material_name"] for i in ingredients] if ingredients else []
+    ing_options = {i["material_name"]: i for i in ingredients} if ingredients else {}
     
     with st.form("add_usage_form"):
         u_date = st.date_input("កាលបរិច្ឆេទ", datetime.now().date())
-        u_material = st.selectbox("ជ្រើសរើសគ្រឿងផ្សំ", ing_names)
-        u_qty = st.number_input("ចំនួនប្រើប្រាស់ (Quantity Used)", min_value=0.1, step=0.1)
+        u_material = st.selectbox("ជ្រើសរើសគ្រឿងផ្សំ", list(ing_options.keys()) if ing_options else ["None"])
+        u_qty = st.number_input("ចំនួនប្រើប្រាស់ (Quantity Used)", min_value=0.01, step=0.1)
         u_unit = st.selectbox("ខ្នាត (Unit)", ["KG", "PCS"])
         
-        if st.form_submit_button("➕ កត់ត្រាការប្រើប្រាស់"):
-            # Find unit cost from master list
-            matched = next((i for i in ingredients if i["material_name"] == u_material), None)
+        if st.form_submit_button("➕ រក្សាទុកការប្រើប្រាស់"):
+            selected_ing = ing_options.get(u_material, {})
             unit_cost = 0.0
-            if matched:
-                unit_cost = float(matched.get("price_per_kg", 0) if u_unit == "KG" else matched.get("price_per_pcs", 0))
-            
+            if u_unit == "KG":
+                unit_cost = float(selected_ing.get("price_per_kg", 0) or 0)
+            else:
+                unit_cost = float(selected_ing.get("price_per_pcs", 0) or 0)
+                
             tot_cost = u_qty * unit_cost
             
             payload = {
@@ -159,7 +158,7 @@ elif menu == "📈 Daily Sales Tracker":
         s_price = st.number_input("តម្លៃ/កែវ ($)", min_value=0.0, step=0.25)
         s_qty = st.number_input("ចំនួនលក់ចេញ (Quantity Sold)", min_value=1, step=1)
         
-        if st.form_submit_button("➕ រក្សាទុកការលក់"):
+        if st.form_submit_button("➕ រក្សាទុកទិន្នន័យលក់"):
             tot_rev = s_price * s_qty
             payload = {
                 "api_key": API_SECRET_KEY,
